@@ -1,0 +1,1114 @@
+<script>
+	const findChildBy = (element, criteria  = {}) => {
+		let [property, value] = Object.entries(criteria)[0]
+
+		if (!element || property in element === false)
+			return null
+
+		value = property === 'tagName'
+			? value.toUpperCase()
+			: value
+
+		const target = element[`${property}`]
+		let condition = target === value
+
+		if (typeof target === 'object') {
+			const values = Object.keys(Object.fromEntries(Object.entries(target)))
+			condition = !!values?.length && values?.includes(value)
+		}
+
+		if (condition)
+			return element
+
+		for (let child of element.children) {
+			const match = findChildBy(child, criteria)
+			if (match) return match
+		}
+	}
+
+	const lightboxActions = {
+		create: (properties = {}) => {
+			const lightbox = document.createElement('div')
+
+			document.body.style.overflow = 'hidden'
+			lightbox.className = `lightbox`
+			lightbox.innerHTML = `
+				<div class="lightbox__overlay"></div>
+				<div class="lightbox__container">
+					<div class="lightbox__header">
+						<button class="lightbox__button lightbox__close">
+							<span>&times;</span>
+						</button>
+					</div>
+					<div class="lightbox__body">
+						<div class="lightbox__content"></div>
+					</div>
+					<div class="lightbox__footer">
+						<div class="lightbox__navigation">
+							<div class="lightbox__arrow lightbox__arrow--left">
+								<button class="lightbox__button lightbox__prev">
+									<span>&lsaquo;</span>
+								</button>
+							</div>
+							<div class="lightbox__arrow lightbox__arrow--right">
+								<button class="lightbox__button lightbox__next">
+									<span>&rsaquo;</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			`.trim()
+
+			const lbProps = Object.entries(properties)
+
+			if (!!lbProps?.length) {
+				const ignoreProps = [
+					'innerHTML',
+					'innerText',
+					'outerHTML',
+					'textContent',
+				]
+
+				lbProps.forEach(([prop, value]) => {
+					if (!ignoreProps.includes(prop))
+						lightbox[`${prop}`] = value
+				})
+			}
+
+			return lightbox
+		},
+		navigate: ({ index, lightbox, navigation }) => {
+			const lbNav = lightbox.querySelector('.lightbox__navigation'),
+				lbNext = lbNav.querySelector('.lightbox__arrow--right'),
+				lbPrev = lbNav.querySelector('.lightbox__arrow--left')
+
+			if (!!navigation.next) {
+				lbNext.prepend(navigation.next)
+				lbNext.setAttribute('data-position', index + 1)
+			} else {
+				lbNext.remove()
+			}
+
+			if (!!navigation.prev) {
+				lbPrev.append(navigation.prev)
+				lbPrev.setAttribute('data-position', index - 1)
+			} else {
+				lbPrev.remove()
+			}
+		},
+		reset: ({
+			activeClass = '',
+			isActive = false,
+			lightbox,
+		}) => {
+			const animationClass = 'lightbox--animated',
+				lbClasses = lightbox?.classList
+
+			if (lbClasses.contains(activeClass)) {
+				lbClasses.remove(animationClass)
+				lightbox?.offsetHeight
+			}
+
+			lbClasses.add(animationClass)
+
+			if (isActive) {
+				lbClasses.add(activeClass)
+				document.body.style.overflow = 'hidden'
+			} else {
+				lbClasses.remove(activeClass)
+				document.body.style.overflow = 'auto'
+			}
+		},
+		setup: ({
+			content,
+			index,
+			navigation = {},
+			properties = {},
+		}) => {
+			const lightbox = lightboxActions.create(properties)
+			lightbox.querySelector('.lightbox__content').innerHTML = content
+
+			lightboxActions.navigate({ index, lightbox, navigation })
+			lightboxActions.toggle({ lightbox })
+
+			return lightbox
+		},
+		toggle: ({ lightbox }) => {
+			const activeClass = 'lightbox--active',
+				lbClasses = lightbox?.classList
+
+			const lbCloseBtn = lightbox?.querySelector('.lightbox__close'),
+				lbOverlay = lightbox?.querySelector('.lightbox__overlay')
+
+			const hasLightbox = !!document.querySelectorAll('.lightbox').length,
+				resetArgs = { activeClass, lightbox }
+
+			let hasExecuted = false
+
+			const handleOpenLightbox = () =>  {
+				if (lightbox && lbClasses.contains(activeClass)) return
+
+				document.body.appendChild(lightbox)
+				lightboxActions.reset({ isActive: true, ...resetArgs })
+			}
+
+			const handleCloseLightbox = event => {
+				event.preventDefault()
+				event.stopPropagation()
+
+				if (!lightbox || (lightbox && !lbClasses.contains(activeClass))) return
+
+				lightboxActions.reset({ isActive: false, ...resetArgs })
+				lbOverlay.addEventListener('animationend', evt => {
+					evt.preventDefault()
+					evt.stopPropagation()
+
+					if (hasExecuted) return
+					hasExecuted = true
+
+					setTimeout(() => {
+						lightbox.remove()
+
+						if (!lightbox && hasExecuted)
+							hasExecuted = false
+					}, 800)
+
+					lbOverlay.removeEventListener('animationend', () => {})
+				})
+			}
+
+			handleOpenLightbox()
+
+			lbCloseBtn.onclick = event => handleCloseLightbox(event)
+			lbOverlay.onclick = event => handleCloseLightbox(event)
+		}
+	}
+
+	const getPage = ({ target }) => {
+		const linkEl = findChildBy(target, { tagName: 'a' })
+
+		if (!linkEl)
+			return { id: null, url: null }
+
+		const { hash, href } = linkEl,
+			[url] = href.split('#'),
+			id = hash.slice(1)
+
+		return { id, url }
+	}
+
+	const getBackground = () => {
+		const target = document.querySelector('.section-background')
+
+		if (!target?.children.length || !target.querySelector('img')) return
+
+		const background = document.createElement('div')
+
+		background.append(target)
+		background.classList.add('background', 'background--adjust')
+
+
+		const image = findChildBy(background, { tagName: 'img' }),
+			overlay = background.querySelector('.section-background-overlay')
+		console.log(overlay.style.opacity)
+		image.style.opacity = overlay.style.opacity
+
+		const container = document.querySelector('.content-wrapper')
+		container.prepend(background)
+
+		return background
+	}
+
+	const fetchContent = (url, id) => {
+		if (!id || !url) return
+
+		const separator = url.includes('?') ? '&' : '?',
+			htmlURL = `${url}${separator}format=html`
+
+		return fetch(htmlURL)
+			.then(response => {
+				if (!response.ok)
+					throw new Error('page not found')
+
+				return response.text()
+			}).then(html => {
+				const parser = new DOMParser(),
+					docu = parser.parseFromString(html, 'text/html')
+
+				const anchor = docu.getElementById(id),
+					container = anchor?.closest('.content').querySelector('.fluid-engine')
+
+				const content = container.innerHTML.trim()
+
+				return !!content?.length
+					? content
+					: '<p>No content found.</p>'
+			}).catch(err => console.error('error fetching page', err))
+	}
+
+	const wrapTrimEl = (targetEl, wrapTag = 'span') => {
+		const wrapEl = document.createElement(wrapTag),
+			trimEl = targetEl.innerHTML.replaceAll('<br>', '').trim()
+
+		wrapEl.innerHTML = trimEl
+
+		return wrapEl
+	}
+
+	// where the magic happens
+
+	const configureTemp = ({ cloneBlock = null, content }) => {
+		const blockClass = '.fe-block',
+			temp = document.createElement('div')
+
+		temp.innerHTML = content
+
+		if (!!cloneBlock)
+			temp.prepend(cloneBlock)
+
+		// if (!!cloneBlock && !temp.querySelector('[data-html]'))
+		// 	temp.prepend(cloneBlock)
+
+		temp.querySelectorAll(blockClass).forEach(block => blockActions.format(block))
+
+		return temp
+	}
+
+	const blockActions = {
+		configure: ({ index, target }) => {
+			const i = index + 1
+
+			const block = target.closest('.fe-block'),
+				cloneBlock = block.cloneNode(true)
+				// gridBlock = new Grid(i)
+
+			const blockStyles = {
+				// gridArea: gridBlock.Area.size,
+				order: i,
+			}
+
+			block.classList.add('portfolio')
+			block.setAttribute('data-index', i)
+			Object.assign(block.style, blockStyles)
+
+			const details = document.createElement('div'),
+				imageEl = findChildBy(target, { tagName: 'img' })
+
+			details.classList.add('portfolio__details')
+			imageEl.classList.add('portfolio__image')
+
+			return { block, cloneBlock, details }
+		},
+		format: block => {
+			const getChildBlocks = selector => block.querySelector(selector)?.children
+
+			const [type] = block.querySelector('.sqs-block')?.classList[1].split('-block')
+			let condition = null,
+				els = [],
+				html = ''
+
+			switch (type) {
+				case 'code':
+					els = getChildBlocks(`#${id}`)
+					break
+				case 'html':
+					els = getChildBlocks('.sqs-html-content')
+					condition = !(els?.length === 1  && ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(els[0].tagName))
+					break
+				case 'image':
+					[els] = getChildBlocks('[data-animation-role]')
+					html = findChildBy(els, { tagName: 'img' })
+					break
+				case 'video':
+					els = block.querySelector('[data-html]')
+					html = els?.dataset?.html.trim()
+					break
+			}
+
+			if (typeof condition !== 'boolean')
+				condition = typeof els === 'array'
+					? !!els?.length
+					: !!els
+
+			if (!!condition) {
+				block.classList.add(`lightbox__${type}`)
+
+				if (!html) return
+				els.innerHTML = ''
+
+				switch (typeof html) {
+					case 'object':
+						return els.appendChild(html)
+					case 'string':
+						return (els.innerHTML = html)
+				}
+			}
+
+			block.remove()
+		},
+		getTitle: async (blocks, i, isWrapped = true) => {
+			if (!blocks[i]) return null
+
+			const args = { index: i, target: blocks[i] }
+			const { id, url } = getPage(args)
+
+			return await fetchContent(url, id).then(content => {
+				const selector = '[data-sqsp-text-block-content]',
+					temp = configureTemp({ content }),
+					title = findChildBy(temp.querySelector(selector), { tagName: 'strong' })
+
+				return isWrapped
+					? wrapTrimEl(title, 'span')
+					: title
+			})
+		}
+	}
+
+	document.addEventListener('DOMContentLoaded', () => {
+		const blocks = document.querySelectorAll('.fluid-image-container')
+		getBackground()
+
+		blocks.forEach(async (current, index) => {
+			const args = { index, target: current }
+
+			const { block, cloneBlock, details } = blockActions.configure(args)
+			const { id, url } = getPage(args)
+
+			const data = await fetchContent(url, id).then(async content => {
+				const temp = configureTemp({ cloneBlock, content }),
+					title = await blockActions.getTitle(blocks, index, false),
+					newTitle = wrapTrimEl(title, 'span')
+
+				details.appendChild(newTitle)
+				block.appendChild(details)
+
+				return { temp, title }
+			})
+
+			const handleLightbox = ({ temp, title }) => current.addEventListener(
+				'click', async event => {
+					event.preventDefault()
+					let lightbox
+
+					if (temp.contains(title)) {
+						const newTitle = wrapTrimEl(title, 'strong')
+						title.replaceWith(newTitle)
+					}
+
+					lightbox = lightboxActions.setup({
+						content: temp.innerHTML,
+						index,
+						navigation: {
+							next: await blockActions.getTitle(blocks, index + 1),
+							prev: await blockActions.getTitle(blocks, index - 1),
+						},
+					})
+
+					return lightbox
+				})
+
+			handleLightbox(data)
+		})
+	})
+
+	// class Dimensions {
+	// 	constructor(index, init, span) {
+	// 		this.index = index
+	// 		this.init = init
+	// 		this.span = span
+	// 	}
+
+	// 	get start() {
+	// 		return this.init + (this.span * this.index)
+	// 	}
+
+	// 	get end() {
+	// 		return this.start + this.span
+	// 	}
+	// }
+
+	// class Grid {
+	// 	constructor(
+	// 		index = 1,
+	// 		colInit = 5,
+	// 		colSpan = 6,
+	// 		rowInit = 4,
+	// 		rowSpan = 4
+	// 	) {
+	// 		this._index = index
+	// 		this.Column = new Dimensions(index, colInit, colSpan)
+	// 		this.Row = new Dimensions(index, rowInit, rowSpan)
+	// 	}
+
+	// 	get Area() {
+	// 		const col = this.Column,
+	// 			row = this.Row,
+	// 			areaStart = `${row.start} / ${col.start}`
+
+	// 		return {
+	// 			get layout() {
+	// 				return `${areaStart} / span ${row.span} / span ${col.span}`;
+	// 			},
+	// 			get size() {
+	// 				return `${areaStart} / ${row.end} / ${col.end}`;
+	// 			}
+	// 		}
+	// 	}
+	// }
+</script>
+
+
+<style>
+	:root {
+		--ease-in-cubic: cubic-bezier(.32, 0, .67, 0);
+		--ease-in-quad: cubic-bezier(.11, 0, .5, 0);
+		--ease-in-quart: cubic-bezier(.5, 0, .75, 0);
+		--ease-in-sine: cubic-bezier(.12, 0, .39, 0);
+
+		--ease-out-cubic: cubic-bezier(.33, 1, .68, 1);
+		--ease-out-quad: cubic-bezier(.5, 1, .89, 1);
+		--ease-out-quart: cubic-bezier(.25, 1, .5, 1);
+		--ease-out-sine: cubic-bezier(.61, 1, .88, 1);
+
+		--ease-in-out-back: cubic-bezier(.34, 1.56, .64, 1);
+		--ease-in-out-quad: cubic-bezier(.45, 0, .55, 1);
+		--ease-in-out-sine: cubic-bezier(.37, 0, .63, 1);
+	}
+
+	.lightbox,
+	.portfolio {
+		--dt-border-radius: .375rem;
+		--dt-button-size: 1.75rem;
+		--dt-col-span: 2;
+		--dt-gap: 1.75rem;
+		--dt-letter-spacing: .875px;
+		--dt-media-size: 30vh;
+
+		--dt-pos-fade: 25%;
+		--dt-neg-fade: calc(-1 * var(--dt-pos-fade));
+
+		--dt-fade-base: translate3d(0, 0, 0);
+		--dt-fade-down: translate3d(0, var(--dt-neg-fade), 0);
+		--dt-fade-left: translate3d(calc(.75 * var(--dt-neg-fade)), 0, 0);
+		--dt-fade-right: translate3d(calc(.75 * var(--dt-pos-fade)), 0, 0);
+		--dt-fade-up: translate3d(0, var(--dt-pos-fade), 0);
+
+		@media screen and (min-width: 768px) {
+			--dt-col-span: 3;
+			--dt-gap: 2.5rem;
+			--dt-media-size: 40vh;
+		}
+	}
+
+	.lightbox {
+		/* --grid-gutter: calc(var(--sqs-site-gutter, 4vw) - 1.0px);
+        --cell-max-width: calc((var(--sqs-site-max-width, 1500px) - (1.0px * (24 - 1))) / 24);
+        --inset-padding: 0vw;
+        --row-height-scaling-factor: .0215;
+        --container-width: min(var(--sqs-site-max-width, 1500px), calc(100vw - var(--sqs-site-gutter, 4vw) * 2 - var(--inset-padding))); */
+
+		--grid-gutter: calc(var(--sqs-site-gutter, 4vw) - 24.0px);
+        --cell-max-width: calc((var(--sqs-site-max-width, 1500px) - (24.0px * (24 - 1))) / 24);
+        --inset-padding: 0vw;
+        --row-height-scaling-factor: .0215;
+        --container-width: min(var(--sqs-site-max-width, 1500px), calc(100vw - var(--sqs-site-gutter, 4vw) * 2 - var(--inset-padding)));
+
+
+		display: grid;
+		gap: 20px 24px;
+        grid-template-columns: minmax(var(--grid-gutter), 1fr) repeat(24, minmax(0, var(--cell-max-width))) minmax(var(--grid-gutter), 1fr);
+        grid-template-rows: repeat(28, minmax(calc(var(--container-width) * var(--row-height-scaling-factor)), auto));
+	}
+
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes fadeInLeft {
+		0% {
+			opacity: 0;
+			transform: var(--dt-fade-left);
+		}
+
+		80% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 1;
+			transform: var(--dt-fade-base);
+		}
+	}
+
+	@keyframes fadeInRight {
+		0% {
+			opacity: 0;
+			transform: var(--dt-fade-right);
+		}
+
+		80% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 1;
+			transform: var(--dt-fade-base);
+		}
+	}
+
+	@keyframes fadeInUp {
+		0% {
+			opacity: 0;
+			transform: var(--dt-fade-up);
+		}
+
+		80% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 1;
+			transform: var(--dt-fade-base);
+		}
+	}
+
+	/* html:not(:has(.lightbox)) {
+		overflow-y: scroll;
+	} */
+
+	body {
+		scrollbar-gutter: stable;
+		scrollbar-width: none;
+		/* overflow-y: scroll; */
+
+		&:not(:has(.lightbox)) {
+			overflow-y: scroll;
+		}
+	}
+
+	body::-webkit-scrollbar {
+		display: none;
+	}
+
+	/* `.background > .section-background` prevents flash of unstyled content */
+	.section-background {
+		opacity: 0;
+	}
+
+	.background {
+		height: 100%;
+		inset-block: 0;
+		overflow: hidden;
+	    pointer-events: none;
+		position: fixed;
+
+		&,
+		.section-background {
+			inset-inline: 0;
+			width: 100%;
+		}
+
+		.section-background {
+			height: 35vh;
+			opacity: 1;
+			position: absolute;
+			top: 13.5%;
+			z-index: 0;
+		}
+	}
+
+	/*	portfolio items
+		------------------- */
+
+	.portfolio {
+		position: relative;
+
+		&:hover .portfolio__details {
+			transition-delay: 0s;
+
+			&,
+			& > * {
+				opacity: 1;
+			}
+
+			& > * {
+				transition-delay: .125s;
+			}
+		}
+	}
+
+	.portfolio__details {
+		background-color: rgba(0, 0, 0, .35);
+		bottom: 0;
+		padding: .125rem .25rem 0;
+		pointer-events: none;
+		position: absolute;
+		text-align: center;
+		transition-delay: .125s;
+		width: 100%;
+		z-index: 25;
+
+		&,
+		& > * {
+			opacity: 0;
+			transition: opacity .5s var(--ease-in-out-quad);
+		}
+
+		& > * {
+			display: block;
+			font-size: calc(.675 * var(--base-font-size));
+			font-weight: 500;
+			letter-spacing: var(--dt-letter-spacing);
+			transition-delay: 0s;
+		}
+	}
+
+	/* Darken image on hover */
+	.portfolio__image {
+		filter: brightness(80%);
+		transition: filter .2s ease;
+
+		&:hover img {
+			filter: brightness(100%);
+		}
+	}
+
+	/*	lightbox
+		------------------- */
+
+	.lightbox {
+		overflow-x: clip;
+		z-index: 9999;
+
+		&:not(.lightbox--animated) {
+			/* structure */
+			.lightbox__body,
+			.lightbox__container,
+			.lightbox__overlay,
+			/* buttons */
+			.lightbox__button  {
+				opacity: 1;
+			}
+
+			.lightbox__body,
+			.lightbox__container {
+				transform: var(--dt-fade-base);
+			}
+		}
+
+		&.lightbox--animated {
+			--dt-lb-delay-body: .1125s;
+			--dt-lb-time-btn: .2s;
+
+			/* structure */
+			.lightbox__body,
+			.lightbox__container,
+			.lightbox__overlay,
+			/* buttons */
+			.lightbox__button {
+				animation-fill-mode: forwards;
+			}
+
+			.lightbox__arrow > span,
+			.lightbox__button,
+			.lightbox__overlay {
+				animation-name: fadeIn;
+			}
+
+			.lightbox__button {
+				&.lightbox__next {
+					animation-name: fadeInLeft;
+				}
+
+				&.lightbox__prev {
+					animation-name: fadeInRight;
+				}
+			}
+
+			/* .lightbox__arrow--left > span {
+				animation-name: fadeInRight;
+			}
+
+			.lightbox__arrow--right > span {
+				animation-name: fadeInLeft;
+			} */
+
+			.lightbox__body,
+			.lightbox__container {
+				animation-duration: .625s;
+				animation-name: fadeInUp;
+			}
+
+			.lightbox__container {
+				animation-delay: 0s;
+			}
+
+			.lightbox__overlay {
+				animation-timing-function: var(--ease-in-out-back);
+			}
+
+			.lightbox__button  {
+				animation-duration: .425s;
+				animation-timing-function: var(--ease-in-out-sine);
+			}
+
+			&:not(.lightbox--active) {
+				/* structure */
+				.lightbox__body,
+				.lightbox__container,
+				.lightbox__overlay,
+				/* buttons */
+				.lightbox__button  {
+					animation-direction: reverse;
+					opacity: 1;
+				}
+
+				.lightbox__body,
+				.lightbox__container {
+					transform: var(--dt-fade-base);
+				}
+
+				.lightbox__body {
+					animation-delay: calc(var(--dt-lb-time-btn) + var(--dt-lb-delay-body));
+					animation-timing-function: var(--ease-out-quad);
+				}
+
+				.lightbox__container {
+					animation-timing-function: var(--ease-out-quart);
+				}
+
+				.lightbox__overlay {
+					animation-delay: .525s;
+				}
+
+				.lightbox__button  {
+					animation-delay: 0s;
+
+					&.lightbox__next,
+					&.lightbox__prev {
+						animation-delay: var(--dt-lb-time-btn);
+					}
+				}
+			}
+
+			&.lightbox--active {
+				/* structure */
+				.lightbox__body,
+				.lightbox__container,
+				.lightbox__overlay,
+				/* buttons */
+				.lightbox__button {
+					animation-direction: normal;
+					opacity: 0;
+				}
+
+				.lightbox__body,
+				.lightbox__container {
+					transform: var(--dt-fade-up);
+				}
+
+				.lightbox__body {
+					animation-delay: var(--dt-lb-delay-body);
+					animation-timing-function: var(--ease-in-quad);
+				}
+
+				.lightbox__container {
+					animation-timing-function: var(--ease-in-quart);
+				}
+
+				.lightbox__overlay {
+					animation-delay: 0s;
+				}
+
+				.lightbox__button {
+					animation-delay: .65s;
+
+					&.lightbox__next,
+					&.lightbox__prev {
+						animation-delay: .85s;
+					}
+
+					&.lightbox__next {
+						transform: var(--dt-fade-left);
+					}
+
+					&.lightbox__prev {
+						transform: var(--dt-fade-right);
+					}
+				}
+			}
+		}
+
+		&,
+		.lightbox__container,
+		.lightbox__overlay {
+			inset: 0;
+			margin: auto;
+		}
+
+		&,
+		.lightbox__overlay {
+			height: 100%;
+			position: fixed;
+			width: 100%;
+		}
+
+		.lightbox__content,
+		.lightbox__container {
+			display: flex;
+			flex-direction: column;
+			position: relative;
+		}
+
+		.lightbox__content {
+			gap: calc(.75 * var(--dt-gap)) var(--dt-gap);
+
+			@media screen and (min-width: 768px) {
+				display: grid;
+				grid-template-columns: repeat(var(--dt-col-span), 1fr);
+				row-gap: calc(.625 * var(--dt-gap));
+			}
+		}
+
+		.lightbox__container {
+			background-color: var(--siteBackgroundColor);
+			border-radius: var(--dt-border-radius);
+			/* grid-area: 1 / 5 / -4 / 23; */
+			grid-area: 4 / 5 / 20 / 23;
+			overflow: hidden;
+			padding: var(--dt-gap);
+			width: 90%;
+			z-index: 10;
+		}
+
+		.lightbox__overlay {
+			background-color: rgba(0, 0, 0, .35);
+			z-index: 5;
+		}
+
+		.lightbox__header,
+		.lightbox__footer {
+			display: flex;
+			width: 100%;
+		}
+
+		.lightbox__header {
+			text-align: right;
+		}
+
+		.lightbox__navigation {
+			display: flex;
+			flex: 1 100%;
+			justify-content: space-between;
+			padding-top: calc(.375 * var(--dt-gap));
+		}
+
+		.lightbox__arrow,
+		.lightbox__button {
+			align-items: center;
+			display: flex;
+			padding: 0;
+			z-index: 5;
+
+			&,
+			& > span {
+				cursor: pointer;
+				position: relative;
+			}
+
+			&.lightbox__arrow--left,
+			&.lightbox__prev {
+				justify-content: flex-start;
+			}
+
+			&.lightbox__arrow--right,
+			&.lightbox__next {
+				justify-content: flex-end;
+			}
+
+			& > span {
+				display: block;
+				letter-spacing: calc(1.5 * var(--dt-letter-spacing));
+				z-index: 3;
+			}
+		}
+
+		.lightbox__arrow {
+			&:only-child {
+				flex: 1 1 100%;
+			}
+
+			&.lightbox__arrow--left > span {
+				transform: var(--dt-fade-left);
+			}
+
+			&.lightbox__arrow--right > span {
+				transform: var(--dt-fade-right);
+			}
+
+			& > span {
+				font-size: calc(.5 * var(--base-font-size));
+				line-height: 1;
+				margin-top: 1.125rem;
+				opacity: 0;
+				transition: opacity .35s var(--ease-in-out-quad) .11s,
+					transform .25s var(--ease-in-out-quad) .055s;
+
+				&:hover {
+					font-style: italic;
+				}
+			}
+
+			&:hover > span {
+				opacity: .5;
+				transform: var(--dt-fade-base);
+				transition: opacity .25s var(--ease-in-out-quad) .055s,
+					transform .35s var(--ease-in-out-quad) .11s;
+			}
+		}
+
+		.lightbox__button {
+			--dt-button-dimension: calc(.75 * var(--dt-button-size));
+
+			background: none;
+			border: none;
+			color: inherit;
+			opacity: 0;
+			width: var(--dt-button-dimension);
+
+			&,
+			& > span {
+				height: var(--dt-button-dimension);
+				font-size: var(--dt-button-size);
+				line-height: var(--dt-button-size);
+			}
+
+			&.lightbox__next,
+			&.lightbox__prev {
+				--dt-button-size: 2.5rem;
+
+				& > span {
+					opacity: .875;
+				}
+			}
+
+			&.lightbox__close {
+				position: absolute;
+				right: .5rem;
+				top: .375rem;
+
+				& > span {
+					opacity: .75;
+				}
+			}
+
+			& > span {
+				background-color: var(--siteBackgroundColor);
+				transition: opacity var(--dt-lb-time-btn) var(--ease-in-out-quad);
+			}
+
+			&:hover > span {
+				opacity: 1;
+			}
+		}
+
+		.fe-block {
+			&.lightbox__html {
+				letter-spacing: var(--dt-letter-spacing);
+
+				@media screen and (min-width: 768px) {
+					&:nth-last-child(2) {
+						grid-column: 1 / span 2;
+					}
+
+					&:nth-last-child(1) {
+						/* background-color: var(--menuOverlayBackgroundColor); */
+						background-color: rgba(0, 0, 0, .35);
+						border-radius: var(--dt-border-radius);
+						grid-column: 3 / span 1;
+						padding: calc(.25 * var(--dt-gap)) calc(.5 * var(--dt-gap));
+					}
+				}
+
+				p {
+					margin-block: .625rem;
+					white-space: normal !important;
+
+					&:first-child,
+					&:only-child {
+						margin-top: 0;
+					}
+
+					&:last-child,
+					&:only-child {
+						margin-bottom: 0;
+					}
+
+					&:only-child {
+						line-height: 1.75;
+					}
+
+					&:not(:has(> strong)) {
+						font-size: calc(.75 * var(--base-font-size));
+						font-weight: 100;
+					}
+
+					&:has(> strong) {
+						font-size: calc(.89 * var(--base-font-size));
+					}
+
+					strong {
+						display: block;
+					}
+				}
+			}
+
+			&.lightbox__image,
+			&.lightbox__video {
+				@media screen and (min-width: 768px) {
+					grid-area: 1 / 1 / var(--dt-col-span) / 4;
+				}
+			}
+
+			&.lightbox__image {
+				&:has(+ .lightbox__video) {
+					animation: fadeIn 1.75s var(--ease-out-sine) 1s reverse forwards;
+						/* ease-out-sine */
+					pointer-events: none;
+					position: absolute;
+					width: 100%;
+					z-index: 20;
+				}
+
+				.fluid-image-container {
+					min-height: var(--dt-media-size);
+				}
+			}
+
+			&.lightbox__video {
+				animation: fadeIn 1.75s var(--ease-in-sine) .5s forwards;
+				overflow-y: hidden;
+				position: relative;
+    			z-index: 10;
+
+				.embed-block-wrapper,
+				.intrinsic,
+				.sqs-video-wrapper {
+					max-height: var(--dt-media-size);
+				}
+			}
+		}
+
+		.sqs-block {
+			padding: 0;
+		}
+	}
+</style>
