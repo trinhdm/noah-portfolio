@@ -11,12 +11,12 @@ const template = `
 		</div>
 		<div class="lightbox__footer">
 			<div class="lightbox__navigation">
-				<div class="lightbox__arrow lightbox__arrow--left">
+				<div class="lightbox__arrow lightbox__arrow--prev">
 					<button class="lightbox__button lightbox__prev">
 						<span>&lsaquo;</span>
 					</button>
 				</div>
-				<div class="lightbox__arrow lightbox__arrow--right">
+				<div class="lightbox__arrow lightbox__arrow--next">
 					<button class="lightbox__button lightbox__next">
 						<span>&rsaquo;</span>
 					</button>

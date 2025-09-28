@@ -153,31 +153,35 @@ export class Lightbox {
 
 
 	private navigate(): void {
-		const navEl = this.lightbox.querySelector('.lightbox__navigation'),
-			next = navEl?.querySelector('.lightbox__arrow--right'),
-			prev = navEl?.querySelector('.lightbox__arrow--left')
+		const directions = (Object.keys(this.navigation) as (keyof ArrowsGroup)[])
 
-		if (!Object.keys(this.navigation).length) return
-		const navItems = this.navigation as ArrowsGroup
+		if (!directions.length) return
 
-		console.log(typeof navItems.next === 'string' && !(navItems.next instanceof HTMLElement))
+		const setArrow = (direction: 'next' | 'prev', i: number) => {
+			const navigation = this.lightbox.querySelector('.lightbox__navigation'),
+				arrow = navigation?.querySelector(`.lightbox__arrow--${direction}`),
+				text = (this.navigation as ArrowsGroup)[`${direction}`]
 
-		if (!!next) {
-			if (!!navItems.next) {
-				next.prepend(navItems.next)
-				next.setAttribute('data-position', `${this.index + 1}`)
+			if (arrow && text) {
+				let j
+				const item = document.createElement('span')
+				item.textContent = text
+
+				if (i % 2 === 0) {
+					arrow.prepend(item)
+					j = this.index - 1
+				}
+				else {
+					arrow.append(item)
+					j = this.index + 1
+				}
+
+				arrow.setAttribute('data-position', `${j}`)
 			} else {
-				next.remove()
+				arrow?.remove()
 			}
 		}
 
-		if (!!prev) {
-			if (!!navItems.prev) {
-				prev.append(navItems.prev)
-				prev.setAttribute('data-position', `${this.index - 1}`)
-			} else {
-				prev.remove()
-			}
-		}
+		directions.forEach((direction, i) => setArrow(direction, i))
 	}
 }
