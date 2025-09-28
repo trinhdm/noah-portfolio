@@ -1,8 +1,8 @@
 
 import './global/utils.ts'
 import './global/fetch.ts'
-import './portfolio/block.ts'
-import './portfolio/lightbox'
+// import './portfolio/block/block.ts'
+import './portfolio'
 
 import './global/global.css'
 import './portfolio/portfolio.css'
