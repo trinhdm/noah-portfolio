@@ -1,0 +1,19 @@
+
+
+.block__plyr {
+	grid-area: 10 / 2 / 16 / 26;
+}
+
+.block__html {
+	.title {
+		grid-area: 9 / 2 / 10 / 14;
+	}
+
+	.subtitle {
+		grid-area: 9 / 2 / 10 / 14;
+	}
+
+	.description {
+		grid-area: 7 / 16 / 10 / 26;
+	}
+}
