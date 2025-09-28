@@ -1,11 +1,12 @@
-import { fetchContent, getPage } from '../global/fetch.ts'
-import { getBackground, wrapTrimEl } from '../global/utils.ts'
-import { blockActions } from './block.ts'
+import { fetchContent, getPage } from '../../global/fetch.ts'
+import { getBackground, wrapTrimEl } from '../../global/utils.ts'
+import { blockActions } from '../block.ts'
 import { lightboxActions } from './lightbox.ts'
-// import './portfolio.css'
 
 
 type LightboxGroup = {
+	block: HTMLElement
+	index:  number
 	temp: HTMLDivElement
 	title: HTMLElement
 }
@@ -34,10 +35,8 @@ export const configureTemp = ({ cloneBlock, content, id }: {
 	return temp
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
 	const blocks = document.querySelectorAll('.fluid-image-container')
-	getBackground()
 
 	blocks.forEach(async (current, index) => {
 		const args = {
@@ -98,5 +97,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 	blockActions.style()
+	getBackground()
 })
-

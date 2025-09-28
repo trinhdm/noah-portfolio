@@ -2,12 +2,10 @@
 import './global/utils.ts'
 import './global/fetch.ts'
 import './portfolio/block.ts'
-import './portfolio/lightbox.ts'
-import './portfolio/onLoad.ts'
+import './portfolio/lightbox'
 
-import './global/global.css';
-import './portfolio/portfolio.css';
-import './portfolio/lightbox.css';
+import './global/global.css'
+import './portfolio/portfolio.css'
 
 
 

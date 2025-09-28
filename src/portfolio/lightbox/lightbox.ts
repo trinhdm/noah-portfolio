@@ -1,33 +1,19 @@
 import template from './template'
+import type {
+	ArrowsGroup,
+	CreateGroup,
+	NavigateGroup,
+	ResetGroup,
+	SetupGroup,
+	ToggleGroup
+} from './lightbox.types'
 
 
-type ArrowsGroup =  {
-	next: string
-	prev: string
-}
-
-type LightboxGroup <T extends HTMLElement = HTMLDivElement> = {
-	activeClass: string
-	content: string
-	index: number
-	isActive: boolean
-	lightbox: HTMLDivElement
-	navigation: {} | ArrowsGroup
-	properties: {} | Record<keyof T, T[keyof T]>
-}
-
-type CreateGroup = Pick<LightboxGroup,'properties'>['properties']
-type NavigateGroup = Pick<LightboxGroup, 'index' | 'lightbox' | 'navigation'>
-type ResetGroup = Pick<LightboxGroup, 'activeClass' | 'isActive' | 'lightbox'>
-type SetupGroup = Pick<LightboxGroup, 'content' | 'index' | 'navigation' | 'properties'>
-type ToggleGroup = Pick<LightboxGroup, 'lightbox'>
-
-
-
+//	creates lightbox for portfolio page
 const createLightbox = (properties: CreateGroup = {}) => {
 	const lightbox = document.createElement('div')
 
-	lightbox.className = `lightbox`
+	lightbox.className = 'lightbox'
 	lightbox.innerHTML = template.trim()
 
 	const lbProps = Object.entries(properties)
@@ -78,7 +64,7 @@ const setupLightbox = ({
 
 		setTimeout(() => {
             iframe.src = `${videoSrc}&autoplay=1&origin`
-        }, 100)
+        }, 50)
 
 		lbImage.removeEventListener('animationend', () => {})
 	})
