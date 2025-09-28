@@ -2,183 +2,182 @@ import template from './template'
 import type {
 	ArrowsGroup,
 	CreateGroup,
-	NavigateGroup,
-	ResetGroup,
 	SetupGroup,
-	ToggleGroup
 } from './lightbox.types'
 
 
-//	creates lightbox for portfolio page
-const createLightbox = (properties: CreateGroup = {}) => {
-	const lightbox = document.createElement('div')
+export class Lightbox {
+	private activeClass: string = 'lightbox--active'
+	private classList: DOMTokenList
+	private index: number = 0
+	private isActive: boolean = false
+	private lightbox: HTMLElement
+	private navigation: ArrowsGroup | {} = {}
 
-	lightbox.className = 'lightbox'
-	lightbox.innerHTML = template.trim()
 
-	const lbProps = Object.entries(properties)
+	constructor({
+		content,
+		index,
+		navigation = {},
+		properties = {}
+	}: SetupGroup) {
+		this.lightbox = this.create(properties)
+		this.classList = this.lightbox?.classList
 
-	if (!!lbProps?.length) {
-		const ignoreProps = [
-			'innerHTML',
-			'innerText',
-			'outerHTML',
-			'textContent',
-		]
+		this.index = index
+		this.navigation = navigation
 
-		lbProps.forEach(([prop, value]) => {
-			if (!ignoreProps.includes(prop) )
-				(lightbox as any)[`${prop}`] = value
-		})
+		const contentEl = this.lightbox.querySelector('.lightbox__content')
+
+		if (contentEl)
+			contentEl.innerHTML = content
+
+		this.navigate()
+		this.bind()
 	}
 
-	return lightbox
-}
 
+	//	-------------------------
+	//	external methods
+	//	-------------------------
 
-const setupLightbox = ({
-	content,
-	index,
-	navigation = {},
-	properties = {},
-}: SetupGroup) => {
-	const lightbox = lightboxActions.create(properties)
-	lightbox.querySelector('.lightbox__content')!.innerHTML = content
+	public open(): void {
+		if (this.isActive) return
 
-	lightboxActions.navigate({ index, lightbox, navigation })
-	lightboxActions.toggle({ lightbox })
+		this.isActive = true
+		this.reset()
+		this.classList.add(this.activeClass)
 
-	const lbImage = lightbox.querySelector('.lightbox__image') as HTMLElement,
-		lbVideo = lightbox.querySelector('.lightbox__video') as HTMLElement
-
-	lbImage.addEventListener('animationend', (evt: AnimationEvent) => {
-		evt.preventDefault()
-		evt.stopPropagation()
-
-		const iframe = lbVideo?.querySelector('iframe')
-
-		if (!lbVideo || !iframe) return
-
-        const videoSrc = iframe.src
-		lbImage.remove()
-
-		setTimeout(() => {
-            iframe.src = `${videoSrc}&autoplay=1&origin`
-        }, 50)
-
-		lbImage.removeEventListener('animationend', () => {})
-	})
-
-	return lightbox
-}
-
-
-const renderNavigation = ({ index, lightbox, navigation = {} }: NavigateGroup) => {
-	const navEl = lightbox.querySelector('.lightbox__navigation'),
-		next = navEl?.querySelector('.lightbox__arrow--right'),
-		prev = navEl?.querySelector('.lightbox__arrow--left')
-
-	if (!Object.keys(navigation).length) return
-	const navItems = navigation as ArrowsGroup
-
-	if (!!next) {
-		if (!!navItems.next) {
-			next.prepend(navItems.next)
-			next.setAttribute('data-position', `${index + 1}`)
-		} else {
-			next.remove()
-		}
-	}
-
-	if (!!prev) {
-		if (!!navItems.prev) {
-			prev.append(navItems.prev)
-			prev.setAttribute('data-position', `${index - 1}`)
-		} else {
-			prev.remove()
-		}
-	}
-}
-
-
-const resetAnimations = ({
-	activeClass = '',
-	isActive = false,
-	lightbox,
-}: ResetGroup) => {
-	const animationClass = 'lightbox--animated',
-		lbClasses = lightbox?.classList
-
-	if (lbClasses.contains(activeClass)) {
-		lbClasses.remove(animationClass)
-		lightbox?.offsetHeight
-	}
-
-	lbClasses.add(animationClass)
-
-	if (isActive) {
-		lbClasses.add(activeClass)
 		document.body.style.overflow = 'hidden'
-	} else {
-		lbClasses.remove(activeClass)
-		document.body.style.overflow = 'auto'
-	}
-}
+		document.body.appendChild(this.lightbox)
 
-
-const toggleLightbox = ({ lightbox }: ToggleGroup) => {
-	const activeClass = 'lightbox--active',
-		lbClasses = lightbox?.classList
-
-	const lbCloseBtn = lightbox?.querySelector('.lightbox__close')! as HTMLElement,
-		lbOverlay = lightbox?.querySelector('.lightbox__overlay')! as HTMLElement
-
-	const resetArgs = { activeClass, lightbox }
-	let hasExecuted = false
-
-	const handleOpenLightbox = () =>  {
-		if (lightbox && lbClasses.contains(activeClass)) return
-
-		document.body.appendChild(lightbox)
-		lightboxActions.reset({ isActive: true, ...resetArgs })
+		console.log('OPEN')
 	}
 
-	const handleCloseLightbox = (event: MouseEvent) => {
-		event.preventDefault()
-		event.stopPropagation()
+	public close(): void {
+		const overlay = this.lightbox.querySelector('.lightbox__overlay')
 
-		if (!lightbox || (lightbox && !lbClasses.contains(activeClass))) return
+		if (!this.isActive || !overlay) return
 
-		lightboxActions.reset({ isActive: false, ...resetArgs })
-		lbOverlay.addEventListener('animationend', (evt: AnimationEvent) => {
-			evt.preventDefault()
-			evt.stopPropagation()
+		this.isActive = false
+		this.reset()
 
-			if (hasExecuted) return
-			hasExecuted = true
+		const onAnimateOverlay = (event: AnimationEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
+
+			this.classList.remove(this.activeClass)
+			document.body.style.overflow = 'auto'
+
+			setTimeout(() => this.lightbox.remove(), 800)
+
+			console.log('CLOSE')
+
+			overlay.removeEventListener('animationend', onAnimateOverlay as EventListener)
+		}
+
+		overlay.addEventListener('animationend', onAnimateOverlay as EventListener)
+	}
+
+
+	public toggle(): void {
+		this.isActive ? this.close() : this.open()
+	}
+
+
+	//	-------------------------
+	//	internal methods
+	//	-------------------------
+
+	private reset(): void {
+		const animationClass = 'lightbox--animated'
+
+		this.classList.remove(animationClass)
+		void this.lightbox?.offsetHeight
+		this.classList.add(animationClass)
+		console.log('reset')
+	}
+
+	private create(properties: CreateGroup): HTMLElement {
+		const lightbox = document.createElement('div')
+
+		lightbox.className = 'lightbox'
+		lightbox.innerHTML = template.trim()
+
+		const props = Object.entries(properties)
+
+		if (!!props?.length) {
+			const ignoreProps = [
+				'innerHTML',
+				'innerText',
+				'outerHTML',
+				'textContent',
+			]
+
+			props.forEach(([prop, value]) => {
+				if (!ignoreProps.includes(prop))
+					(lightbox as any)[`${prop}`] = value
+			})
+		}
+
+		return lightbox
+	}
+
+	private bind(): void {
+		const closeBtn: HTMLElement = this.lightbox.querySelector('.lightbox__close')!,
+			overlay: HTMLElement = this.lightbox.querySelector('.lightbox__overlay')!
+
+		closeBtn.onclick = () => this.close()
+		overlay.onclick = () => this.close()
+
+		const image = this.lightbox.querySelector('.lightbox__image'),
+			video = this.lightbox.querySelector('.lightbox__video'),
+			iframe = video?.querySelector('iframe')
+
+		if (!image || !iframe) return
+
+		const onAnimateImage = (event: AnimationEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
 
 			setTimeout(() => {
-				lightbox.remove()
+				image.remove()
+				// iframe.src = `${iframe.src}&autoplay=1&origin`
+			}, 100)
 
-				if (!lightbox && hasExecuted)
-					hasExecuted = false
-			}, 800)
+			image.removeEventListener('animationend', onAnimateImage as EventListener)
+		}
 
-			lbOverlay.removeEventListener('animationend', () => {})
-		})
+		image.addEventListener('animationend', onAnimateImage as EventListener)
 	}
 
-	handleOpenLightbox()
 
-	lbCloseBtn.onclick = (event: MouseEvent) => handleCloseLightbox(event)
-	lbOverlay.onclick = (event: MouseEvent) => handleCloseLightbox(event)
-}
+	private navigate(): void {
+		const navEl = this.lightbox.querySelector('.lightbox__navigation'),
+			next = navEl?.querySelector('.lightbox__arrow--right'),
+			prev = navEl?.querySelector('.lightbox__arrow--left')
 
+		if (!Object.keys(this.navigation).length) return
+		const navItems = this.navigation as ArrowsGroup
 
-export const lightboxActions = {
-	create: (properties: CreateGroup) => createLightbox(properties),
-	navigate: (args: NavigateGroup) => renderNavigation(args),
-	reset: (args: ResetGroup) => resetAnimations(args),
-	setup: (args: SetupGroup) => setupLightbox(args),
-	toggle: (args: ToggleGroup) => toggleLightbox(args),
+		console.log(typeof navItems.next === 'string' && !(navItems.next instanceof HTMLElement))
+
+		if (!!next) {
+			if (!!navItems.next) {
+				next.prepend(navItems.next)
+				next.setAttribute('data-position', `${this.index + 1}`)
+			} else {
+				next.remove()
+			}
+		}
+
+		if (!!prev) {
+			if (!!navItems.prev) {
+				prev.append(navItems.prev)
+				prev.setAttribute('data-position', `${this.index - 1}`)
+			} else {
+				prev.remove()
+			}
+		}
+	}
 }
