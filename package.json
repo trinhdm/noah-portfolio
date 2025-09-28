@@ -1,0 +1,20 @@
+{
+	"name": "noah-portfolio",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"build": "node config/build.js && npm run postprocess",
+		"bundle": "esbuild src/index.ts --bundle --tree-shaking=false --outfile=dist/index.js && npm run postprocess",
+		"postprocess": "node postprocess.js"
+	},
+	"devDependencies": {
+		"@types/node": "^24.5.2",
+		"esbuild": "^0.25.10",
+		"esbuild-plugin-tsc": "^0.5.0",
+		"strip-comments": "^2.0.1",
+		"typescript": "^5.9.2"
+	},
+	"dependencies": {
+		"tslib": "^2.8.1"
+	}
+}
