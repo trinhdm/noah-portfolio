@@ -21,6 +21,7 @@
 	--dt-gap: 1.75rem;
 	--dt-letter-spacing: .875px;
 	--dt-media-size: 30vh;
+	--dt-space-element: .75rem;
 
 	--dt-pos-fade: 25%;
 	--dt-neg-fade: calc(-1 * var(--dt-pos-fade));
@@ -29,8 +30,8 @@
 	--dt-fade-left-max: translate3d(100%, 0, 0);
 
 	--dt-fade-down: translate3d(0, var(--dt-neg-fade), 0);
-	--dt-fade-left: translate3d(calc(.75 * var(--dt-neg-fade)), 0, 0);
-	--dt-fade-right: translate3d(calc(.75 * var(--dt-pos-fade)), 0, 0);
+	--dt-fade-left: translate3d(var(--dt-pos-fade), 0, 0);
+	--dt-fade-right: translate3d(var(--dt-neg-fade), 0, 0);
 	--dt-fade-up: translate3d(0, var(--dt-pos-fade), 0);
 
 	--dt-box-shadow: rgba(0, 0, 0, .25) 0px .0625em .0625em,
@@ -60,10 +61,10 @@
 	--row-height-scaling-factor: .0215;
 	--container-width: min(var(--sqs-site-max-width, 1500px), calc(100vw - var(--sqs-site-gutter, 4vw) * 2 - var(--inset-padding)));
 
-	display: grid;
+	/* display: grid;
 	gap: var(--row-gap) var(--column-gap);
 	grid-template-columns: minmax(var(--grid-gutter), 1fr) repeat(var(--num-columns), minmax(0, var(--cell-max-width))) minmax(var(--grid-gutter), 1fr);
-	grid-template-rows: repeat(var(--num-rows), minmax(calc(var(--container-width) * var(--row-height-scaling-factor)), auto));
+	grid-template-rows: repeat(var(--num-rows), minmax(calc(var(--container-width) * var(--row-height-scaling-factor)), auto)); */
 }
 
 
@@ -97,6 +98,22 @@
 	0% {
 		opacity: 0;
 		transform: var(--dt-fade-right);
+	}
+
+	80% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 1;
+		transform: var(--dt-fade-base);
+	}
+}
+
+@keyframes fadeInDown {
+	0% {
+		opacity: 0;
+		transform: var(--dt-fade-down);
 	}
 
 	80% {
