@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"type": "module",
 	"scripts": {
-		"build": "node config/build.js && npm run postprocess",
-		"bundle": "esbuild src/index.ts --bundle --tree-shaking=false --outfile=dist/index.js && npm run postprocess",
+		"_oldbundle": "esbuild src/index.ts --bundle --tree-shaking=false --outfile=dist/index.js && npm run postprocess",
+		"bundle": "node config/bundle.js && npm run postprocess",
 		"postprocess": "node postprocess.js"
 	},
 	"devDependencies": {
@@ -15,6 +15,8 @@
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {
+		"hls.js": "^1.6.13",
+		"plyr": "^3.8.3",
 		"tslib": "^2.8.1"
 	}
 }

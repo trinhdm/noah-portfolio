@@ -1,27 +1,18 @@
+import type { ArrowsGroup } from '../block/block.types'
 
-type ArrowsGroup =  {
-	next: string
-	prev: string
+
+type WithoutEmpty<T> = T extends T ? {} extends T ? never : T : never
+
+type LightboxOptions <T extends HTMLElement = HTMLDivElement> = {
+	content: T | undefined
+	navigation: ArrowsGroup | {}
+	properties: Record<keyof T, T[keyof T]> | {}
 }
 
-type LightboxGroup <T extends HTMLElement = HTMLDivElement> = {
-	// activeClass: string
-	content: string
-	index: number
-	// isActive: boolean
-	// lightbox: HTMLDivElement
-	navigation: {} | ArrowsGroup
-	properties: {} | Record<keyof T, T[keyof T]>
-}
+type NavigationOptions = WithoutEmpty<LightboxOptions['navigation']>
 
-type CreateGroup = Pick<LightboxGroup,'properties'>['properties']
-// type NavigateGroup = Pick<LightboxGroup, 'index' | 'lightbox' | 'navigation'>
-// type ResetGroup = Pick<LightboxGroup, 'activeClass' | 'isActive' | 'lightbox'>
-type SetupGroup = Pick<LightboxGroup, 'content' | 'index' | 'navigation' | 'properties'>
-// type ToggleGroup = Pick<LightboxGroup, 'lightbox'>
 
 export type {
-	ArrowsGroup,
-	CreateGroup,
-	SetupGroup,
+	LightboxOptions,
+	NavigationOptions,
 }

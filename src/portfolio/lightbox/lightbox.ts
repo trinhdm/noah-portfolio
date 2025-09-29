@@ -1,36 +1,31 @@
+import Hls from 'hls.js'
+import Plyr from 'plyr'
 import template from './template'
-import type {
-	ArrowsGroup,
-	CreateGroup,
-	SetupGroup,
-} from './lightbox.types'
+import type { LightboxOptions, NavigationOptions } from './lightbox.types'
 
 
 export class Lightbox {
 	private activeClass: string = 'lightbox--active'
 	private classList: DOMTokenList
-	private index: number = 0
 	private isActive: boolean = false
 	private lightbox: HTMLElement
-	private navigation: ArrowsGroup | {} = {}
+	private navigation: NavigationOptions | {} = {}
 
 
 	constructor({
 		content,
-		index,
 		navigation = {},
 		properties = {}
-	}: SetupGroup) {
+	}: LightboxOptions) {
 		this.lightbox = this.create(properties)
 		this.classList = this.lightbox?.classList
 
-		this.index = index
 		this.navigation = navigation
 
-		const contentEl = this.lightbox.querySelector('.lightbox__content')
+		const container = this.lightbox.querySelector('.lightbox__content')
 
-		if (contentEl)
-			contentEl.innerHTML = content
+		if (container && content)
+			container.innerHTML = content.innerHTML
 
 		this.navigate()
 		this.bind()
@@ -79,7 +74,6 @@ export class Lightbox {
 		overlay.addEventListener('animationend', onAnimateOverlay as EventListener)
 	}
 
-
 	public toggle(): void {
 		this.isActive ? this.close() : this.open()
 	}
@@ -87,6 +81,10 @@ export class Lightbox {
 
 	//	-------------------------
 	//	internal methods
+	//	-------------------------
+
+
+	//	elements
 	//	-------------------------
 
 	private reset(): void {
@@ -98,7 +96,9 @@ export class Lightbox {
 		console.log('reset')
 	}
 
-	private create(properties: CreateGroup): HTMLElement {
+	private create(
+		properties: LightboxOptions['properties']
+	): HTMLElement {
 		const lightbox = document.createElement('div')
 
 		lightbox.className = 'lightbox'
@@ -123,65 +123,103 @@ export class Lightbox {
 		return lightbox
 	}
 
-	private bind(): void {
-		const closeBtn: HTMLElement = this.lightbox.querySelector('.lightbox__close')!,
-			overlay: HTMLElement = this.lightbox.querySelector('.lightbox__overlay')!
+	private embed(element: Element = this.lightbox): void {
+		const video = element?.querySelector('video')
 
-		closeBtn.onclick = () => this.close()
-		overlay.onclick = () => this.close()
+		if (!video) return
 
-		const image = this.lightbox.querySelector('.lightbox__image'),
-			video = this.lightbox.querySelector('.lightbox__video'),
-			iframe = video?.querySelector('iframe')
+		const source = video.src ?? ''
 
-		if (!image || !iframe) return
+		if (Hls && Hls?.isSupported()) {
+			const hls = new Hls()
 
-		const onAnimateImage = (event: AnimationEvent) => {
-			event.preventDefault()
-			event.stopPropagation()
+			hls.loadSource(source)
+			hls.attachMedia(video)
+			window.hls = hls
 
-			setTimeout(() => {
-				image.remove()
-				// iframe.src = `${iframe.src}&autoplay=1&origin`
-			}, 100)
-
-			image.removeEventListener('animationend', onAnimateImage as EventListener)
+			// hls.on(Hls.Events.MANIFEST_PARSED, () => {
+			// 	const player = new Plyr(video, plyrOptions)
+			// 	video.play()
+			// })
+		} else {
+			const player = new Plyr(video)
 		}
-
-		image.addEventListener('animationend', onAnimateImage as EventListener)
 	}
 
-
 	private navigate(): void {
-		const directions = (Object.keys(this.navigation) as (keyof ArrowsGroup)[])
+		const container = this.lightbox.querySelector('.lightbox__navigation'),
+			directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
 
 		if (!directions.length) return
 
-		const setArrow = (direction: 'next' | 'prev', i: number) => {
-			const navigation = this.lightbox.querySelector('.lightbox__navigation'),
-				arrow = navigation?.querySelector(`.lightbox__arrow--${direction}`),
-				text = (this.navigation as ArrowsGroup)[`${direction}`]
+		const setArrow = async (direction: 'next' | 'prev', i: number) => {
+			const arrow = container?.querySelector(`.lightbox__arrow--${direction}`),
+				{ index, text } = (this.navigation as NavigationOptions)[`${direction}`]
 
 			if (arrow && text) {
-				let j
-				const item = document.createElement('span')
-				item.textContent = text
+				if (i % 2 === 0)
+					arrow.prepend(text)
+				else
+					arrow.append(text)
 
-				if (i % 2 === 0) {
-					arrow.prepend(item)
-					j = this.index - 1
-				}
-				else {
-					arrow.append(item)
-					j = this.index + 1
-				}
-
-				arrow.setAttribute('data-position', `${j}`)
+				arrow.setAttribute('data-position', `${index}`)
 			} else {
 				arrow?.remove()
 			}
 		}
 
 		directions.forEach((direction, i) => setArrow(direction, i))
+	}
+
+
+	//	events
+	//	-------------------------
+
+	private animate(): void {
+		const image: HTMLElement | null = this.lightbox.querySelector('.lightbox__image'),
+			video: HTMLElement | null = this.lightbox.querySelector('.lightbox__video')
+
+		if (!image || !video) return
+
+		const onStartAnimation = (event: AnimationEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
+
+			image.style.maxHeight = `${video.offsetHeight}px`
+
+			video.removeEventListener('animationstart', onStartAnimation as EventListener)
+		}
+
+		const onEndAnimation = (event: AnimationEvent) => {
+			event.preventDefault()
+			event.stopPropagation()
+
+			const iframe = video.querySelector('iframe'),
+				time = !!iframe ? 100 : 150
+
+			setTimeout(() => {
+				image.remove()
+				this.embed(video)
+				// iframe.src = `${iframe.src}&autoplay=1&origin`
+			}, time)
+
+			image.removeEventListener('animationend', onEndAnimation as EventListener)
+		}
+
+		video.addEventListener('animationstart', onStartAnimation as EventListener)
+		image.addEventListener('animationend', onEndAnimation as EventListener)
+	}
+
+	private click(): void {
+		const closeBtn: HTMLElement = this.lightbox.querySelector('.lightbox__close')!,
+			overlay: HTMLElement = this.lightbox.querySelector('.lightbox__overlay')!
+
+		closeBtn.onclick = () => this.close()
+		overlay.onclick = () => this.close()
+	}
+
+	private bind(): void {
+		this.animate()
+		this.click()
 	}
 }
