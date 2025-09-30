@@ -1,16 +1,14 @@
 
-import { fetchContent, getPage } from '../../global/fetch.ts'
+import { getPage } from '../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
 import { resetBlock, setAnimation } from '../../utils/css.ts'
-import { formatBlock } from './formatBlock.ts'
+import { findElement, setContent } from '../../utils/content.ts'
 import type { BlockOptions } from './block.types'
 import type { PageGroup } from '../../global/utils.types'
 
 
 export class Block {
-	private clonedBlock: HTMLElement | null
 	private className: string = ''
-	private selector: string = '.fe-block'
 
 	block: HTMLElement | null
 	content: HTMLDivElement | undefined
@@ -25,35 +23,24 @@ export class Block {
 		index,
 		target,
 	}: BlockOptions) {
-		this.index = index
-		this.page = getPage(target)
-		this.block = this.get(target)
-		this.clonedBlock = this.block?.cloneNode(true) as HTMLElement ?? null
-
-		this.content = undefined
 		this.className = className
+		this.index = index
+
+		this.block = findElement(target)
+		this.content = undefined
+		this.page = getPage(target)
 	}
 
 	public static async init(options: BlockOptions) {
 		const instance = new Block(options),
-			content = await instance.setContent()
+			content = await setContent(instance)
 
 		instance.configure()
-		instance.setDetails(content)
 		instance.style()
+		instance.set(content)
 		instance.content = content
 
 		return instance
-	}
-
-	private get(target: HTMLElement | null): HTMLElement | null {
-		if (!target)
-			return null
-
-		else if (target.classList.contains(this.selector))
-			return target
-
-		return target.closest(this.selector)
 	}
 
 	private configure(): void {
@@ -69,20 +56,14 @@ export class Block {
 			image.classList.add(`${this.className}__image`)
 	}
 
-	private async fetch(
-		page: PageGroup = this.page
-	): Promise<string> {
-		const content = await fetchContent(page)
-		return content ?? ''
-	}
-
 	private style(): void {
 		if (!this.block) return
 
 		const argsAnimate = {
-			duration: .875,
+			duration: .575,
 			index: this.index,
 			stagger: .15,
+			start: .375,
 		}
 
 		Object.assign(this.block.style, {
@@ -93,46 +74,25 @@ export class Block {
 		resetBlock({
 			block: this.block,
 			className: `${this.className}--disabled`,
-			timeout: 300,
+			timeout: 1250,
 		})
 	}
 
-	private async setContent(
-		page: PageGroup = this.page
-	): Promise<HTMLDivElement | undefined> {
-		const content = await this.fetch(page)
-
-		if (typeof content !== 'string') return
-
-		const imageWrapper: HTMLElement | null = (this.clonedBlock
-			?.querySelector('[data-sqsp-image-block-image-container]')
-			?.closest(this.selector)) ?? null
-		const temp: HTMLDivElement | undefined = document.createElement('div')
-
-		if (imageWrapper && !temp.contains(imageWrapper))
-			temp.prepend(imageWrapper!)
-
-		temp.innerHTML += content
-		temp.querySelectorAll(this.selector).forEach(block => formatBlock(block as HTMLElement, page.id))
-
-		return temp
-	}
-
-	private setDetails(content?: HTMLElement): void {
+	private set(content?: HTMLElement): void {
 		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
 
 		if (titleWrapper) {
 			const details = document.createElement('div'),
 				title = findChildBy(titleWrapper, { tagName: 'strong' })
 
-			if (!title) return
+			if (!this.block || !title) return
 
 			const newTitle = wrapTrimEl(title, 'span')
 
 			details.classList.add(`${this.className}__details`)
 			details.appendChild(newTitle ?? title)
 
-			this.block?.appendChild(details)
+			this.block.appendChild(details)
 		}
 	}
 }

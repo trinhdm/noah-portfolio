@@ -201,9 +201,9 @@ export class Lightbox {
 
 			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, i) => {
 				Object.assign(block.style, setAnimation({
-					duration: .5,
+					duration: .45,
 					index: i,
-					stagger: .25,
+					stagger: .125,
 					start: this.isActive ? .75 : 0,
 				}))
 
