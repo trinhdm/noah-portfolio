@@ -11,11 +11,17 @@ type ArrowsGroup = {
 	prev: NavigationItem
 }
 
+// type BlockOptions = {
+// 	className: string
+// 	navigation: ArrowsGroup & {
+// 		current: NavigationItem
+// 	}
+// }
+
 type BlockOptions = {
 	className: string
-	navigation: ArrowsGroup & {
-		current: NavigationItem
-	}
+	elements: NodeListOf<HTMLElement>
+	index: number
 }
 
 

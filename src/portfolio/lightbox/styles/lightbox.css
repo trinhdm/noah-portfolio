@@ -25,6 +25,11 @@
 		position: fixed;
 	}
 
+	&.lightbox--disabled {
+		pointer-events: none;
+		user-select: none;
+	}
+
 	.lightbox__container,
 	.lightbox__content {
 		display: flex;

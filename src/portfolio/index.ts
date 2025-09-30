@@ -1,50 +1,57 @@
-import { getBackground } from '../global/utils.ts'
-import { getPage } from '../global/fetch.ts'
-import { formatContent } from '../utils/formatBlock.ts'
-import { Block } from './block/construct.ts'
-import { Lightbox } from './lightbox'
+import { Block, styleBlockTypography } from './block'
+import { BlockInit } from './block/BlockInit'
 
 
-document.addEventListener('DOMContentLoaded', () => {
-	const blocks = document.querySelectorAll('.fluid-image-container')
+const portfolio = {
+	init: async () => {
+		const blocks = document.querySelectorAll('.fluid-image-container') as NodeListOf<HTMLElement>
+		const className = 'portfolio-block'
+		let clickedBlock: number | null = null
+		let asyncResult = null
 
-	blocks.forEach(async (block, index) => {
-		const args = {
-			target: block as HTMLElement
-		}
-
-		const { id, url } = getPage(args)
-		const content = await formatContent({ id, url })
-
-		Block.init({
-			index,
-			target: block as HTMLElement
-		})
-
-		block.addEventListener('click', async event => {
-			event.preventDefault()
-
-			const lightbox = new Lightbox({
-				content,
+		const createLightbox = async (index: number) => {
+			const lightBlock = await Block.init({
+				className,
+				elements: blocks,
 				index,
-				// navigation: {
-				// 	next: await blockActions.getTitle({ blocks, index: index + 1 }),
-				// 	prev: await blockActions.getTitle({ blocks, index: index - 1 }),
-				// },
-				navigation: {
-					next: 'next',
-					prev: 'prev',
-				},
-				properties: { id: `lightbox-${id}` }
 			})
 
-			lightbox.open()
+			const { lightbox } = lightBlock.lightbox!
 
-			return lightbox
+			if (!lightbox) return
+			let nextIndex: `${number}` | null = null
+
+			lightbox.querySelectorAll('.lightbox__arrow').forEach(arrow => arrow.addEventListener('click', e => {
+				e.preventDefault()
+				nextIndex = (arrow as HTMLElement).dataset.position as `${number}`
+
+				lightBlock.closeLightbox()
+
+				if (nextIndex)
+					createLightbox(parseInt(nextIndex))
+			}))
+		}
+
+
+		blocks.forEach(async (block: HTMLElement, index: number) => {
+			const blockEl = await BlockInit.init({
+				className,
+				index,
+				target: block,
+			})
+
+			if (!blockEl) return
+
+			block.addEventListener('click', async (event: MouseEvent) => {
+				event.preventDefault()
+				clickedBlock = blockEl.index
+				createLightbox(blockEl.index)
+			})
 		})
-	})
+
+		styleBlockTypography({ className })
+	}
+}
 
 
-	Block.styleAll()
-	getBackground()
-})
+export { portfolio }

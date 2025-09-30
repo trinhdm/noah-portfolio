@@ -8,8 +8,9 @@ import type { LightboxOptions, NavigationOptions } from './lightbox.types'
 export class Lightbox {
 	private activeClass: string = 'lightbox--active'
 	private isActive: boolean = false
-	private lightbox: HTMLElement
 	private navigation: NavigationOptions | {} = {}
+
+	public lightbox: HTMLElement
 
 
 	constructor({
@@ -17,7 +18,7 @@ export class Lightbox {
 		navigation = {},
 		properties = {}
 	}: LightboxOptions) {
-		this.lightbox = this.create(properties)
+		this.lightbox = this.elements.create(properties)
 		this.navigation = navigation
 
 		const container = this.lightbox.querySelector('.lightbox__content')
@@ -25,8 +26,8 @@ export class Lightbox {
 		if (container && content)
 			container.innerHTML = content.innerHTML
 
-		this.navigate()
-		this.bind()
+		this.navigate.init()
+		this.events.bind()
 	}
 
 
@@ -35,44 +36,46 @@ export class Lightbox {
 	//	-------------------------
 
 	public open(): void {
-		const { container } = this.structure()
+		const { body, container } = this.elements.structure()
 
-		if (this.isActive || !container) return
+		if (this.isActive || !body || !container) return
 
 		this.isActive = true
-		this.lightbox?.classList.add(this.activeClass)
+		this.lightbox.classList.add(this.activeClass)
+		this.elements.reset()
 
-		this.reset()
 		document.body.style.overflow = 'hidden'
 		document.body.appendChild(this.lightbox)
 
-		const onBlockStyle = () => this.style()
-		container?.addEventListener('animationstart', onBlockStyle, { once: true })
+		container.addEventListener('animationstart', () => {
+			this.style.apply()
+		}, { once: true })
+
+		body.addEventListener('animationend', () => {
+			setTimeout(() => this.lightbox.classList.remove('lightbox--disabled'), 500)
+		}, { once: true })
 	}
 
 	public close(): void {
-		const { blocks, overlay, video } = this.structure()
+		const { blocks, overlay, video } = this.elements.structure()
 
 		if (!this.isActive || !video) return
 
 		this.isActive = false
-		this.lightbox?.classList.remove(this.activeClass)
-		this.style()
+		this.lightbox.classList.add('lightbox--disabled')
+		this.lightbox.classList.remove(this.activeClass)
+		this.style.apply()
 
-		const animateBlocksLB = () => {
+		video?.addEventListener('animationend', () => {
 			console.log('test')
 			blocks.forEach(block => block.classList.remove('lightbox--animated'))
-			// setTimeout(() => this.reset(), 10)
-		}
+		}, { once: true })
 
-		const onAnimateOverlay = () => {
+		overlay?.addEventListener('animationend', () => {
 			console.log('test123')
 			this.lightbox.remove()
 			document.body.style.overflow = 'auto'
-		}
-
-		video?.addEventListener('animationend', animateBlocksLB, { once: true })
-		overlay?.addEventListener('animationend', onAnimateOverlay, { once: true })
+		}, { once: true })
 	}
 
 	public toggle(): void {
@@ -88,49 +91,37 @@ export class Lightbox {
 	//	elements
 	//	-------------------------
 
-	private reset(element: HTMLElement | null = this.lightbox): void {
-		if (!element) return
+	private elements = {
+		create: (properties: LightboxOptions['properties']): HTMLElement => {
+			const lightbox = document.createElement('div')
+			lightbox.classList.add('lightbox', 'lightbox--disabled')
+			lightbox.innerHTML = template.trim()
 
-		const animationClass = 'lightbox--animated',
-			classList = element.classList
-
-		classList.remove(animationClass)
-		void element.offsetHeight
-		classList.add(animationClass)
-
-	}
-
-	private create(
-		properties: LightboxOptions['properties']
-	): HTMLElement {
-		const lightbox = document.createElement('div')
-
-		lightbox.className = 'lightbox'
-		lightbox.innerHTML = template.trim()
-
-		const props = Object.entries(properties)
-
-		if (!!props?.length) {
-			const ignoreProps = [
+			const ignore = [
 				'innerHTML',
 				'innerText',
 				'outerHTML',
 				'textContent',
 			]
 
-			props.forEach(([prop, value]) => {
-				if (!ignoreProps.includes(prop))
-					(lightbox as any)[`${prop}`] = value
+			Object.entries(properties).forEach(([prop, value]) => {
+				if (!ignore.includes(prop))
+					(lightbox as any)[prop] = value
 			})
-		}
 
-		return lightbox
-	}
+			return lightbox
+		},
 
-	private structure(
-		lightbox: HTMLElement | null = this.lightbox
-	) {
-		const uniqueElements = {
+		reset: (element: HTMLElement | null = this.lightbox): void => {
+			if (!element) return
+			const cls = 'lightbox--animated'
+			element.classList.remove(cls)
+			void element.offsetHeight		// trigger reflow
+			element.classList.add(cls)
+		},
+
+		structure: (lightbox: HTMLElement | null = this.lightbox) => ({
+			blocks: lightbox?.querySelectorAll('.fe-block') as NodeListOf<HTMLElement>,
 			body: lightbox?.querySelector('.lightbox__body'),
 			closeBtn: lightbox?.querySelector('.lightbox__close'),
 			container: lightbox?.querySelector('.lightbox__container'),
@@ -140,188 +131,147 @@ export class Lightbox {
 			menu: lightbox?.querySelector('.lightbox__navigation'),
 			overlay: lightbox?.querySelector('.lightbox__overlay'),
 			video: lightbox?.querySelector('.lightbox__video'),
-		} as Record<string, HTMLElement | null>
-
-		const elements = {
-			...uniqueElements,
-			blocks: lightbox?.querySelectorAll('.fe-block') as NodeListOf<HTMLElement>,
-		}
-
-		return elements as typeof elements & typeof uniqueElements
+		}),
 	}
 
-	private embed(element: Element = this.lightbox): void {
-		const video = element?.querySelector('video')
+	private media = {
+		embed: (element: Element = this.lightbox): void => {
+			const video = element.querySelector('video')
+			if (!video) return
 
-		if (!video) return
+			const source = video.src ?? ''
 
-		const source = video.src ?? ''
+			if (Hls.isSupported()) {
+				const hls = new Hls()
 
-		if (Hls && Hls?.isSupported()) {
-			const hls = new Hls()
-
-			hls.loadSource(source)
-			hls.attachMedia(video)
-			video.pause()
-			window.hls = hls
+				hls.loadSource(source)
+				hls.attachMedia(video)
+				video.pause()
+				;(window as any).hls = hls
 
 			// hls.on(Hls.Events.MANIFEST_PARSED, () => {
 			// 	const player = new Plyr(video, plyrOptions)
 			// 	video.play()
 			// })
-		} else {
-			const player = new Plyr(video)
-		}
-	}
-
-	private navigate(): void {
-		const { menu } = this.structure(),
-			directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
-
-		if (!directions.length || !menu) return
-
-		const setArrow = async (direction: 'next' | 'prev', i: number) => {
-			const arrow = menu.querySelector(`.lightbox__arrow--${direction}`),
-				{ index, text } = (this.navigation as NavigationOptions)[`${direction}`]
-
-			if (arrow && text) {
-				if (i % 2 === 0)
-					arrow.prepend(text)
-				else
-					arrow.append(text)
-
-				arrow.setAttribute('data-position', `${index}`)
 			} else {
-				arrow?.remove()
+				new Plyr(video)
+				// const player = new Plyr(video)
 			}
-		}
+		},
+	}
 
-		directions.forEach((direction, i) => {
-			setArrow(direction, i)
+	private navigate = {
+		init: (): void => {
+			const { menu } = this.elements.structure()
+			const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
 
-			const arrow = menu.querySelector(`.lightbox__arrow--${direction}`)
+			if (!directions.length || !menu) return
 
-			arrow?.addEventListener('click', async event => {
-				event.preventDefault()
+			directions.forEach((direction, i) => {
+				const arrow = menu.querySelector(`.lightbox__arrow--${direction}`)
+				const nav = (this.navigation as NavigationOptions)[direction]
 
-				console.log('is open')
+				if (arrow && nav?.text) {
+					i % 2 === 0
+						? arrow.prepend(nav.text)
+						: arrow.append(nav.text)
+
+					arrow.setAttribute('data-position', `${nav.index}`)
+					arrow.addEventListener('click', e => {
+						e.preventDefault()
+						console.log('nav click:', direction)
+					})
+				} else {
+					arrow?.remove()
+				}
 			})
-		})
-
-		// console.log({ directions: this.navigation })
+		},
 	}
 
-	private style(): void {
-		const { blocks, image, video } = this.structure()
+	private style = {
+		apply: (): void => {
+			const { blocks, image, video } = this.elements.structure()
 
-		if (image && video) {
-			image.style.maxHeight = `${video.offsetHeight}px`
-		} else if (!this.isActive && (!image && video)) {
-			this.reset(video)
-		}
-
-		const textBlocks = [...blocks].filter(block => block.classList.contains('lightbox__html'))
-
-		textBlocks?.forEach((block, i) => {
-			const startTime = this.isActive ? .75 : 0
-
-			const args = {
-				duration: .5,
-				index: i,
-				stagger: .25,
-				start: startTime
+			if (image && video) {
+				(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
+			} else if (!this.isActive && video) {
+				this.elements.reset(video as HTMLElement)
+				console.log('reset')
 			}
 
-			Object.assign(block.style, setAnimation(args))
-			this.reset(block)
-		})
-	}
+			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, i) => {
+				Object.assign(block.style, setAnimation({
+					duration: .5,
+					index: i,
+					stagger: .25,
+					start: this.isActive ? .75 : 0,
+				}))
 
+				this.elements.reset(block)
+			})
+		},
+	}
 
 	//	events
 	//	-------------------------
 
-	private animate(): void {
-		const { image, video } = this.structure()
+	private events = {
+		bind: (): void => {
+			this.events.animate()
+			this.events.click()
+		},
 
-		if (!image || !video) return
+		animate: (): void => {
+			const { image, video } = this.elements.structure()
+			if (!image || !video) return
 
-		let event = '',
-			media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
+			let media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
+			let event: string = 'loadeddata'
 
-		if (video.contains(media)) {
-			this.embed(video)
-			event = 'loadeddata'
-		} else {
-			media = video.querySelector('iframe') as HTMLIFrameElement
-			event = 'load'
-		}
-
-		media?.addEventListener(event, () => {
-			this.reset(video)
-			console.log('ON LOAD')
-
-			video.addEventListener('animationend', () => {
-				// event.stopPropagation()
-				this.reset(image)
-				console.log('ON VIDEO END')
-
-				image.addEventListener('animationstart', () => {
-					if (media instanceof HTMLVideoElement)
-						(media as HTMLVideoElement)?.play()
-					else
-						media.src = `${media.src}&autoplay=1&origin`
-
-
-					console.log('ON IMG START')
-				}, { once: true })
-
-				image.addEventListener('animationend', () => {
-					setTimeout(() => image.remove(), 100)
-
-					console.log('ON IMG END')
-				}, { once: true })
-
-			}, { once: true })
-		}, { once: true })
-	}
-
-	private click(): void {
-		const { closeBtn, menu, overlay } = this.structure()
-
-		closeBtn!.onclick = () => this.close()
-		overlay!.onclick = () => this.close()
-
-		;(menu?.querySelectorAll('.lightbox__arrow') as NodeListOf<HTMLElement>).forEach(arrow => {
-			let direction: 'next' | 'prev' | '' = ''
-
-			if (arrow.classList.contains('next'))
-				direction = 'next'
-
-			else if (arrow.classList.contains('prev'))
-				direction = 'prev'
-
-			arrow.onclick = () => {
-				this.close()
-
-				console.log('test', direction, this.navigation)
-
-				// if (!!direction && Object.keys(this.navigation).length) {
-				// 	const key = direction as keyof typeof this.navigation
-				// 	const { lightbox } = (this.navigation)[`${key}`]
-
-				// 	console.log({ lightbox })
-				// 	// const newLightbox = new Lightbox(lightbox)
-
-				// 	// newLightbox?.open()
-				// }
-
+			if (!video.contains(media)) {
+				media = video.querySelector('iframe') as HTMLIFrameElement
+				event = 'load'
+			} else {
+				this.media.embed(video)
 			}
-		})
-	}
 
-	private bind(): void {
-		this.animate()
-		this.click()
+			media?.addEventListener(event, () => {
+				setTimeout(() => {
+					this.elements.reset(video as HTMLVideoElement)
+				}, 1000)
+
+				video.addEventListener('animationend', () => {
+					this.elements.reset(image as HTMLElement)
+
+					image.addEventListener('animationstart', () => {
+						if (media instanceof HTMLVideoElement)
+							(media as HTMLVideoElement)?.play()
+						else
+							media.src = `${media.src}&autoplay=1&origin`
+					}, { once: true })
+
+					image.addEventListener('animationend', () => {
+						setTimeout(() => image.remove(), 100)
+					}, { once: true })
+				}, { once: true })
+			}, { once: true })
+		},
+
+		click: (): void => {
+			const { closeBtn, overlay } = this.elements.structure()
+
+			;(closeBtn! as HTMLElement).onclick = () => this.close()
+			;(overlay! as HTMLElement).onclick = () => this.close()
+			// this.events.arrows()
+		},
+
+		// arrows: (): void => {
+		// 	const arrows = this.lightbox.querySelectorAll('.lightbox__arrow')
+		// 	arrows.forEach(arrow => arrow.addEventListener('click', e => {
+		// 		e.preventDefault()
+		// 		console.log('arrow click:', (arrow as HTMLElement).dataset.position)
+		// 		this.close()
+		// 	}))
+		// },
 	}
 }

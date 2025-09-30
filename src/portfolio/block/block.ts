@@ -2,52 +2,65 @@
 import { fetchContent, getPage } from '../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
 import { formatBlock } from './formatBlock.ts'
-import { Lightbox } from '../lightbox'
+import { Lightbox } from '../lightbox/index.ts'
 import type { ArrowsGroup, BlockOptions } from './block.types'
 import type { PageGroup } from '../../global/utils.types'
-import { resetBlock, setAnimation } from '../../utils/css.ts'
+// import { resetBlock, setAnimation } from '../../utils/css.ts'
 
 
 export class Block {
+	private clonedBlock: HTMLElement | null
 	private className: string = ''
-	private index: number = 0
 	private selector: string = '.fe-block'
-	private page: PageGroup = {
+
+	block: HTMLElement | null
+	content: HTMLDivElement | undefined
+	index: number = 0
+	lightbox: Lightbox | undefined
+	navigation: ArrowsGroup
+	page: PageGroup = {
 		id: '',
 		url: '',
 	}
 
-	block: HTMLElement | null
-	clonedBlock: HTMLElement | null
-	content: HTMLDivElement | undefined
-	navigation: ArrowsGroup
-
 	constructor({
 		className,
-		navigation,
+		elements,
+		index,
 	}: BlockOptions) {
-		const { current, ...rest } = navigation
-		const { index, target } = current
+		const target = elements[index]
 
 		this.index = index
 		this.page = getPage(target)
-
 		this.block = this.get(target)
 		this.clonedBlock = this.block?.cloneNode(true) as HTMLElement ?? null
 
 		this.content = undefined
 		this.className = className
-		this.navigation = rest
+
+		this.lightbox = undefined
+		this.navigation = {
+			next: {
+				index: index + 1,
+				target: elements[index + 1],
+			},
+			prev: {
+				index: index - 1,
+				target: elements[index - 1],
+			},
+		}
 	}
 
 	public static async init(options: BlockOptions) {
 		const instance = new Block(options),
 			content = await instance.setContent()
 
-		instance.configure(content)
+		instance.configure()
+		// instance.set(content)
 		instance.content = content
 		instance.navigation = await instance.setNavigation()
-		instance.bindEvents()
+		instance.lightbox = await instance.createLightbox()
+		// instance.handleLightbox()
 
 		return instance
 	}
@@ -62,60 +75,64 @@ export class Block {
 		return target.closest(this.selector)
 	}
 
-	private configure(content?: HTMLElement): void {
+	private configure(): void {
 		if (!this.block) return
 
 		this.block.classList.add(this.className, `${this.className}--disabled`)
 		this.block.id = `block-${this.page.id}`
 		this.block.dataset.position = String(this.index)
-
-		this.append(content)
-		this.style(this.block)
 	}
 
-	private append(content?: HTMLElement): void {
-		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
+	// private set(content?: HTMLElement): void {
+	// 	if (!this.block) return
 
-		if (titleWrapper) {
-			const details = document.createElement('div'),
-				title = findChildBy(titleWrapper, { tagName: 'strong' })
+	// 	// this.append(content)
+	// 	// this.style(this.block)
+	// }
 
-			if (!title) return
+	// private append(content?: HTMLElement): void {
+	// 	const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
 
-			const newTitle = wrapTrimEl(title, 'span')
+	// 	if (titleWrapper) {
+	// 		const details = document.createElement('div'),
+	// 			title = findChildBy(titleWrapper, { tagName: 'strong' })
 
-			details.classList.add(`${this.className}__details`)
-			details.appendChild(newTitle ?? title)
+	// 		if (!title) return
 
-			this.block?.appendChild(details)
-		}
-	}
+	// 		const newTitle = wrapTrimEl(title, 'span')
 
-	private style(block: HTMLElement | undefined): void {
-		if (!block) return
+	// 		details.classList.add(`${this.className}__details`)
+	// 		details.appendChild(newTitle ?? title)
 
-		const argsAnimate = {
-			duration: .875,
-			index: this.index,
-			stagger: .15,
-		}
+	// 		this.block?.appendChild(details)
+	// 	}
+	// }
 
-		Object.assign(block.style, {
-			...setAnimation(argsAnimate),
-			order: this.index + 1,
-		})
+	// private style(block: HTMLElement | undefined): void {
+	// 	if (!block) return
 
-		const image = findChildBy(block, { tagName: 'img' })
+	// 	const argsAnimate = {
+	// 		duration: .875,
+	// 		index: this.index,
+	// 		stagger: .15,
+	// 	}
 
-		if (image)
-			image.classList.add(`${this.className}__image`)
+	// 	Object.assign(block.style, {
+	// 		...setAnimation(argsAnimate),
+	// 		order: this.index + 1,
+	// 	})
 
-		resetBlock({
-			block,
-			className: `${this.className}--disabled`,
-			timeout: 300,
-		})
-	}
+	// 	const image = findChildBy(block, { tagName: 'img' })
+
+	// 	if (image)
+	// 		image.classList.add(`${this.className}__image`)
+
+	// 	resetBlock({
+	// 		block,
+	// 		className: `${this.className}--disabled`,
+	// 		timeout: 300,
+	// 	})
+	// }
 
 	private async fetch(
 		page: PageGroup = this.page
@@ -176,22 +193,6 @@ export class Block {
 		return Object.fromEntries(entries) as ArrowsGroup
 	}
 
-	private async bindEvents(): Promise<void> {
-		if (!this.block) return
-
-		this.block.addEventListener('click', async event => {
-			event.preventDefault()
-
-			const lightbox = new Lightbox({
-				content: this.content,
-				navigation: this.navigation,
-				properties: { id: `lightbox-${this.page.id}` },
-			})
-
-			lightbox.open()
-		})
-	}
-
 	public async createLightbox(): Promise<Lightbox> {
 		const lightbox = new Lightbox({
 			content: this.content,
@@ -200,7 +201,24 @@ export class Block {
 		})
 
 		lightbox.open()
+		this.lightbox = lightbox
 
 		return lightbox
+	}
+
+	public async closeLightbox(): Promise<void> {
+		if (this.lightbox)
+			this.lightbox.close()
+	}
+
+	public async handleLightbox(): Promise<void> {
+		if (!this.block) return
+
+		this.block.addEventListener('click', async event => {
+			event.preventDefault()
+
+			if (this.lightbox)
+				this.lightbox.open()
+		})
 	}
 }
