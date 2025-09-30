@@ -1,11 +1,10 @@
 
 import { fetchContent, getPage } from '../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
+import { resetBlock, setAnimation } from '../../utils/css.ts'
 import { formatBlock } from './formatBlock.ts'
-import { Lightbox } from '../lightbox/index.ts'
-import type { ArrowsGroup, BlockOptions } from './block.types'
+import type { BlockOptions } from './block.types'
 import type { PageGroup } from '../../global/utils.types'
-// import { resetBlock, setAnimation } from '../../utils/css.ts'
 
 
 export class Block {
@@ -16,8 +15,6 @@ export class Block {
 	block: HTMLElement | null
 	content: HTMLDivElement | undefined
 	index: number = 0
-	lightbox: Lightbox | undefined
-	navigation: ArrowsGroup
 	page: PageGroup = {
 		id: '',
 		url: '',
@@ -25,11 +22,9 @@ export class Block {
 
 	constructor({
 		className,
-		elements,
 		index,
+		target,
 	}: BlockOptions) {
-		const target = elements[index]
-
 		this.index = index
 		this.page = getPage(target)
 		this.block = this.get(target)
@@ -37,18 +32,6 @@ export class Block {
 
 		this.content = undefined
 		this.className = className
-
-		this.lightbox = undefined
-		this.navigation = {
-			next: {
-				index: index + 1,
-				target: elements[index + 1],
-			},
-			prev: {
-				index: index - 1,
-				target: elements[index - 1],
-			},
-		}
 	}
 
 	public static async init(options: BlockOptions) {
@@ -56,11 +39,9 @@ export class Block {
 			content = await instance.setContent()
 
 		instance.configure()
-		// instance.set(content)
+		instance.setDetails(content)
+		instance.style()
 		instance.content = content
-		instance.navigation = await instance.setNavigation()
-		instance.lightbox = await instance.createLightbox()
-		// instance.handleLightbox()
 
 		return instance
 	}
@@ -81,64 +62,39 @@ export class Block {
 		this.block.classList.add(this.className, `${this.className}--disabled`)
 		this.block.id = `block-${this.page.id}`
 		this.block.dataset.position = String(this.index)
+
+		const image = findChildBy(this.block, { tagName: 'img' })
+
+		if (image)
+			image.classList.add(`${this.className}__image`)
 	}
-
-	// private set(content?: HTMLElement): void {
-	// 	if (!this.block) return
-
-	// 	// this.append(content)
-	// 	// this.style(this.block)
-	// }
-
-	// private append(content?: HTMLElement): void {
-	// 	const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
-
-	// 	if (titleWrapper) {
-	// 		const details = document.createElement('div'),
-	// 			title = findChildBy(titleWrapper, { tagName: 'strong' })
-
-	// 		if (!title) return
-
-	// 		const newTitle = wrapTrimEl(title, 'span')
-
-	// 		details.classList.add(`${this.className}__details`)
-	// 		details.appendChild(newTitle ?? title)
-
-	// 		this.block?.appendChild(details)
-	// 	}
-	// }
-
-	// private style(block: HTMLElement | undefined): void {
-	// 	if (!block) return
-
-	// 	const argsAnimate = {
-	// 		duration: .875,
-	// 		index: this.index,
-	// 		stagger: .15,
-	// 	}
-
-	// 	Object.assign(block.style, {
-	// 		...setAnimation(argsAnimate),
-	// 		order: this.index + 1,
-	// 	})
-
-	// 	const image = findChildBy(block, { tagName: 'img' })
-
-	// 	if (image)
-	// 		image.classList.add(`${this.className}__image`)
-
-	// 	resetBlock({
-	// 		block,
-	// 		className: `${this.className}--disabled`,
-	// 		timeout: 300,
-	// 	})
-	// }
 
 	private async fetch(
 		page: PageGroup = this.page
 	): Promise<string> {
 		const content = await fetchContent(page)
 		return content ?? ''
+	}
+
+	private style(): void {
+		if (!this.block) return
+
+		const argsAnimate = {
+			duration: .875,
+			index: this.index,
+			stagger: .15,
+		}
+
+		Object.assign(this.block.style, {
+			...setAnimation(argsAnimate),
+			order: this.index + 1,
+		})
+
+		resetBlock({
+			block: this.block,
+			className: `${this.className}--disabled`,
+			timeout: 300,
+		})
 	}
 
 	private async setContent(
@@ -162,63 +118,21 @@ export class Block {
 		return temp
 	}
 
-	private async setNavigation(
-		navigation: ArrowsGroup = this.navigation
-	): Promise<ArrowsGroup> {
-		const directions = Object.keys(navigation) as (keyof ArrowsGroup)[]
+	private setDetails(content?: HTMLElement): void {
+		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
 
-		const entries = await Promise.all(
-			directions.map(async (direction) => {
-				const { target: rawTarget, ...rest } = navigation[direction]
-				const target = this.get(rawTarget)
+		if (titleWrapper) {
+			const details = document.createElement('div'),
+				title = findChildBy(titleWrapper, { tagName: 'strong' })
 
-				let value = { ...rest, target }
+			if (!title) return
 
-				if (target) {
-					const navWrapper = document.createElement('div'),
-						newPage = getPage(target)
+			const newTitle = wrapTrimEl(title, 'span')
 
-					navWrapper.innerHTML = await this.fetch(newPage)
+			details.classList.add(`${this.className}__details`)
+			details.appendChild(newTitle ?? title)
 
-					const title = findChildBy(navWrapper, { tagName: 'strong' }),
-						text = wrapTrimEl(title, 'span') ?? document.createElement('span')
-
-					value = { ...value, target, text }
-				}
-
-				return [direction, value] as const
-			})
-		)
-
-		return Object.fromEntries(entries) as ArrowsGroup
-	}
-
-	public async createLightbox(): Promise<Lightbox> {
-		const lightbox = new Lightbox({
-			content: this.content,
-			navigation: this.navigation,
-			properties: { id: `lightbox-${this.page.id}` },
-		})
-
-		lightbox.open()
-		this.lightbox = lightbox
-
-		return lightbox
-	}
-
-	public async closeLightbox(): Promise<void> {
-		if (this.lightbox)
-			this.lightbox.close()
-	}
-
-	public async handleLightbox(): Promise<void> {
-		if (!this.block) return
-
-		this.block.addEventListener('click', async event => {
-			event.preventDefault()
-
-			if (this.lightbox)
-				this.lightbox.open()
-		})
+			this.block?.appendChild(details)
+		}
 	}
 }

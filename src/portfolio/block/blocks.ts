@@ -25,9 +25,9 @@ const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) =>
 
 				if (span)
 					Object.assign(span.style, setAnimation({
-						duration: .5,
+						duration: .45,
 						index: i,
-						stagger: .375,
+						stagger: .35,
 					}))
 
 				return span
