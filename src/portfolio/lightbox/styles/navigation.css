@@ -1,0 +1,143 @@
+
+.lightbox {
+	.lightbox__navigation {
+		--dt-button-size: 3rem;
+
+		display: flex;
+		flex: 1 100%;
+		justify-content: space-between;
+		padding-top: calc(.375 * var(--dt-gap));
+	}
+
+	.lightbox__arrow,
+	.lightbox__button {
+		align-items: center;
+		display: flex;
+		padding: 0;
+		position: relative;
+		z-index: 5;
+
+		&[class*='next'] {
+			justify-content: flex-end;
+			text-align: right;
+		}
+
+		&[class*='prev'] {
+			justify-content: flex-start;
+			text-align: left;
+		}
+
+		& > span {
+			cursor: pointer;
+			display: block;
+			height: 100%;
+			letter-spacing: calc(1.5 * var(--dt-letter-spacing));
+            line-height: var(--dt-button-size);
+			position: relative;
+			z-index: 3;
+		}
+	}
+
+	.lightbox__arrow {
+		--dt-nav-arrow-space: calc(.025 * var(--dt-cqw-base));
+
+		--dt-transition-base: opacity .35s var(--ease-in-out-quad) .11s,
+					transform .25s var(--ease-in-out-quad) .055s;
+		--dt-transition-hover: opacity .25s var(--ease-in-out-quad) .055s,
+					transform .35s var(--ease-in-out-quad) .11s;
+
+		container-type: size;
+		height: var(--dt-button-size);
+		max-width: 33%;
+        flex: 1 1 100%;
+
+		&.lightbox__arrow--next {
+			&:only-child {
+				margin-left: auto;
+			}
+
+			& > span {
+				padding-right: var(--dt-nav-arrow-space);
+				text-align: right;
+				transform-origin: right;
+				transform: var(--dt-fade-right);
+			}
+		}
+
+		&.lightbox__arrow--prev {
+			&:only-child {
+				margin-right: auto;
+			}
+
+			& > span {
+				padding-left: var(--dt-nav-arrow-space);
+				text-align: left;
+				transform-origin: left;
+				transform: var(--dt-fade-left);
+			}
+		}
+
+		& > span {
+			font-size: calc(.625 * var(--base-font-size));
+			margin-top: .375rem;
+			opacity: 0;
+			overflow-x: visible;
+			text-transform: uppercase;
+			transition: var(--dt-transition-base);
+			white-space: nowrap;
+		}
+
+		&:hover > span {
+			opacity: .5;
+			transform: var(--dt-fade-base);
+			transition: var(--dt-transition-hover);
+		}
+
+		&:has(> :is(button, span):hover) {
+			& > button > span {
+				opacity: 1;
+				transform: scale(1.125);
+				/* transition: var(--dt-transition-hover); */
+			}
+
+			& > span {
+				font-style: italic;
+			}
+		}
+	}
+
+	.lightbox__button {
+		background: none;
+		border: none;
+		color: inherit;
+		max-width: fit-content;
+
+		&.lightbox__close {
+			display: none;
+			position: absolute;
+			right: .875rem;
+            top: .5rem;
+		}
+
+		&.lightbox__next {
+			padding-left: var(--dt-space-element);
+		}
+
+		&.lightbox__prev {
+			padding-right: var(--dt-space-element);
+		}
+
+		& > span {
+			background-color: var(--siteBackgroundColor);
+			font-size: var(--dt-button-size);
+			opacity: .75;
+			transition: var(--dt-transition-hover);
+		}
+
+		&:hover > span {
+			/* opacity: 1;
+			transform: scale(1.125); */
+			transition: var(--dt-transition-base);
+		}
+	}
+}

@@ -1,0 +1,128 @@
+
+.lightbox .fe-block {
+	place-content: center;
+	position: relative;
+
+	&.lightbox__html {
+		grid-column: 1 / span var(--dt-col-span);
+		letter-spacing: var(--dt-letter-spacing);
+		opacity: 0;
+		z-index: 2;
+
+		&:nth-last-child(1) {
+			/* background-color: var(--menuOverlayBackgroundColor); */
+			background-color: rgba(0, 0, 0, .35);
+			border-radius: var(--dt-border-radius);
+			padding: calc(.25 * var(--dt-gap)) calc(.5 * var(--dt-gap));
+		}
+
+		@media screen and (min-width: 768px) {
+			&:nth-last-child(2) {
+				grid-column: 1 / span calc(var(--dt-col-span) - 1);
+			}
+
+			&:nth-last-child(1) {
+				grid-column: var(--dt-col-span) / span 1;
+			}
+		}
+
+		p {
+			line-height: 1.8;
+			margin-block: .625rem;
+			white-space: normal !important;
+
+			&:not(:has(> strong)) {
+				font-size: calc(.75 * var(--base-font-size));
+				font-weight: 100;
+			}
+
+			&:has(> strong) {
+				font-size: calc(.89 * var(--base-font-size));
+				margin-block: .75rem;
+			}
+
+			&:first-child,
+			&:only-child {
+				margin-top: 0;
+			}
+
+			&:last-child,
+			&:only-child {
+				margin-bottom: 0;
+			}
+
+			/* &:only-child {
+				line-height: 1.75;
+			} */
+
+			strong {
+				display: block;
+			}
+		}
+	}
+
+
+	&.lightbox__image,
+	&.lightbox__video {
+		background-color: rgba(0, 0, 0, .2);
+		border-radius: var(--dt-border-radius);
+		overflow-y: hidden;
+		width: 100%;
+
+		@media screen and (min-width: 450px) {
+			grid-area: 1 / 1 / var(--dt-col-span) / calc(1 + var(--dt-col-span));
+		}
+	}
+
+	&.lightbox__image {
+		&,
+		.sqs-block {
+			height: 100%;
+		}
+
+		&:has(+ .lightbox__video) {
+			pointer-events: none;
+			position: absolute;
+			z-index: 20;
+		}
+
+		.fluid-image-container {
+			min-height: var(--dt-media-size);
+		}
+	}
+
+	&.lightbox__video {
+		z-index: 10;
+
+		.lightbox__video-player {
+			height: 100%;
+			overflow: hidden;
+			padding-top: 56.25%;
+		}
+
+		.lightbox__video-wrapper {
+			/* max-height: var(--dt-media-size); */
+			min-width: auto;
+			overflow: hidden;
+
+			&,
+			& > * {
+				inset: 0;
+				margin: auto;
+				overflow: hidden;
+				position: absolute;
+			}
+
+			& > * {
+				border-radius: inherit;
+				height: 100%;
+				width: 100%;
+			}
+		}
+
+	}
+
+	.sqs-block {
+		padding: 0;
+	}
+}

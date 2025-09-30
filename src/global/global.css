@@ -11,38 +11,52 @@
 	--ease-out-sine: cubic-bezier(.61, 1, .88, 1);
 
 	--ease-in-out-back: cubic-bezier(.34, 1.56, .64, 1);
+	--ease-in-out-circ: cubic-bezier(0, 0.55, 0.45, 1);
 	--ease-in-out-quad: cubic-bezier(.45, 0, .55, 1);
 	--ease-in-out-sine: cubic-bezier(.37, 0, .63, 1);
 
 
 	--dt-border-radius: .375rem;
 	--dt-button-size: 1.75rem;
-	--dt-col-span: 2;
 	--dt-gap: 1.75rem;
 	--dt-letter-spacing: .875px;
 	--dt-media-size: 30vh;
 	--dt-space-element: .75rem;
 
-	--dt-pos-fade: 25%;
-	--dt-neg-fade: calc(-1 * var(--dt-pos-fade));
+	/* --dt-pos-fade: 25cqh;
+	--dt-neg-fade: calc(-1 * var(--dt-pos-fade)); */
 
 	--dt-fade-base: translate3d(0, 0, 0);
-	--dt-fade-left-max: translate3d(100%, 0, 0);
+	--dt-fade-left-max: translate3d(100cqh, 0, 0);
 
-	--dt-fade-down: translate3d(0, var(--dt-neg-fade), 0);
-	--dt-fade-left: translate3d(var(--dt-pos-fade), 0, 0);
-	--dt-fade-right: translate3d(var(--dt-neg-fade), 0, 0);
-	--dt-fade-up: translate3d(0, var(--dt-pos-fade), 0);
+	--dt-cqh-base: 2.5cqh;
+	--dt-cqw-base: 7.5cqw;
+
+	--dt-fade-down: translate3d(0, -2.5cqh, 0);
+	--dt-fade-left: translate3d(-7.5cqw, 0, 0);
+	--dt-fade-right: translate3d(7.5cqw, 0, 0);
+	--dt-fade-up: translate3d(0, 2.5cqh, 0);
 
 	--dt-box-shadow: rgba(0, 0, 0, .25) 0px .0625em .0625em,
 				rgba(0, 0, 0, .25) 0px .125em .5em,
 				rgba(255, 255, 255, .1) 0px 0px 0px 1px inset;
+
+
+	--dt-col-span: 1;
+
+	@media screen and (min-width: 450px) and (max-width: 767px) {
+		--dt-col-span: 2;
+	}
 
 	@media screen and (min-width: 768px) {
 		--dt-col-span: 3;
 		--dt-gap: 2.5rem;
 		--dt-media-size: 40vh;
 	}
+
+	/* @media screen and (min-width: 1024px) {
+		--dt-col-span: 4;
+	} */
 }
 
 
@@ -60,6 +74,8 @@
 	--inset-padding: 0vw;
 	--row-height-scaling-factor: .0215;
 	--container-width: min(var(--sqs-site-max-width, 1500px), calc(100vw - var(--sqs-site-gutter, 4vw) * 2 - var(--inset-padding)));
+
+	container-type: size;
 
 	/* display: grid;
 	gap: var(--row-gap) var(--column-gap);
@@ -148,19 +164,17 @@
 	overflow-y: scroll;
 } */
 
-body {
+html {
 	scrollbar-gutter: stable;
-	scrollbar-width: none;
-	/* overflow-y: scroll; */
-
-	&:not(:has(.lightbox)) {
-		overflow-y: scroll;
-	}
 }
 
-body::-webkit-scrollbar {
+body {
+	overflow-y: scroll;
+}
+
+/* body::-webkit-scrollbar {
 	display: none;
-}
+} */
 
 
 /* `.background > .section-background` prevents flash of unstyled content */

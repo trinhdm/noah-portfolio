@@ -1,0 +1,71 @@
+
+.lightbox:has(.fe-block.lightbox--animated) {
+	&:not(.lightbox--animated) {
+		.fe-block {
+			&:not(.lightbox--animated) {
+				opacity: 1;
+			}
+
+			&:is(.lightbox--animated) {
+				opacity: 0;
+			}
+		}
+	}
+
+	&:is(.lightbox--animated) {
+		.fe-block:is(.lightbox--animated){
+			animation-fill-mode: forwards;
+
+			/* &.lightbox__html {
+				animation-name: fadeInDown;
+			} */
+
+			&.lightbox__image,
+			&.lightbox__video {
+				animation-duration: .75s;
+				animation-name: fadeIn;
+			}
+		}
+
+		&:not(.lightbox--active) {
+			.fe-block:is(.lightbox--animated) {
+				opacity: 1;
+				animation-direction: reverse;
+
+				&.lightbox__html {
+					animation-name: fadeInUp;
+					animation-timing-function: var(--ease-out-sine);
+					transform: var(--dt-fade-base);
+				}
+
+				&.lightbox__video {
+					animation-delay: 1s;
+					animation-timing-function: var(--ease-out-sine);
+				}
+			}
+		}
+
+		&:is(.lightbox--active) {
+			.fe-block:is(.lightbox--animated) {
+				opacity: 0;
+
+				&.lightbox__html {
+					animation-name: fadeInDown;
+					animation-timing-function: var(--ease-in-sine);
+					transform: var(--dt-fade-down);
+				}
+
+				&.lightbox__image {
+					animation-delay: .5s;
+					animation-direction: reverse;
+					animation-timing-function: var(--ease-out-sine);
+					opacity: 1;
+				}
+
+				&.lightbox__video {
+					animation-timing-function: var(--ease-in-sine);
+				}
+			}
+		}
+	}
+}
