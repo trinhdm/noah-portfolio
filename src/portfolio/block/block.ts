@@ -1,10 +1,11 @@
 
 import { fetchContent, getPage } from '../../global/fetch.ts'
-import { findChildBy, getDeepestChild, tidyContent, wrapTrimEl } from '../../global/utils.ts'
-import { formatBlock } from '../../utils/formatBlock.ts'
+import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
+import { formatBlock } from './formatBlock.ts'
 import { Lightbox } from '../lightbox'
 import type { ArrowsGroup, BlockOptions } from './block.types'
 import type { PageGroup } from '../../global/utils.types'
+import { resetBlock, setAnimation } from '../../utils/css.ts'
 
 
 export class Block {
@@ -64,7 +65,7 @@ export class Block {
 	private configure(content?: HTMLElement): void {
 		if (!this.block) return
 
-		this.block.classList.add(this.className)
+		this.block.classList.add(this.className, `${this.className}--disabled`)
 		this.block.id = `block-${this.page.id}`
 		this.block.dataset.position = String(this.index)
 
@@ -93,23 +94,32 @@ export class Block {
 	private style(block: HTMLElement | undefined): void {
 		if (!block) return
 
-		const styles = {
-			animationDelay: `${0.075 * this.index + 0.75}s`,
-			order: this.index + 1,
+		const argsAnimate = {
+			duration: .875,
+			index: this.index,
+			stagger: .15,
 		}
 
-		Object.assign(block.style, styles)
+		Object.assign(block.style, {
+			...setAnimation(argsAnimate),
+			order: this.index + 1,
+		})
 
 		const image = findChildBy(block, { tagName: 'img' })
 
 		if (image)
 			image.classList.add(`${this.className}__image`)
+
+		resetBlock({
+			block,
+			className: `${this.className}--disabled`,
+			timeout: 300,
+		})
 	}
 
 	private async fetch(
 		page: PageGroup = this.page
 	): Promise<string> {
-		console.log('FETCH', { options: { current: this.page, page }})
 		const content = await fetchContent(page)
 		return content ?? ''
 	}
@@ -148,8 +158,10 @@ export class Block {
 				let value = { ...rest, target }
 
 				if (target) {
-					const navWrapper = document.createElement('div')
-					navWrapper.innerHTML = await this.fetch(getPage(target))
+					const navWrapper = document.createElement('div'),
+						newPage = getPage(target)
+
+					navWrapper.innerHTML = await this.fetch(newPage)
 
 					const title = findChildBy(navWrapper, { tagName: 'strong' }),
 						text = wrapTrimEl(title, 'span') ?? document.createElement('span')
@@ -170,8 +182,6 @@ export class Block {
 		this.block.addEventListener('click', async event => {
 			event.preventDefault()
 
-			console.log('nav', this.navigation)
-
 			const lightbox = new Lightbox({
 				content: this.content,
 				navigation: this.navigation,
@@ -182,23 +192,15 @@ export class Block {
 		})
 	}
 
-	/** Static: Apply typography styles globally to all non-portfolio blocks */
-	public static styleAll(): void {
-		const items = document.querySelectorAll('.fe-block:not(.portfolio-block)')
-
-		items.forEach(item => {
-			const [deepest] = getDeepestChild(item)
-			const { textContent } = deepest ?? { textContent: '' }
-
-			if (!textContent || !textContent.includes(' ')) return
-
-			deepest.classList.add('portfolio-block__header')
-			deepest.textContent = ''
-
-			textContent.split(' ')
-				.map(str => tidyContent(str, 'span'))
-				.filter(Boolean)
-				.forEach(el => deepest.appendChild(el!))
+	public async createLightbox(): Promise<Lightbox> {
+		const lightbox = new Lightbox({
+			content: this.content,
+			navigation: this.navigation,
+			properties: { id: `lightbox-${this.page.id}` },
 		})
+
+		lightbox.open()
+
+		return lightbox
 	}
 }

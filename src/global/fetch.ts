@@ -1,20 +1,27 @@
 import { findChildBy } from './utils.ts'
+import type { PageGroup } from './utils.types'
 
-export const getPage = ({ target }: { target: HTMLElement }) => {
-	const linkEl = findChildBy(target, { tagName: 'a' })
 
-	if (!linkEl)
-		return { id: undefined, url: undefined }
+export const getPage = (element: HTMLElement | null) => {
+	let settings: PageGroup = { id: '', url: '' }
 
-	const { hash, href } = linkEl as HTMLAnchorElement,
-		[url] = href.split('#'),
-		id = hash.slice(1)
+	const anchorLink = !!element
+		? findChildBy(element, { tagName: 'a' })
+		: undefined
 
-	return { id, url }
+	if (anchorLink) {
+		const { hash, href } = anchorLink as HTMLAnchorElement,
+			[url] = href.split('#'),
+			id = hash.slice(1)
+
+		settings = { id, url }
+	}
+
+	return settings
 }
 
 
-export const fetchContent = (url: string | undefined, id: string | undefined) => {
+export const fetchContent = ({ id, url }: PageGroup) => {
 	if (!id || !url) return
 
 	const separator = url.includes('?') ? '&' : '?',

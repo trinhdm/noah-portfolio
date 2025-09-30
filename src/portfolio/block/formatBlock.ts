@@ -1,4 +1,4 @@
-import { findChildBy } from '../../global/utils.ts'
+import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
 
 
 const getSource = (json: string | undefined) => {
@@ -30,6 +30,23 @@ const getSource = (json: string | undefined) => {
 }
 
 
+const formatTitle = (block: Element) => {
+	const titleWrapper = block.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
+
+	if (titleWrapper) {
+		const title = findChildBy(titleWrapper, { tagName: 'strong' }),
+			newTitle = wrapTrimEl(title, 'strong')
+
+		if (!!title && !!newTitle)
+			titleWrapper.replaceWith(newTitle, title)
+		// 	titleWrapper.replaceChild(newTitle, title)
+		// console.log({ titleWrapper, newTitle, title })
+	}
+
+	return titleWrapper
+}
+
+
 export const formatBlock = (
 	block: Element,
 	id: string = ''
@@ -39,6 +56,7 @@ export const formatBlock = (
 	)
 
 	const type = block.querySelector('.sqs-block')?.classList[1]?.split('-block')[0]
+
 	let condition: boolean | undefined,
 		els = undefined,
 		html: HTMLElement | string | undefined = ''
@@ -48,7 +66,12 @@ export const formatBlock = (
 			els = !!id ? getChildBlocks(`#${id}`) : undefined
 			break
 		case 'html':
+			// formatTitle(block)
 			els = getChildBlocks('.sqs-html-content')
+			// const test = formatTitle(block)
+			// html = formatTitle(block)
+			// console.log({ test, type: typeof test })
+
 			condition = !!els
 				? !(els.length === 1 && ['H1', 'H2', 'H3', 'H4'].includes(els[0].tagName))
 				: undefined
