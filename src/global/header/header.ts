@@ -1,67 +1,72 @@
+
+
 import { setAnimation } from '../../utils/css'
 
 
-const handleHeader = () => {
-	const headerNav = document.querySelector('.header-nav-wrapper'),
-		navList = headerNav?.querySelector('.header-nav-list')
-	const navItems = headerNav?.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
+export const handleHeader = () => {
+	const headerNav = document.querySelector('.header-nav') as HTMLElement | null,
+		navList = headerNav?.querySelector('.header-nav-list') as HTMLElement | null,
+		navItems = headerNav?.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
 
 
 	if (!headerNav || !navList) return
 
-	const isAnimatingClass = 'header-nav--animated'
+	headerNav.dataset.loading = 'true'
 
-	navItems.forEach((item, i) => {
-		// const link = item.querySelector('a')
-		// if (!link) return
+	headerNav.addEventListener('animationend', () => {
+		delete headerNav.dataset.loading
+	}, { passive: true })
 
-		Object.assign(item?.style, setAnimation({
-			duration: .25,
-			index: i,
-			stagger: -.125,
-			start: .125 * navItems.length
-			// start: this.isActive ? .75 : 0,
-		}))
-
-
-		if (i === 0 && navList.classList.contains(isAnimatingClass)) {
-			item.addEventListener('animationend', () => {
-				console.log('LAST ITEM')
-				navList.classList.remove(isAnimatingClass)
-			}, { once: true })
-		}
-
-		// this.elements.reset(block)
-	})
-
-	console.log('HEADER')
+	const argsAnimate = { duration: .25 },
+		isAnimatingClass = 'header-nav--animated',
+		stagger = -0.1
 	let hoverTimer: NodeJS.Timeout
 
-	navList.addEventListener('mouseover', event => {
-		event.stopPropagation()
+	const resetAnimation = (element: HTMLElement | null = navList): void => {
+		if (!element) return
+		element.classList.remove(isAnimatingClass)
+		void element.offsetHeight		// trigger reflow
+		element.classList.add(isAnimatingClass)
+	}
 
-		if (!navList.classList.contains(isAnimatingClass))
-			navList.classList.add(isAnimatingClass)
+	navList.addEventListener('mouseenter', () => {
+		navItems.forEach((item, i) => Object.assign(
+			item?.style, setAnimation({
+				...argsAnimate,
+				index: i,
+				stagger,
+				start: Math.abs(stagger * navItems.length),
+			})
+		))
 
 		clearTimeout(hoverTimer)
 
-		hoverTimer = setTimeout(function() {
+		hoverTimer = setTimeout(() => {
 			navList.classList.add('header-nav--active')
-			console.log('mouseover')
-		}, 200)
-	})
+			resetAnimation()
+		}, 100)
+	}, { passive: true })
 
-	navList.addEventListener('mouseout', event => {
-		event.stopPropagation()
+	navList.addEventListener('mouseleave', () => {
+		navItems.forEach((item, i) => Object.assign(
+			item?.style, setAnimation({
+				...argsAnimate,
+				index: i,
+				stagger: Math.abs(stagger),
+			})
+		))
 
 		clearTimeout(hoverTimer)
 
-		hoverTimer = setTimeout(function() {
+		hoverTimer = setTimeout(() => {
 			navList.classList.remove('header-nav--active')
-			console.log('mouseout')
+			resetAnimation()
+
+			;([...navItems].at(-1))?.addEventListener('animationend', event => {
+				event.stopPropagation()
+				navList.classList.remove(isAnimatingClass)
+				console.log('END ANIMATION')
+			}, { once: true, passive: true })
 		}, 100)
-	})
+	}, { passive: true })
 }
-
-
-export { handleHeader }
