@@ -1,29 +1,16 @@
 
-import './global/utils.ts'
-import './global/fetch.ts'
-// import './portfolio/block/block.ts'
-import './portfolio'
-
+import { getBackground } from './global/utils.ts'
+import { handleHeader } from './global/header.ts'
+import { portfolio } from './portfolio'
 import './global/global.css'
-import './portfolio/portfolio.css'
 
 
+document.addEventListener('DOMContentLoaded', () => {
+	getBackground()
+	handleHeader()
 
-// import './global/global.css'
-// import { getBackground, findChildBy, wrapTrimEl } from './global/utils.ts'
-// import { fetchContent, getPage } from './global/fetch.ts'
-// import { blockActions } from './portfolio/block.ts'
-// import { lightboxActions } from './portfolio/lightbox.ts'
-// import { configureTemp, handleLoading } from './portfolio/onLoad.ts'
+	const url = window.location.href
 
-// console.log(
-// 	lightboxActions,
-// 	getBackground,
-// 	findChildBy,
-// 	wrapTrimEl,
-// 	fetchContent,
-// 	getPage,
-// 	blockActions,
-// 	configureTemp,
-// 	handleLoading()
-// )
+	if (url.includes('portfolio'))
+		portfolio.init()
+})
