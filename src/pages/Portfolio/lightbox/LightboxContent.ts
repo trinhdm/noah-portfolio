@@ -1,9 +1,9 @@
-import { fetchContent, getPage } from '../../global/fetch.ts'
-import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
-import { findElement, setContent } from '../../utils/content.ts'
+import { fetchContent, getPage } from '../../../global/fetch.ts'
+import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
+import { findElement, setContent } from '../../../utils/content.ts'
 import type { ArrowsGroup } from '../block/block.types'
 import type { LightboxContentOptions } from './lightbox.types'
-import type { PageGroup } from '../../global/utils.types'
+import type { PageGroup } from '../../../global/utils.types'
 
 
 export class LightboxContent {

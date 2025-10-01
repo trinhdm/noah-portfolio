@@ -2,10 +2,12 @@ import { Block, styleBlockTypography } from './block'
 import { createLightbox } from './lightbox'
 
 
-const portfolio = {
+const Portfolio = {
 	init: async () => {
 		const blocks = document.querySelectorAll('.fluid-image-container') as NodeListOf<HTMLElement>
 		const className = 'portfolio-block'
+
+		console.log({ blocks })
 
 		blocks.forEach(async (block: HTMLElement, index: number) => {
 			const blockContent = await Block.init({
@@ -28,4 +30,4 @@ const portfolio = {
 }
 
 
-export { portfolio }
+export { Portfolio }

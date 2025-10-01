@@ -1,7 +1,7 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
-import template from './template'
-import { setAnimation } from '../../utils/css'
+import template from './template.ts'
+import { setAnimation } from '../../../utils/css'
 import type { LightboxOptions, NavigationOptions } from './lightbox.types'
 
 

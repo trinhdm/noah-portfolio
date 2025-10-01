@@ -1,17 +1,10 @@
 
 .content {
 	.fe-block {
-		opacity: 0;
-		position: relative;
-
-		&:not(.portfolio-block),
-		&.portfolio-block--disabled {
-			pointer-events: none;
-			user-select: none;
-		}
-
 		&.header-block {
+			pointer-events: none;
 			opacity: .9;
+			user-select: none;
 
 			.portfolio-block__header {
 				container-type: size;

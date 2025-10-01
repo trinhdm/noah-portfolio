@@ -1,6 +1,6 @@
 import { Block } from '../block'
-import { Lightbox } from './Lightbox'
-import { LightboxContent } from './LightboxContent'
+import { Lightbox } from './Lightbox.ts'
+import { LightboxContent } from './LightboxContent.ts'
 
 
 const createLightbox = async ({ index, page }: Partial<Block>) => {

@@ -1,7 +1,7 @@
 
 import { getBackground } from './global'
 import { handleHeader } from './components'
-import { portfolio } from './portfolio'
+import { Portfolio } from './pages'
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,5 +11,5 @@ document.addEventListener('DOMContentLoaded', () => {
 	const url = window.location.href
 
 	if (url.includes('portfolio'))
-		return portfolio.init()
+		return Portfolio.init()
 })

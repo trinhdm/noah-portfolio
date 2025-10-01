@@ -1,5 +1,5 @@
 import type { ArrowsGroup } from '../block/block.types'
-import type { PageGroup } from '../../global/utils.types'
+import type { PageGroup } from '../../../global/utils.types'
 
 
 type WithoutEmpty<T> = T extends T ? {} extends T ? never : T : never

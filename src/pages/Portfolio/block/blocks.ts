@@ -1,6 +1,6 @@
-import { getDeepestChild, tidyContent } from '../../global/utils.ts'
-import { setAnimation } from '../../utils/css.ts'
-import type { BlockOptions } from './block.types'
+import { getDeepestChild, tidyContent } from '../../../global/utils.ts'
+import { setAnimation } from '../../../utils/css.ts'
+import type { BlockOptions } from '../../../global/utils.types'
 
 
 /** Static: Apply typography styles globally to all non-portfolio blocks */
@@ -16,7 +16,7 @@ const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) =>
 		if (!textContent || !textContent.includes(' ')) return
 
 		deepest.closest('.fe-block')?.classList.add(`header-block`)
-		deepest.classList.add(`${className}__header`)
+		deepest.classList.add(`${className}__header`, 'block--disabled')
 		deepest.textContent = ''
 
 		textContent.split(' ')
