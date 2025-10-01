@@ -1,10 +1,9 @@
 
 import { getPage } from '../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
-import { resetBlock, setAnimation } from '../../utils/css.ts'
+import { resetAttrs, setAnimation } from '../../utils/css.ts'
 import { findElement, setContent } from '../../utils/content.ts'
-import type { BlockOptions } from './block.types'
-import type { PageGroup } from '../../global/utils.types'
+import type { BlockOptions, PageGroup } from '../../global/utils.types'
 
 
 export class Block {
@@ -29,6 +28,8 @@ export class Block {
 		this.block = findElement(target)
 		this.content = undefined
 		this.page = getPage(target)
+
+		// console.log('IS PORTFOLIO', target)
 	}
 
 	public static async init(options: BlockOptions) {
@@ -46,14 +47,15 @@ export class Block {
 	private configure(): void {
 		if (!this.block) return
 
-		this.block.classList.add(this.className, `${this.className}--disabled`)
+		const [type] = this.block.querySelector('.sqs-block')?.classList[1]?.split('-block') ?? 'base'
+
+		this.block.classList.add(
+			this.className,
+			`${this.className}__${type}`,
+			'block--disabled'
+		)
 		this.block.id = `block-${this.page.id}`
 		this.block.dataset.position = String(this.index)
-
-		const image = findChildBy(this.block, { tagName: 'img' })
-
-		if (image)
-			image.classList.add(`${this.className}__image`)
 	}
 
 	private style(): void {
@@ -63,7 +65,6 @@ export class Block {
 			duration: .575,
 			index: this.index,
 			stagger: .15,
-			start: .375,
 		}
 
 		Object.assign(this.block.style, {
@@ -71,10 +72,9 @@ export class Block {
 			order: this.index + 1,
 		})
 
-		resetBlock({
+		resetAttrs({
 			block: this.block,
-			className: `${this.className}--disabled`,
-			timeout: 1250,
+			className: 'block--disabled',
 		})
 	}
 

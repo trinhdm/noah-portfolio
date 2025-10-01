@@ -26,7 +26,7 @@ export class Lightbox {
 		if (container && content)
 			container.innerHTML = content.innerHTML
 
-		this.navigate.init()
+		this.navigate.create()
 		this.events.bind()
 	}
 
@@ -49,15 +49,16 @@ export class Lightbox {
 
 		container.addEventListener('animationstart', () => {
 			this.style.apply()
-		}, { once: true })
+		}, { once: true, passive: true })
 
 		body.addEventListener('animationend', () => {
 			setTimeout(() => this.lightbox.classList.remove('lightbox--disabled'), 500)
-		}, { once: true })
+		}, { once: true, passive: true })
 	}
 
 	public close(): void {
 		const { blocks, overlay, video } = this.elements.structure()
+		console.log('CLOSED')
 
 		if (!this.isActive || !video) return
 
@@ -161,7 +162,7 @@ export class Lightbox {
 	}
 
 	private navigate = {
-		init: (): void => {
+		create: (): void => {
 			const { menu } = this.elements.structure()
 			const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
 
@@ -169,18 +170,20 @@ export class Lightbox {
 
 			directions.forEach((direction, i) => {
 				const arrow = menu.querySelector(`.lightbox__arrow--${direction}`)
-				const nav = (this.navigation as NavigationOptions)[direction]
+				const {
+					index,
+					// target: { id, url },
+					text,
+				} = (this.navigation as NavigationOptions)[direction]
 
-				if (arrow && nav?.text) {
+				if (arrow && text) {
 					i % 2 === 0
-						? arrow.prepend(nav.text)
-						: arrow.append(nav.text)
+						? arrow.prepend(text)
+						: arrow.append(text)
 
-					arrow.setAttribute('data-position', `${nav.index}`)
-					arrow.addEventListener('click', e => {
-						e.preventDefault()
-						console.log('nav click:', direction)
-					})
+					arrow.setAttribute('data-position', `${index}`)
+					// arrow.setAttribute('data-id', `${id}`)
+					// arrow.setAttribute('data-url', `${url}`)
 				} else {
 					arrow?.remove()
 				}
@@ -238,7 +241,7 @@ export class Lightbox {
 			media?.addEventListener(event, () => {
 				setTimeout(() => {
 					this.elements.reset(video as HTMLVideoElement)
-				}, 1000)
+				}, 250)
 
 				video.addEventListener('animationend', () => {
 					this.elements.reset(image as HTMLElement)
@@ -248,13 +251,13 @@ export class Lightbox {
 							(media as HTMLVideoElement)?.play()
 						else
 							media.src = `${media.src}&autoplay=1&origin`
-					}, { once: true })
+					})
 
 					image.addEventListener('animationend', () => {
 						setTimeout(() => image.remove(), 100)
 					}, { once: true })
-				}, { once: true })
-			}, { once: true })
+				})
+			})
 		},
 
 		click: (): void => {
@@ -262,7 +265,32 @@ export class Lightbox {
 
 			;(closeBtn! as HTMLElement).onclick = () => this.close()
 			;(overlay! as HTMLElement).onclick = () => this.close()
-			// this.events.arrows()
+
+			// const arrow = (this.lightbox.querySelector('.lightbox__arrow')! as HTMLElement)
+
+			// arrow.onclick = () => {
+			// 	console.log('ARROW')
+			// 	const position = arrow.dataset.position as `${number}` | undefined
+
+			// 	if (position) {
+			// 		const nextIndex = parseInt(position),
+			// 			[nextBlock] = [...blocks].filter(block => parseInt(`${block.dataset.position}`) === nextIndex)
+
+			// 		const nextBlockContent = await Block.init({
+			// 			className,
+			// 			index: nextIndex,
+			// 			target: nextBlock,
+			// 		})
+
+			// 		console.log({ nextBlockContent, lightboxEl })
+			// 		createLightbox(nextBlockContent)
+
+			// 		lightboxEl?.querySelector('.lightbox__overlay')?.addEventListener('animationend', () => {
+			// 			console.log('test')
+			// 			// createLightbox(nextBlockContent)
+			// 		})
+			// 	}
+			// }
 		},
 
 		// arrows: (): void => {

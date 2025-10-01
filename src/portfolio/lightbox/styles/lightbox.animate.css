@@ -1,5 +1,5 @@
 
-.lightbox.lightbox--animated {
+.lightbox:is(.lightbox--animated) {
 	--dt-lb-duration: .625s;
 	--dt-lb-delay: .1s;
 
@@ -10,10 +10,6 @@
 
 .lightbox {
 	&:not(.lightbox--animated) {
-		/* .lightbox__button  {
-			opacity: 1;
-		} */
-
 		.lightbox__body,
 		.lightbox__button,
 		.lightbox__container,
@@ -31,9 +27,12 @@
 		.lightbox__button {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
-			animation-name: fadeIn;
 			animation-timing-function: var(--ease-in-out-sine);
 			opacity: 0;
+
+			&.lightbox__close {
+				animation-name: fadeIn;
+			}
 
 			&.lightbox__next {
 				animation-name: fadeInLeft;
@@ -53,12 +52,10 @@
 			.lightbox__button {
 				animation-delay: calc(.5 * var(--dt-lb-duration));
 				animation-direction: reverse;
-				/* animation-duration: calc(2.5 * var(--dt-lb-duration)); */
 
 				&.lightbox__next,
 				&.lightbox__prev {
 					animation-delay: 0s;
-					/* transform: var(--dt-fade-base); */
 				}
 			}
 		}
@@ -68,12 +65,12 @@
 
 		&:is(.lightbox--active) {
 			.lightbox__button {
-				animation-delay: calc(2 * var(--dt-lb-timeframe));
+				animation-delay: calc(1.375 * var(--dt-lb-timeframe));
 				animation-direction: normal;
 
 				&.lightbox__next,
 				&.lightbox__prev {
-					animation-delay: calc(2.5 * var(--dt-lb-timeframe));
+					animation-delay: calc(1.875 * var(--dt-lb-timeframe));
 				}
 
 				&.lightbox__next {
@@ -106,39 +103,12 @@
 	/*	shared fade styles
 		-----------------	*/
 
-	&.lightbox--animated {
-		/* --dt-lb-duration: .625s;
-		--dt-lb-delay: .1s;
-
-		--dt-lb-stagger: calc(2 * var(--dt-lb-delay));
-		--dt-lb-timeframe: calc(var(--dt-lb-duration) + var(--dt-lb-stagger)); */
-
+	&:is(.lightbox--animated) {
 		.lightbox__body,
 		.lightbox__container,
 		.lightbox__overlay {
 			animation-fill-mode: forwards;
 		}
-
-		/* .lightbox__arrow > span,
-		.lightbox__button,
-		.lightbox__overlay {
-			animation-name: fadeIn;
-		}
-
-		.lightbox__button {
-			animation-duration: calc(.75 * var(--dt-lb-duration));
-			animation-timing-function: var(--ease-in-out-sine);
-
-			&.lightbox__next {
-				animation-name: fadeInLeft;
-				transform-origin: left;
-			}
-
-			&.lightbox__prev {
-				animation-name: fadeInRight;
-				transform-origin: right;
-			}
-		} */
 
 		.lightbox__body,
 		.lightbox__container {
@@ -181,15 +151,6 @@
 			.lightbox__overlay {
 				animation-delay: var(--dt-lb-timeframe);
 			}
-
-			/* .lightbox__button  {
-				animation-delay: calc(.5 * var(--dt-lb-duration));
-
-				&.lightbox__next,
-				&.lightbox__prev {
-					animation-delay: 0s;
-				}
-			} */
 		}
 
 		/*	fade in
@@ -221,23 +182,6 @@
 			.lightbox__overlay {
 				animation-delay: 0s;
 			}
-
-			/* .lightbox__button {
-				animation-delay: calc(2 * var(--dt-lb-timeframe));
-
-				&.lightbox__next,
-				&.lightbox__prev {
-					animation-delay: calc(2.5 * var(--dt-lb-timeframe));
-				}
-
-				&.lightbox__next {
-					transform: var(--dt-fade-left);
-				}
-
-				&.lightbox__prev {
-					transform: var(--dt-fade-right);
-				}
-			} */
 		}
 	}
 }

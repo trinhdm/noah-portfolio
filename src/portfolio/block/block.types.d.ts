@@ -11,14 +11,6 @@ type ArrowsGroup = {
 	prev: NavigationItem
 }
 
-type BlockOptions = {
-	className: string
-	index: number
-	target: HTMLElement
-}
 
 
-export type {
-	ArrowsGroup,
-	BlockOptions,
-}
+export type { ArrowsGroup }
