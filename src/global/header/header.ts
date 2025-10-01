@@ -1,4 +1,4 @@
-import { setAnimation } from '../utils/css'
+import { setAnimation } from '../../utils/css'
 
 
 const handleHeader = () => {
@@ -37,7 +37,7 @@ const handleHeader = () => {
 	console.log('HEADER')
 	let hoverTimer: NodeJS.Timeout
 
-	headerNav.addEventListener('mouseover', event => {
+	navList.addEventListener('mouseover', event => {
 		event.stopPropagation()
 
 		if (!navList.classList.contains(isAnimatingClass))
@@ -49,13 +49,9 @@ const handleHeader = () => {
 			navList.classList.add('header-nav--active')
 			console.log('mouseover')
 		}, 200)
-
-		// event.stopPropagation()
-		// event.preventDefault()
-		// console.log('nav click:', direction)
 	})
 
-	headerNav.addEventListener('mouseout', event => {
+	navList.addEventListener('mouseout', event => {
 		event.stopPropagation()
 
 		clearTimeout(hoverTimer)
