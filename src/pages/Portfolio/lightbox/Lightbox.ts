@@ -1,32 +1,65 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
-import template from './template.ts'
+
+import { PageGroup } from '../../../global/utils.types'
+import { findElement, setContent } from '../../../utils/content'
+import { ArrowsGroup } from '../block/block.types'
+
+import { fetchContent, getPage } from '../../../global/fetch.ts'
+import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
+
+import template from './template'
+import { NavigationOptions } from './lightbox.types'
 import { setAnimation } from '../../../utils/css'
-import type { LightboxOptions, NavigationOptions } from './lightbox.types'
+
+import '../styles'
+
+
+type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
+	content: HTMLDivElement | undefined
+	elements: NodeListOf<HTMLElement>
+	index: number
+	page: PageGroup | undefined
+	properties: Record<keyof T, T[keyof T]> | {};
+}
+
+
+
+//	1. click on block
+//		a.	block returns `className`, `content`, `index`, `page`
+//	2. create new lightbox element
+//		a.	inject `block.content` into lightbox
+//		b.	set video media from `block.content`
+//		c.	create navigation
+//		d.	set events
+
+
+//	TODOs:
+//		html.reset triggers animation bug on lightbox close + arrow click (content change)
+//		add a `data-state` attr instead?
+//			open, change, close
 
 
 export class Lightbox {
-	private activeClass: string = 'lightbox--active'
-	private isActive: boolean = false
-	private navigation: NavigationOptions | {} = {}
-
 	public lightbox: HTMLElement
 
+	private activeClass: string = 'lightbox--active'
+	private isActive: boolean = false
+
+	private content: HTMLDivElement | undefined
+	private elements: NodeListOf<HTMLElement>
+	private navigation: ArrowsGroup
 
 	constructor({
 		content,
-		navigation = {},
-		properties = {}
+		elements,
+		index,
+		properties = {},
 	}: LightboxOptions) {
-		this.lightbox = this.elements.create(properties)
-		this.navigation = navigation
-
-		const container = this.lightbox.querySelector('.lightbox__content')
-
-		if (container && content)
-			container.innerHTML = content.innerHTML
-
-		this.navigate.create()
+		this.content = content
+		this.elements = elements
+		this.navigation = this.set.pointers(index)
+		this.lightbox = this.html.create(properties)
 		this.events.bind()
 	}
 
@@ -36,13 +69,15 @@ export class Lightbox {
 	//	-------------------------
 
 	public open(): void {
-		const { body, container } = this.elements.structure()
+		const { body, container } = this.html.structure()
 
 		if (this.isActive || !body || !container) return
 
 		this.isActive = true
 		this.lightbox.classList.add(this.activeClass)
-		this.elements.reset()
+		this.html.reset()
+
+		console.log('OPEN')
 
 		document.body.style.overflow = 'hidden'
 		document.body.appendChild(this.lightbox)
@@ -57,7 +92,7 @@ export class Lightbox {
 	}
 
 	public close(): void {
-		const { blocks, overlay, video } = this.elements.structure()
+		const { blocks, overlay, video } = this.html.structure()
 		console.log('CLOSED')
 
 		if (!this.isActive || !video) return
@@ -79,23 +114,74 @@ export class Lightbox {
 		}, { once: true })
 	}
 
+	public refresh(): void {
+		const { blocks, overlay, video } = this.html.structure()
+		console.log('REFRESH')
+
+		this.lightbox.classList.add('lightbox--disabled')
+		this.lightbox.classList.remove(this.activeClass)
+		this.style.apply()
+	}
+
 	public toggle(): void {
 		this.isActive ? this.close() : this.open()
 	}
 
-
-	//	-------------------------
-	//	internal methods
-	//	-------------------------
-
-
 	//	elements
 	//	-------------------------
 
-	private elements = {
+	private set = {
+		pointers: (index: number): ArrowsGroup => {
+			const max = this.elements.length,
+				next = index + 1 < max ? index + 1 : 0,
+				prev = index - 1 >= 0 ? index - 1 : max - 1
+
+			return {
+				next: {
+					index: next,
+					target: this.elements[next],
+				},
+				prev: {
+					index: prev,
+					target: this.elements[prev],
+				},
+			} as ArrowsGroup
+		},
+		navigation: async () => {
+			const directions = Object.keys(this.navigation) as (keyof ArrowsGroup)[]
+
+			const entries = await Promise.all(
+				directions.map(async (direction) => {
+					const { target: rawTarget, ...rest } = this.navigation[direction]
+					const target = findElement(rawTarget)
+					let value = { ...rest, target }
+
+					if (target) {
+						const navWrapper = document.createElement('div'),
+							newPage = getPage(target)
+
+						navWrapper.innerHTML = await fetchContent(newPage) ?? ''
+
+						const title = findChildBy(navWrapper, { tagName: 'strong' }),
+							text = wrapTrimEl(title, 'span') ?? document.createElement('span')
+
+						value = { ...value, target, text }
+					}
+
+					return [direction, value] as const
+				})
+			)
+
+			return Object.fromEntries(entries) as ArrowsGroup
+		}
+	}
+
+	private html = {
 		create: (properties: LightboxOptions['properties']): HTMLElement => {
 			const lightbox = document.createElement('div')
+
 			lightbox.classList.add('lightbox', 'lightbox--disabled')
+			// lightbox.id = `lightbox-${page?.id}`
 			lightbox.innerHTML = template.trim()
 
 			const ignore = [
@@ -110,7 +196,35 @@ export class Lightbox {
 					(lightbox as any)[prop] = value
 			})
 
+			const container = lightbox.querySelector('.lightbox__content')
+
+			if (container && this.content)
+				container.innerHTML = this.content.innerHTML
+
+			this.components.arrows()
+
 			return lightbox
+		},
+
+		swap: async (direction: keyof NavigationOptions): Promise<void> => {
+			const nav = this.navigation[direction]
+			if (!nav?.target) return
+
+			// replace the content inside the lightbox
+			const { content } = this.html.structure()
+
+			if (content) {
+				const newContent = await setContent({ block: nav.target, page: getPage(nav.target) })
+				content.innerHTML = newContent?.innerHTML ?? ''
+				this.style.apply()
+			}
+
+			// update index + navigation
+			this.navigation = this.set.pointers(nav.index)
+
+			// re-bind arrows + embed logic
+			this.components.arrows()
+			this.events.bind()
 		},
 
 		reset: (element: HTMLElement | null = this.lightbox): void => {
@@ -135,7 +249,31 @@ export class Lightbox {
 		}),
 	}
 
-	private media = {
+	private style = {
+		apply: (): void => {
+			const { blocks, image, video } = this.html.structure()
+
+			if (image && video) {
+				(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
+			} else if (!this.isActive && video) {
+				this.html.reset(video as HTMLElement)
+				console.log('reset')
+			}
+
+			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, i) => {
+				Object.assign(block.style, setAnimation({
+					duration: .45,
+					index: i,
+					stagger: .125,
+					start: this.isActive ? .75 : 0,
+				}))
+
+				this.html.reset(block)
+			})
+		},
+	}
+
+	private components = {
 		embed: (element: Element = this.lightbox): void => {
 			const video = element.querySelector('video')
 			if (!video) return
@@ -159,61 +297,46 @@ export class Lightbox {
 				// const player = new Plyr(video)
 			}
 		},
-	}
 
-	private navigate = {
-		create: (): void => {
-			const { menu } = this.elements.structure()
+		arrows: async (): Promise<void> => {
+			this.navigation = await this.set.navigation()
+
+			const { menu } = this.html.structure()
 			const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
 
 			if (!directions.length || !menu) return
 
 			directions.forEach((direction, i) => {
-				const arrow = menu.querySelector(`.lightbox__arrow--${direction}`)
-				const {
-					index,
-					// target: { id, url },
-					text,
-				} = (this.navigation as NavigationOptions)[direction]
+				const arrow: HTMLElement | null = menu.querySelector(`.lightbox__arrow--${direction}`)
+				const nav = (this.navigation as NavigationOptions)[direction]
 
-				if (arrow && text) {
+				if (arrow && nav?.text) {
+					const [oldArrow] = [...arrow.children].filter(el => el.tagName.toLowerCase() === 'span')
+
+					if (!!oldArrow)
+						arrow.removeChild(oldArrow)
+
 					i % 2 === 0
-						? arrow.prepend(text)
-						: arrow.append(text)
+						? arrow.prepend(nav.text)
+						: arrow.append(nav.text)
 
-					arrow.setAttribute('data-position', `${index}`)
-					// arrow.setAttribute('data-id', `${id}`)
-					// arrow.setAttribute('data-url', `${url}`)
+					arrow.setAttribute('data-position', `${nav.index}`)
+
+					arrow.onclick = event => {
+						event.preventDefault()
+						console.log('nav click:', direction)
+
+						// this.refresh()
+						this.html.swap(direction)
+					}
 				} else {
 					arrow?.remove()
+					// delete this.navigation[direction]
 				}
 			})
 		},
 	}
 
-	private style = {
-		apply: (): void => {
-			const { blocks, image, video } = this.elements.structure()
-
-			if (image && video) {
-				(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
-			} else if (!this.isActive && video) {
-				this.elements.reset(video as HTMLElement)
-				console.log('reset')
-			}
-
-			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, i) => {
-				Object.assign(block.style, setAnimation({
-					duration: .45,
-					index: i,
-					stagger: .125,
-					start: this.isActive ? .75 : 0,
-				}))
-
-				this.elements.reset(block)
-			})
-		},
-	}
 
 	//	events
 	//	-------------------------
@@ -225,7 +348,7 @@ export class Lightbox {
 		},
 
 		animate: (): void => {
-			const { image, video } = this.elements.structure()
+			const { image, video } = this.html.structure()
 			if (!image || !video) return
 
 			let media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
@@ -235,22 +358,23 @@ export class Lightbox {
 				media = video.querySelector('iframe') as HTMLIFrameElement
 				event = 'load'
 			} else {
-				this.media.embed(video)
+				this.components.embed(video)
 			}
 
 			media?.addEventListener(event, () => {
 				setTimeout(() => {
-					this.elements.reset(video as HTMLVideoElement)
-				}, 250)
+					this.html.reset(video as HTMLVideoElement)
+				}, 50)
 
 				video.addEventListener('animationend', () => {
-					this.elements.reset(image as HTMLElement)
+					this.html.reset(image as HTMLElement)
+					console.log('ANIMATE MEDIA')
 
 					image.addEventListener('animationstart', () => {
 						if (media instanceof HTMLVideoElement)
 							(media as HTMLVideoElement)?.play()
-						else
-							media.src = `${media.src}&autoplay=1&origin`
+						// else if (!!media.src)
+						// 	media.src = `${media.src}&autoplay=1&mute=1`
 					})
 
 					image.addEventListener('animationend', () => {
@@ -261,45 +385,10 @@ export class Lightbox {
 		},
 
 		click: (): void => {
-			const { closeBtn, overlay } = this.elements.structure()
+			const { closeBtn, overlay } = this.html.structure()
 
 			;(closeBtn! as HTMLElement).onclick = () => this.close()
 			;(overlay! as HTMLElement).onclick = () => this.close()
-
-			// const arrow = (this.lightbox.querySelector('.lightbox__arrow')! as HTMLElement)
-
-			// arrow.onclick = () => {
-			// 	console.log('ARROW')
-			// 	const position = arrow.dataset.position as `${number}` | undefined
-
-			// 	if (position) {
-			// 		const nextIndex = parseInt(position),
-			// 			[nextBlock] = [...blocks].filter(block => parseInt(`${block.dataset.position}`) === nextIndex)
-
-			// 		const nextBlockContent = await Block.init({
-			// 			className,
-			// 			index: nextIndex,
-			// 			target: nextBlock,
-			// 		})
-
-			// 		console.log({ nextBlockContent, lightboxEl })
-			// 		createLightbox(nextBlockContent)
-
-			// 		lightboxEl?.querySelector('.lightbox__overlay')?.addEventListener('animationend', () => {
-			// 			console.log('test')
-			// 			// createLightbox(nextBlockContent)
-			// 		})
-			// 	}
-			// }
 		},
-
-		// arrows: (): void => {
-		// 	const arrows = this.lightbox.querySelectorAll('.lightbox__arrow')
-		// 	arrows.forEach(arrow => arrow.addEventListener('click', e => {
-		// 		e.preventDefault()
-		// 		console.log('arrow click:', (arrow as HTMLElement).dataset.position)
-		// 		this.close()
-		// 	}))
-		// },
 	}
 }

@@ -9,10 +9,10 @@ import type { BlockOptions, PageGroup } from '../../../global/utils.types'
 export class Block {
 	private className: string = ''
 
-	block: HTMLElement | null
-	content: HTMLDivElement | undefined
-	index: number = 0
-	page: PageGroup = {
+	public block: HTMLElement | null
+	public content: HTMLDivElement | undefined
+	public index: number = 0
+	public page: PageGroup = {
 		id: '',
 		url: '',
 	}
@@ -54,7 +54,7 @@ export class Block {
 			`${this.className}__${type}`,
 			'block--disabled'
 		)
-		this.block.id = `block-${this.page.id}`
+		this.block.dataset.id = `block-${this.page.id}`
 		this.block.dataset.position = String(this.index)
 	}
 
@@ -62,9 +62,9 @@ export class Block {
 		if (!this.block) return
 
 		const argsAnimate = {
-			duration: .575,
+			duration: .5,
 			index: this.index,
-			stagger: .15,
+			stagger: .125,
 		}
 
 		Object.assign(this.block.style, {
