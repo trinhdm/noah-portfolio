@@ -1,0 +1,37 @@
+
+.content .fe-block {
+	&.home-block {
+		animation-fill-mode: forwards;
+		animation-timing-function: var(--ease-in-cubic);
+		/* animation-name: fadeIn; */
+		/* box-shadow: var(--dt-box-shadow); */
+	}
+
+	&.home-block__html {
+		--html-row-start: calc(-0.25 * var(--num-rows));
+
+		animation-name: fadeInDown;
+		transform: var(--dt-fade-down);
+
+		grid-row-start: calc(2 + var(--html-row-start));
+		z-index: 30;
+
+		&:nth-last-of-type(3) {
+			grid-area: calc(2 + var(--html-row-start)) / 2 / -2 / -1;
+		}
+
+		&:nth-last-of-type(2) {
+			grid-area: calc(2 + var(--html-row-start)) / 2 / -2 / -2;
+		}
+
+		&:nth-last-of-type(1) {
+			grid-area: calc(3 + var(--html-row-start)) / 2 / -1 / -2;
+		}
+	}
+
+	&.home-block__video {
+		animation-name: fadeInUp;
+		grid-area: 1 / 2 / calc(.25 * var(--num-rows)) / -2;
+		transform: var(--dt-fade-up);
+	}
+}
