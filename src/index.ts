@@ -1,7 +1,13 @@
 
 import { getBackground } from './global'
 import { handleHeader } from './components'
-import { Portfolio } from './pages'
+
+import {
+	About,
+	Contact,
+	Home,
+	Portfolio,
+} from './pages'
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,6 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const url = window.location.href
 
-	if (url.includes('portfolio'))
+	if (url === window.location.origin + '/')
+		return Home.init()
+
+	else if (url.includes('about'))
+		return About.init()
+
+	else if (url.includes('portfolio'))
 		return Portfolio.init()
+
+	else if (url.includes('contact'))
+		return Contact.init()
 })
