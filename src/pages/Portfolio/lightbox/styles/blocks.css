@@ -92,6 +92,7 @@
 	}
 
 	&.lightbox__video {
+		opacity: 0;
 		z-index: 10;
 
 		.lightbox__video-player {

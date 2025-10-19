@@ -82,7 +82,6 @@
 				}
 			}
 		}
-
 	}
 }
 
@@ -139,17 +138,17 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay);
+				animation-delay: 0s;
 				animation-timing-function: var(--ease-out-quart);
 			}
 
 			.lightbox__container {
-				animation-delay: var(--dt-lb-stagger);
+				animation-delay: var(--dt-lb-delay);
 				animation-timing-function: var(--ease-out-quad);
 			}
 
 			.lightbox__overlay {
-				animation-delay: var(--dt-lb-timeframe);
+				animation-delay: var(--dt-lb-stagger);
 			}
 		}
 

@@ -13,16 +13,19 @@
 	}
 
 	&:is(.lightbox--animated) {
-		.fe-block:is(.lightbox--animated){
+		.fe-block:is(.lightbox--animated) {
 			animation-fill-mode: forwards;
 
-			/* &.lightbox__html {
+			&.lightbox__html {
 				animation-name: fadeInDown;
-			} */
+			}
 
 			&.lightbox__image,
 			&.lightbox__video {
 				animation-duration: .75s;
+			}
+
+			&.lightbox__image {
 				animation-name: fadeIn;
 			}
 		}
@@ -33,13 +36,12 @@
 				animation-direction: reverse;
 
 				&.lightbox__html {
-					animation-name: fadeInUp;
 					animation-timing-function: var(--ease-out-sine);
 					transform: var(--dt-fade-base);
 				}
 
 				&.lightbox__video {
-					animation-delay: 1s;
+					animation-name: fadeInUp;
 					animation-timing-function: var(--ease-out-sine);
 				}
 			}
@@ -50,7 +52,6 @@
 				opacity: 0;
 
 				&.lightbox__html {
-					animation-name: fadeInDown;
 					animation-timing-function: var(--ease-in-sine);
 					transform: var(--dt-fade-down);
 				}
@@ -63,6 +64,7 @@
 				}
 
 				&.lightbox__video {
+					animation-name: fadeIn;
 					animation-timing-function: var(--ease-in-sine);
 				}
 			}
