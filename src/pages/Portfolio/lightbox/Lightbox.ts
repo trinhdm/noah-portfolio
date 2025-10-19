@@ -69,7 +69,7 @@ export class Lightbox {
 	//	-------------------------
 
 	public open(): void {
-		const { body, container } = this.html.structure()
+		const { body, container } = this.html.get()
 
 		if (this.isActive || !body || !container) return
 
@@ -92,15 +92,19 @@ export class Lightbox {
 	}
 
 	public close(): void {
-		const { blocks, overlay, video } = this.html.structure()
+		const { blocks, overlay, video } = this.html.get()
 		console.log('CLOSED')
 
 		if (!this.isActive || !video) return
 
 		this.isActive = false
 		this.lightbox.classList.add('lightbox--disabled')
-		this.lightbox.classList.remove(this.activeClass)
-		this.style.apply()
+
+		setTimeout(() => {
+			this.lightbox.classList.remove(this.activeClass)
+			this.html.reset()
+			this.style.apply()
+		}, 50)
 
 		video?.addEventListener('animationend', () => {
 			console.log('test')
@@ -115,7 +119,7 @@ export class Lightbox {
 	}
 
 	public refresh(): void {
-		const { blocks, overlay, video } = this.html.structure()
+		const { blocks, overlay, video } = this.html.get()
 		console.log('REFRESH')
 
 		this.lightbox.classList.add('lightbox--disabled')
@@ -211,7 +215,7 @@ export class Lightbox {
 			if (!nav?.target) return
 
 			// replace the content inside the lightbox
-			const { content } = this.html.structure()
+			const { content } = this.html.get()
 
 			if (content) {
 				const newContent = await setContent({ block: nav.target, page: getPage(nav.target) })
@@ -233,25 +237,41 @@ export class Lightbox {
 			element.classList.remove(cls)
 			void element.offsetHeight		// trigger reflow
 			element.classList.add(cls)
+			console.log('FIRED')
 		},
 
-		structure: (lightbox: HTMLElement | null = this.lightbox) => ({
-			blocks: lightbox?.querySelectorAll('.fe-block') as NodeListOf<HTMLElement>,
-			body: lightbox?.querySelector('.lightbox__body'),
-			closeBtn: lightbox?.querySelector('.lightbox__close'),
-			container: lightbox?.querySelector('.lightbox__container'),
-			content: lightbox?.querySelector('.lightbox__content'),
-			image: lightbox?.querySelector('.lightbox__image'),
-			lightbox,
-			menu: lightbox?.querySelector('.lightbox__navigation'),
-			overlay: lightbox?.querySelector('.lightbox__overlay'),
-			video: lightbox?.querySelector('.lightbox__video'),
-		}),
+		get: (lightbox: HTMLElement | null = this.lightbox) => {
+			let structure = {
+				blocks: lightbox?.querySelectorAll('.fe-block') as NodeListOf<HTMLElement>,
+				body: lightbox?.querySelector('.lightbox__body'),
+				closeBtn: lightbox?.querySelector('.lightbox__close'),
+				container: lightbox?.querySelector('.lightbox__container'),
+				content: lightbox?.querySelector('.lightbox__content'),
+				image: lightbox?.querySelector('.lightbox__image') as HTMLImageElement | null,
+				lightbox,
+				menu: lightbox?.querySelector('.lightbox__navigation'),
+				overlay: lightbox?.querySelector('.lightbox__overlay'),
+				video: lightbox?.querySelector('.lightbox__video'),
+			}
+
+			const { image, video } = structure
+
+			if (image && video) {
+				let media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
+
+				if (!video.contains(media))
+					media = video.querySelector('iframe') as HTMLIFrameElement
+
+				structure = { ...structure, media } as typeof structure & { media: HTMLIFrameElement | HTMLVideoElement | null }
+			}
+
+			return structure
+		},
 	}
 
 	private style = {
 		apply: (): void => {
-			const { blocks, image, video } = this.html.structure()
+			const { blocks, image, video } = this.html.get()
 
 			if (image && video) {
 				(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
@@ -260,10 +280,10 @@ export class Lightbox {
 				console.log('reset')
 			}
 
-			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, i) => {
+			;[...blocks].filter(b => b.classList.contains('lightbox__html')).forEach((block, index) => {
 				Object.assign(block.style, setAnimation({
 					duration: .45,
-					index: i,
+					index,
 					stagger: .125,
 					start: this.isActive ? .75 : 0,
 				}))
@@ -301,7 +321,7 @@ export class Lightbox {
 		arrows: async (): Promise<void> => {
 			this.navigation = await this.set.navigation()
 
-			const { menu } = this.html.structure()
+			const { menu } = this.html.get()
 			const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
 
 			if (!directions.length || !menu) return
@@ -348,33 +368,39 @@ export class Lightbox {
 		},
 
 		animate: (): void => {
-			const { image, video } = this.html.structure()
+			const { image, video } = this.html.get()
 			if (!image || !video) return
 
-			let media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
-			let event: string = 'loadeddata'
+			let eventName: string = 'loadeddata',
+				media: HTMLIFrameElement | HTMLVideoElement | null = video.querySelector('video')
 
-			if (!video.contains(media)) {
-				media = video.querySelector('iframe') as HTMLIFrameElement
-				event = 'load'
-			} else {
+			if (video.contains(media)) {
 				this.components.embed(video)
+			} else {
+				media = video.querySelector('iframe') as HTMLIFrameElement
+				eventName = 'load'
 			}
 
-			media?.addEventListener(event, () => {
-				setTimeout(() => {
-					this.html.reset(video as HTMLVideoElement)
-				}, 50)
+			media?.addEventListener(eventName, () => {
+				// setTimeout(() => {
+				// 	this.html.reset(video as HTMLVideoElement)
+				// }, 50)
 
-				video.addEventListener('animationend', () => {
-					this.html.reset(image as HTMLElement)
-					console.log('ANIMATE MEDIA')
+				console.log('ANIMATE MEDIA', this.isActive, media)
+
+
+				;(video as HTMLVideoElement).addEventListener('animationend', (event: AnimationEvent) => {
+					if (!this.isActive) return
+
+					event.stopPropagation()
+					this.html.reset(image)
+					console.log('FADE MEDIA IN', this.isActive, event)
 
 					image.addEventListener('animationstart', () => {
 						if (media instanceof HTMLVideoElement)
 							(media as HTMLVideoElement)?.play()
-						// else if (!!media.src)
-						// 	media.src = `${media.src}&autoplay=1&mute=1`
+						else if (!!media.src)
+							media.src = `${media.src}&autoplay=1&mute=1`
 					})
 
 					image.addEventListener('animationend', () => {
@@ -385,7 +411,7 @@ export class Lightbox {
 		},
 
 		click: (): void => {
-			const { closeBtn, overlay } = this.html.structure()
+			const { closeBtn, overlay } = this.html.get()
 
 			;(closeBtn! as HTMLElement).onclick = () => this.close()
 			;(overlay! as HTMLElement).onclick = () => this.close()
