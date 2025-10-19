@@ -1,0 +1,18 @@
+
+.content .fe-block {
+	&.about-block {
+		animation-fill-mode: forwards;
+		animation-timing-function: var(--ease-in-cubic);
+	}
+
+	&.about-block__html {
+		animation-name: fadeInDown;
+		transform: var(--dt-fade-down);
+		z-index: 30;
+	}
+
+	&.about-block__image {
+		animation-name: fadeInUp;
+		transform: var(--dt-fade-up);
+	}
+}
