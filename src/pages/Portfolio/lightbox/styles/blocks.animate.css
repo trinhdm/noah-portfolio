@@ -17,6 +17,7 @@
 			animation-fill-mode: forwards;
 
 			&.lightbox__html {
+				animation-duration: .45s;
 				animation-name: fadeInDown;
 			}
 
@@ -30,7 +31,7 @@
 			}
 		}
 
-		&:not(.lightbox--active) {
+		&:is([data-state="close"]) {
 			.fe-block:is(.lightbox--animated) {
 				opacity: 1;
 				animation-direction: reverse;
@@ -47,7 +48,7 @@
 			}
 		}
 
-		&:is(.lightbox--active) {
+		&:is([data-state="open"]) {
 			.fe-block:is(.lightbox--animated) {
 				opacity: 0;
 

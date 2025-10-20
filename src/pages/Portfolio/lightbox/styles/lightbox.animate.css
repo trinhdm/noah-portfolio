@@ -9,7 +9,7 @@
 
 
 .lightbox {
-	&:not(.lightbox--animated) {
+	&:not(.lightbox--animated, [data-state]) {
 		.lightbox__body,
 		.lightbox__button,
 		.lightbox__container,
@@ -30,16 +30,16 @@
 			animation-timing-function: var(--ease-in-out-sine);
 			opacity: 0;
 
-			&.lightbox__close {
+			&.lightbox__close-button {
 				animation-name: fadeIn;
 			}
 
-			&.lightbox__next {
+			&.lightbox__next-button {
 				animation-name: fadeInLeft;
 				transform-origin: right;
 			}
 
-			&.lightbox__prev {
+			&.lightbox__prev-button {
 				animation-name: fadeInRight;
 				transform-origin: left;
 			}
@@ -48,36 +48,36 @@
 		/*	fade out
 			-----------------	*/
 
-		&:not(.lightbox--active) {
+		&:is([data-state="close"]) {
 			.lightbox__button {
-				animation-delay: calc(.5 * var(--dt-lb-duration));
+				/* animation-delay: calc(.5 * var(--dt-lb-duration)); */
 				animation-direction: reverse;
 
-				&.lightbox__next,
-				&.lightbox__prev {
+				/* &.lightbox__next-button,
+				&.lightbox__prev-button {
 					animation-delay: 0s;
-				}
+				} */
 			}
 		}
 
 		/*	fade in
 			-----------------	*/
 
-		&:is(.lightbox--active) {
+		&:is([data-state="open"]) {
 			.lightbox__button {
-				animation-delay: calc(1.375 * var(--dt-lb-timeframe));
+				/* animation-delay: calc(1.375 * var(--dt-lb-timeframe)); */
 				animation-direction: normal;
 
-				&.lightbox__next,
-				&.lightbox__prev {
+				/* &.lightbox__next-button,
+				&.lightbox__prev-button {
 					animation-delay: calc(1.875 * var(--dt-lb-timeframe));
-				}
+				} */
 
-				&.lightbox__next {
+				&.lightbox__next-button {
 					transform: var(--dt-fade-left);
 				}
 
-				&.lightbox__prev {
+				&.lightbox__prev-button {
 					transform: var(--dt-fade-right);
 				}
 			}
@@ -85,7 +85,7 @@
 	}
 }
 
-.lightbox:has(.fe-block:not(.lightbox--animated)) {
+.lightbox {
 	&:not(.lightbox--animated) {
 		.lightbox__body,
 		.lightbox__container,
@@ -124,7 +124,7 @@
 		/*	fade out
 			-----------------	*/
 
-		&:not(.lightbox--active) {
+		&:is([data-state="close"]) {
 			.lightbox__body,
 			.lightbox__container,
 			.lightbox__overlay {
@@ -155,7 +155,7 @@
 		/*	fade in
 			-----------------	*/
 
-		&:is(.lightbox--active) {
+		&:is([data-state="open"]) {
 			.lightbox__body,
 			.lightbox__container,
 			.lightbox__overlay {

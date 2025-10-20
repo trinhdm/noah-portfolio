@@ -21,10 +21,10 @@ export const getPage = (element: HTMLElement | null) => {
 }
 
 
-export const fetchContent = ({ id, url }: PageGroup) => {
+export const fetchContent = ({ id, url }: PageGroup): Promise<string | undefined> => {
 	if (!id || !url) return
 
-	const separator = url.includes('?') ? '&' : '?',
+	const separator = url?.includes('?') ? '&' : '?',
 		htmlURL = `${url}${separator}format=html`
 
 	return fetch(htmlURL)
@@ -44,5 +44,7 @@ export const fetchContent = ({ id, url }: PageGroup) => {
 			return !!content?.length
 				? content
 				: '<p>No content found.</p>'
-		}).catch(err => console.error('error fetching page', err))
+		}).catch(err => {
+			console.error('error fetching page', err)
+		})
 }

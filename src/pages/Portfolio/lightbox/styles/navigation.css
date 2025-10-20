@@ -1,5 +1,14 @@
 
 .lightbox {
+	&:not([data-disabled="true"]) {
+		.lightbox__arrow,
+		.lightbox__button {
+			& > span {
+				cursor: pointer;
+			}
+		}
+	}
+
 	.lightbox__navigation {
 		--dt-button-size: 3rem;
 
@@ -28,7 +37,6 @@
 		}
 
 		& > span {
-			cursor: pointer;
 			display: block;
 			height: 100%;
 			letter-spacing: calc(1.5 * var(--dt-letter-spacing));
@@ -47,9 +55,9 @@
 					transform .35s var(--ease-in-out-quad) .11s;
 
 		container-type: size;
+        flex: 1 1 100%;
 		height: var(--dt-button-size);
 		max-width: 33%;
-        flex: 1 1 100%;
 
 		&.lightbox__arrow--next {
 			&:only-child {
@@ -112,18 +120,18 @@
 		color: inherit;
 		max-width: fit-content;
 
-		&.lightbox__close {
+		&.lightbox__close-button {
 			display: none;
 			position: absolute;
 			right: .875rem;
             top: .5rem;
 		}
 
-		&.lightbox__next {
+		&.lightbox__next-button {
 			padding-left: var(--dt-space-element);
 		}
 
-		&.lightbox__prev {
+		&.lightbox__prev-button {
 			padding-right: var(--dt-space-element);
 		}
 
