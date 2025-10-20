@@ -61,15 +61,10 @@ export class Block {
 	private style(): void {
 		if (!this.block) return
 
-		const argsAnimate = {
-			duration: .5,
+		setAnimation(this.block, {
 			index: this.index,
-			stagger: .125,
-		}
-
-		Object.assign(this.block.style, {
-			...setAnimation(argsAnimate),
-			order: this.index + 1,
+			// order: this.index + 1,
+			stagger: .12,
 		})
 
 		resetAttrs({
@@ -81,18 +76,23 @@ export class Block {
 	private set(content?: HTMLElement): void {
 		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
 
-		if (titleWrapper) {
-			const details = document.createElement('div'),
-				title = findChildBy(titleWrapper, { tagName: 'strong' })
+		if (!this.block || !titleWrapper) return
 
-			if (!this.block || !title) return
+		const details = document.createElement('div'),
+			title = findChildBy(titleWrapper, { tagName: 'strong' })
 
-			const newTitle = wrapTrimEl(title, 'span')
+		if (!title) return
 
-			details.classList.add(`${this.className}__details`)
-			details.appendChild(newTitle ?? title)
+		let newTitle = title
+		const formattedTitle = wrapTrimEl(title, 'span')
 
-			this.block.appendChild(details)
+		if (formattedTitle) {
+			newTitle = formattedTitle
+			title.innerHTML = formattedTitle.innerHTML
 		}
+
+		details.classList.add(`${this.className}__details`)
+		details.appendChild(newTitle)
+		this.block.appendChild(details)
 	}
 }

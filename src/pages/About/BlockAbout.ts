@@ -55,16 +55,11 @@ export class BlockAbout {
 	private style(): void {
 		if (!this.block) return
 
-		const argsAnimate = {
-			duration: .75,
+		setAnimation(this.block, {
 			index: this.index,
+			order: this.index + 1,
 			stagger: .5,
 			start: .875,
-		}
-
-		Object.assign(this.block.style, {
-			...setAnimation(argsAnimate),
-			order: this.index + 1,
 		})
 
 		resetAttrs({

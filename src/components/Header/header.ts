@@ -32,13 +32,19 @@ const onEnterNav = ({
 }: NavEventOptions) => {
 	const navItems = navList.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
 
-	navItems.forEach((item, i) => Object.assign(
-		item?.style, setAnimation({
-			...args,
-			index: i,
-			start: Math.abs(args.stagger * navItems.length),
-		})
-	))
+	// navItems.forEach((item, index) => Object.assign(
+	// 	item?.style, setAnimation({
+	// 		...args,
+	// 		index: i,
+	// 		start: Math.abs(args.stagger * navItems.length),
+	// 	})
+	// ))
+
+	navItems.forEach((item, index) => setAnimation(item, {
+		...args,
+		index,
+		start: Math.abs(args.stagger * navItems.length),
+	}))
 
 	clearTimeout(timer)
 
@@ -55,13 +61,19 @@ const onLeaveNav = ({
 }: NavEventOptions) => {
 	const navItems = navList.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
 
-	navItems.forEach((item, i) => Object.assign(
-		item?.style, setAnimation({
-			...args,
-			index: i,
-			stagger: Math.abs(args.stagger),
-		})
-	))
+	// navItems.forEach((item, i) => Object.assign(
+	// 	item?.style, setAnimation({
+	// 		...args,
+	// 		index: i,
+	// 		stagger: Math.abs(args.stagger),
+	// 	})
+	// ))
+
+	navItems.forEach((item, index) => setAnimation(item, {
+		...args,
+		index,
+		stagger: Math.abs(args.stagger),
+	}))
 
 	clearTimeout(timer)
 

@@ -20,15 +20,15 @@ const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) =>
 		deepest.textContent = ''
 
 		textContent.split(' ')
-			.map((str, i) => {
+			.map((str, index) => {
 				const span = tidyContent(str, 'span')
 
 				if (span)
-					Object.assign(span.style, setAnimation({
+					setAnimation(span, {
 						duration: .5,
-						index: i,
+						index,
 						stagger: .375,
-					}))
+					})
 
 				return span
 			})

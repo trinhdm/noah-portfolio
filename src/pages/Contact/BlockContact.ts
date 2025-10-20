@@ -55,16 +55,11 @@ export class BlockContact {
 	private style(): void {
 		if (!this.block) return
 
-		const argsAnimate = {
-			duration: .75,
+		setAnimation(this.block, {
 			index: this.index,
+			order: this.index + 1,
 			stagger: .25,
 			start: .5,
-		}
-
-		Object.assign(this.block.style, {
-			...setAnimation(argsAnimate),
-			order: this.index + 1,
 		})
 
 		resetAttrs({

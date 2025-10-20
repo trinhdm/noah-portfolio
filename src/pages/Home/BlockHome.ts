@@ -55,16 +55,23 @@ export class BlockHome {
 	private style(): void {
 		if (!this.block) return
 
-		const argsAnimate = {
-			duration: .75,
+		// const argsAnimate = {
+		// 	duration: .75,
+		// 	index: this.index,
+		// 	stagger: .25,
+		// 	start: .5,
+		// }
+
+		// Object.assign(this.block.style, {
+		// 	...setAnimation(argsAnimate),
+		// 	order: this.index + 1,
+		// })
+
+		setAnimation(this.block, {
 			index: this.index,
+			order: this.index + 1,
 			stagger: .25,
 			start: .5,
-		}
-
-		Object.assign(this.block.style, {
-			...setAnimation(argsAnimate),
-			order: this.index + 1,
 		})
 
 		resetAttrs({
