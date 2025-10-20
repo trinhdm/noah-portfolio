@@ -24,17 +24,14 @@
 			&.lightbox__image,
 			&.lightbox__video {
 				animation-duration: .75s;
-			}
-
-			&.lightbox__image {
 				animation-name: fadeIn;
 			}
 		}
 
-		&:is([data-state="close"]) {
+		&:is([data-state="change"]) {
 			.fe-block:is(.lightbox--animated) {
-				opacity: 1;
 				animation-direction: reverse;
+				opacity: 1;
 
 				&.lightbox__html {
 					animation-timing-function: var(--ease-out-sine);
@@ -42,7 +39,23 @@
 				}
 
 				&.lightbox__video {
+					animation-timing-function: var(--ease-out-sine);
+				}
+			}
+		}
+
+		&:is([data-state="close"]) {
+			.fe-block:is(.lightbox--animated) {
+				animation-direction: reverse;
+				opacity: 1;
+
+				&.lightbox__html {
 					animation-name: fadeInUp;
+					animation-timing-function: var(--ease-out-sine);
+					transform: var(--dt-fade-base);
+				}
+
+				&.lightbox__video {
 					animation-timing-function: var(--ease-out-sine);
 				}
 			}
@@ -50,6 +63,7 @@
 
 		&:is([data-state="open"]) {
 			.fe-block:is(.lightbox--animated) {
+				animation-direction: normal;
 				opacity: 0;
 
 				&.lightbox__html {
@@ -65,7 +79,6 @@
 				}
 
 				&.lightbox__video {
-					animation-name: fadeIn;
 					animation-timing-function: var(--ease-in-sine);
 				}
 			}

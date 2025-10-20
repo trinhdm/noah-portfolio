@@ -30,6 +30,7 @@
 		}
 
 		&.portfolio-block {
+			animation-duration: .375s;
 			animation-fill-mode: forwards;
 			animation-name: fadeIn;
 			animation-timing-function: var(--ease-in-sine);

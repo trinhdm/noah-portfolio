@@ -18,6 +18,7 @@ import '../styles'
 
 enum LightboxClass {
 	Root = 'lightbox',
+	Hidden = 'lightbox--hidden'
 	// Active = 'lightbox--active',
 	// Disabled = 'lightbox--disabled',
 }
@@ -149,15 +150,8 @@ class LightboxDOM {
 	}
 
 	setProperties(properties: LightboxProperties) {
-		console.log(properties)
-
-		Object.entries(properties).forEach(([prop, value]) => {
-			this.root.setAttribute(prop, `${value}`)
-		})
-	}
-
-	getState() {
-		return this.root.dataset.state
+		Object.entries(properties)
+			.forEach(([prop, value]) => this.root.setAttribute(prop, `${value}`))
 	}
 
 	setState(state: 'open' | 'change' | 'close') {
@@ -171,6 +165,17 @@ class LightboxDOM {
 
 		if (typeof overflow === 'string')
 			document.body.style.overflow = overflow
+	}
+
+	toggleDisable() {
+		let isDisabled = true
+
+		if (this.root.hasAttribute('data-disabled')) {
+			isDisabled = this.root.dataset.disabled === 'true'
+			isDisabled = !isDisabled
+		}
+
+		this.setProperties({ 'data-disabled': `${isDisabled}` })
 	}
 }
 
@@ -190,24 +195,17 @@ class LightboxAnimation {
 		isActive: boolean,
 		pointers: ArrowsGroup
 	) {
-		const directions = Object.keys(pointers) as (keyof NavigationOptions)[],
+		const arrows = Object.keys(pointers).reverse() as (keyof NavigationOptions)[],
 			menu = this.dom.get('navigation')
 
-		if (!menu || !directions?.length) return
+		if (!menu) return
 
-		directions.forEach((direction, index) => {
-			const arrowBtn = menu.querySelector(`.lightbox__${direction}-button`) as HTMLButtonElement | undefined
+		menu.removeAttribute('data-hidden')
+		arrows?.forEach((direction, index) => {
+			const arrowBtn = menu?.querySelector(`.lightbox__${direction}-button`) as HTMLButtonElement | undefined
 			if (!arrowBtn) return
 
-			const duration = Number(window.getComputedStyle(arrowBtn).getPropertyValue('animation-duration'))
-
-			Object.assign(arrowBtn.style, setAnimation({
-				duration,
-				index,
-				stagger: -0.375,
-				start: isActive ? .75 : 0,
-			}))
-
+			setAnimation(arrowBtn, { index, stagger: .175 })
 			this.reset(arrowBtn)
 		})
 	}
@@ -217,20 +215,21 @@ class LightboxAnimation {
 		className: `${LightboxClass.Root}__${string}` = `${LightboxClass.Root}__html`
 	) {
 		const blocks = this.dom.get('blocks')
-
 		if (!blocks?.length) return
 
-		;[...blocks].filter(block => block.classList.contains(className))
+		let elements = [...blocks],
+			start: number = Number(window.getComputedStyle(blocks[0]).getPropertyValue('animation-duration'))
+
+		if (!isActive) {
+			elements = [...blocks].slice().reverse()
+			start = 0
+		}
+
+		console.log('	FIRED BLOCKS')
+
+		elements.filter(block => block.classList.contains(className))
 			.forEach((htmlBlock, index) => {
-				const duration = Number(window.getComputedStyle(htmlBlock).getPropertyValue('animation-duration'))
-
-				Object.assign(htmlBlock.style, setAnimation({
-					duration,
-					index,
-					stagger: .125,
-					start: isActive ? .75 : 0,
-				}))
-
+				setAnimation(htmlBlock, { index, stagger: .125, start })
 				this.reset(htmlBlock)
 			})
 	}
@@ -240,15 +239,17 @@ class LightboxAnimation {
 	}
 
 	fadeInRoot() {
-		this.dom.setProperties({ 'data-disabled': 'true' })
-		this.reset(this.dom.get('root'))
 		console.log('FADE IN')
+		this.dom.toggleDisable()
+		this.dom.setState('open')
+		this.reset(this.dom.get('root'))
 	}
 
 	fadeOutRoot() {
-		this.dom.setProperties({ 'data-disabled': 'true' })
-		this.reset(this.dom.get('root'))
 		console.log('FADE OUT')
+		this.dom.toggleDisable()
+		this.dom.setState('close')
+		this.reset(this.dom.get('root'))
 	}
 
 	async waitForAnimationEnd(el: HTMLElement | undefined, event = 'animationend'): Promise<void> {
@@ -263,7 +264,10 @@ class LightboxAnimation {
 class LightboxEvents {
 	private handlers: Array<() => void> = []
 
-	constructor(private dom: LightboxDOM, private controller: LightboxController) {}
+	constructor(
+		private dom: LightboxDOM,
+		private controller: LightboxController
+	) {}
 
 	private handleClick(element: HTMLElement) {
 		const handler = () => this.controller.close()
@@ -297,8 +301,8 @@ class LightboxMedia {
 		const embed = video.querySelector('video') as HTMLVideoElement | undefined,
 			iframe = video.querySelector('iframe') as HTMLIFrameElement | undefined
 
-		if (embed) this.handle.embed(embed)
-		else if (iframe) this.handle.iframe(iframe)
+		if (embed) this.start.embed(embed)
+		else if (iframe) this.start.iframe(iframe)
 
 		const image = this.dom.get('image')
 		if (!image) return
@@ -322,7 +326,7 @@ class LightboxMedia {
 		this.instance = null
 	}
 
-	private handle = {
+	private start = {
 		embed: (embed: HTMLVideoElement) => {
 			const source = embed.src ?? ''
 
@@ -333,6 +337,7 @@ class LightboxMedia {
 				this.instance.attachMedia(embed)
 				embed.pause()
 				;(window as any).hls = this.instance
+				console.log('WORKS', this.instance, embed)
 
 			// hls.on(Hls.Events.MANIFEST_PARSED, () => {
 			// 	const player = new Plyr(embed, plyrOptions)
@@ -394,7 +399,8 @@ class LightboxNavigation {
 				const title = findChildBy(navWrapper, { tagName: 'strong' }),
 					text = wrapTrimEl(title, 'span') ?? document.createElement('span')
 
-				value = { ...value, target, text }
+				value = { ...value, target, rawTarget, text }
+				console.log({ title, text, navWrapper })
 			}
 
 			return [direction, value] as const
@@ -410,13 +416,13 @@ class LightboxNavigation {
 		onNavigate: (direction: keyof NavigationOptions) => void
 	) {
 		await this.createMenu(index)
-		const menu = this.dom.get('navigation')
-		if (!menu || !Object.keys(this.navigation).length) return
+		const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[],
+			menu = this.dom.get('navigation')
 
-		const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[]
+		if (!directions?.length) return
 
 		directions.forEach((direction, i) => {
-			const arrow = menu.querySelector(`.lightbox__arrow--${direction}`),
+			const arrow = menu?.querySelector(`.lightbox__arrow--${direction}`),
 				item = (this.navigation as NavigationOptions)[direction]
 
 			if (!arrow) return
@@ -457,20 +463,18 @@ class LightboxNavigation {
 			const { index, target } = item
 			const newContent = await this.contentService.loadBlockContent(target)
 
-			// this.dom.setState('change')
+			this.dom.setState('change')
 			animator.fadeBlocks(false)
 			media.dispose()
 
-			await new Promise(res => setTimeout(res, 50))
-			this.dom.update(newContent)
+			// await new Promise(res => setTimeout(res, 50))
+			// this.dom.update(newContent)
 
-			await this.createMenu(index)
-			media.configure(animator)
-			animator.fadeBlocks(true)
+			// await this.createMenu(index)
+			// media.configure(animator)
+			// animator.fadeBlocks(true)
 			// this.dom.setState('open')
-		} catch (err) {
-			console.error('lightbox swap failed', err)
-		}
+		} catch (err) { console.error('lightbox swap failed', err) }
 	}
 }
 
@@ -502,39 +506,38 @@ export class LightboxController {
 	private async navigate(direction: keyof NavigationOptions) {
 		if (!this.isActive) return
 		await this.navigator.swapContent(direction, this.animator, this.media)
-		// await this.navigator.setArrows(
-		// 	this.options.index,
-		// 	this.navigator.swapContent(this.direction, this.animator, this.media)
-		// )
-
-		// await this.navigator.setArrows(this.options.index, (direction: 'next' | 'prev') => this.navigate(direction))
-		// await this.navigator.swapContent(direction, this.animator, this.media)
 	}
 
 	async open() {
 		if (this.isActive) return
 		this.isActive = true
 
-		this.dom.setState('open')
 		this.animator.fadeInRoot()
+		await this.animator.waitForAnimationEnd(this.dom.get('body'))
 		this.media.configure(this.animator)
-		this.animator.fadeBlocks(true)
 
-		// await this.animator.waitForAnimationEnd(Array.from(this.dom.get('blocks')!).at(-1))
-		this.animator.fadeArrows(true, this.navigator.getPointers(this.options.index))
+		try {
+			const arrows = this.dom.get('navigation')?.querySelectorAll('button')!,
+				blocks = this.dom.get('blocks')!
 
-		await this.animator.waitForAnimationEnd(this.dom.get('navigation'))
+			this.animator.fadeBlocks(true)
 
-		this.dom.setProperties({ 'data-disabled': 'false' })
+			await this.animator.waitForAnimationEnd(Array.from(blocks).at(-2))
+			this.animator.fadeArrows(true, this.navigator.getPointers(this.options.index))
+
+			await this.animator.waitForAnimationEnd(Array.from(arrows).at(-1))
+			this.dom.toggleDisable()
+		} catch (err) { console.error('lightbox elements failed to animate', err) }
 	}
 
 	async close() {
 		if (!this.isActive) return
 		this.isActive = false
 
-		this.dom.setState('close')
 		this.animator.fadeOutRoot()
+
 		// this.animator.fadeBlocks(false)
+		// await this.animator.waitForAnimationEnd(this.dom.get('video'))
 
 		await this.animator.waitForAnimationEnd(this.dom.get('overlay'))
 
