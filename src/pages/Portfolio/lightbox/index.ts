@@ -1,3 +1,3 @@
 
-export { createLightbox } from './utils.ts'
+export { LightboxController } from './Lightbox.ts'
 import './styles'

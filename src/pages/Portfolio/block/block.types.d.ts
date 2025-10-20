@@ -11,6 +11,8 @@ type ArrowsGroup = {
 	prev: NavigationItem
 }
 
+type DirectionsList = keyof ArrowsGroup
 
 
-export type { ArrowsGroup }
+
+export type { ArrowsGroup, DirectionsList }

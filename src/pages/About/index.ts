@@ -20,8 +20,6 @@ const About = {
 			block.addEventListener('click', (event: MouseEvent) => {
 				event.preventDefault()
 				event.stopPropagation()
-				console.log(block)
-				// createLightbox(blockEl)
 			})
 		})
 
