@@ -15,7 +15,7 @@ import type {
 } from './lightbox.types'
 
 import template from './template'
-import '../styles'
+import './styles'
 
 
 enum LightboxClass {
@@ -42,7 +42,7 @@ class LightboxDOM {
 	private root: HTMLDivElement
 
 	constructor(private options: LightboxOptions) {
-		this.root = this.createRoot(options)
+		this.root = this.createRoot(this.options)
 	}
 
 	private createRoot({ content, properties = {} }: Pick<LightboxOptions, 'content' | 'properties'>) {
@@ -505,9 +505,9 @@ export class LightboxController {
 	private isActive: boolean = false
 
 	constructor(private options: LightboxOptions) {
-		this.dom = new LightboxDOM(options)
+		this.dom = new LightboxDOM(this.options)
 		this.animator = new LightboxAnimation(this.dom)
-		this.navigator = new LightboxNavigation(this.dom, options, new ContentService())
+		this.navigator = new LightboxNavigation(this.dom, this.options, new ContentService())
 		this.media = new LightboxMedia(this.dom)
 		this.events = new LightboxEvents(this.dom, this)
 
@@ -532,7 +532,7 @@ export class LightboxController {
 
 		this.animator.fadeInRoot()
 		await this.animator.waitForAnimationEnd(this.dom.get('body'))
-		await this.animator.fadeInMedia()
+		this.animator.fadeInMedia()
 
 		try {
 			const arrows = this.dom.get('navigation')?.querySelectorAll('button')!,
