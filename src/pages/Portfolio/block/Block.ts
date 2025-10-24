@@ -7,15 +7,11 @@ import type { BlockOptions, PageGroup } from '../../../global/utils.types'
 
 
 export class Block {
-	private className: string = ''
-
+	private readonly className: string
 	public block: HTMLElement | null
 	public content: HTMLDivElement | undefined
-	public index: number = 0
-	public page: PageGroup = {
-		id: '',
-		url: '',
-	}
+	public index: number
+	public page: PageGroup
 
 	constructor({
 		className,
@@ -24,46 +20,53 @@ export class Block {
 	}: BlockOptions) {
 		this.className = className
 		this.index = index
-
 		this.block = findElement(target)
-		this.content = undefined
 		this.page = getPage(target)
-
-		// console.log('IS PORTFOLIO', target)
 	}
 
-	public static async init(options: BlockOptions) {
+	static async init(options: BlockOptions): Promise<Block> {
 		const instance = new Block(options),
 			content = await setContent(instance)
-
-		instance.configure()
-		instance.style()
-		instance.set(content)
-		instance.content = content
-
+		await instance.generate(content)
 		return instance
 	}
 
-	private configure(): void {
+	private async generate(content?: HTMLDivElement): Promise<void> {
 		if (!this.block) return
 
-		const [type] = this.block.querySelector('.sqs-block')?.classList[1]?.split('-block') ?? 'base'
+		this.configureBlock()
+		this.applyStyle()
+
+		if (content) {
+			this.renderDetails(content)
+			this.content = content
+		}
+	}
+
+	private configureBlock(): void {
+		if (!this.block) return
+
+		const type = this.block.querySelector('.sqs-block')
+						?.classList[1]
+						?.split('-block')[0] ?? 'base'
 
 		this.block.classList.add(
 			this.className,
 			`${this.className}__${type}`,
 			'block--disabled'
 		)
-		this.block.dataset.id = `block-${this.page.id}`
-		this.block.dataset.position = String(this.index)
+
+		Object.assign(this.block.dataset, {
+			id: `block-${this.page.id}`,
+			position: String(this.index),
+		})
 	}
 
-	private style(): void {
+	private applyStyle(): void {
 		if (!this.block) return
 
 		setAnimation(this.block, {
 			index: this.index,
-			// order: this.index + 1,
 			stagger: .12,
 		})
 
@@ -73,18 +76,17 @@ export class Block {
 		})
 	}
 
-	private set(content?: HTMLElement): void {
-		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined
+	private renderDetails(content?: HTMLElement): void {
+		if (!this.block) return
 
-		if (!this.block || !titleWrapper) return
-
-		const details = document.createElement('div'),
+		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined,
 			title = findChildBy(titleWrapper, { tagName: 'strong' })
 
 		if (!title) return
 
-		let newTitle = title
-		const formattedTitle = wrapTrimEl(title, 'span')
+		let newTitle = title.cloneNode(true)
+		const details = document.createElement('div'),
+			formattedTitle = wrapTrimEl(title, 'span')
 
 		if (formattedTitle) {
 			newTitle = formattedTitle
@@ -94,5 +96,14 @@ export class Block {
 		details.classList.add(`${this.className}__details`)
 		details.appendChild(newTitle)
 		this.block.appendChild(details)
+	}
+
+	toLightboxOptions() {
+		return {
+			block: this.block,
+			content: this.content,
+			index: this.index,
+			page: this.page,
+		}
 	}
 }
