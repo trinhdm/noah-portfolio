@@ -1,49 +1,26 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 
-import { PageGroup } from '../../../global/utils.types'
-import { findElement, setContent } from '../../../utils/content'
-import { ArrowsGroup } from '../block/block.types'
-
 import { fetchContent, getPage } from '../../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
-
-import template from './template'
-import { NavigationOptions } from './lightbox.types'
+import { findElement, setContent } from '../../../utils/content'
 import { setAnimation } from '../../../utils/css'
 
-import '../styles'
+import type { ArrowsGroup, DirectionsList } from '../block/block.types'
+import type { PageGroup } from '../../../global/utils.types'
+import type {
+	LightboxElements,
+	LightboxOptions,
+	LightboxProperties,
+} from './lightbox.types'
 
+import template from './template'
+import '../styles'
 
 
 enum LightboxClass {
 	Root = 'lightbox',
-	Hidden = 'lightbox--hidden'
-	// Active = 'lightbox--active',
-	// Disabled = 'lightbox--disabled',
-}
-
-type LightboxProperties<T extends HTMLElement = HTMLDivElement> = Record<keyof T, T[keyof T]> | {}
-
-type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
-	content: HTMLDivElement | undefined
-	elements: NodeListOf<HTMLElement>
-	index: number
-	page: PageGroup | undefined
-	properties: Record<keyof T, T[keyof T]> | {};
-}
-
-type LightboxElements = {
-	blocks: NodeListOf<HTMLElement> | undefined
-	body: HTMLElement | undefined
-	closeBtn: HTMLElement | undefined
-	container: HTMLElement | undefined
-	content: HTMLDivElement | undefined
-	image?: HTMLImageElement | undefined
-	navigation: HTMLElement | undefined
-	overlay: HTMLElement | undefined
-	root: HTMLDivElement
-	video?: HTMLIFrameElement | HTMLVideoElement | undefined
+	Hidden = 'lightbox--hidden',
 }
 
 
@@ -141,14 +118,6 @@ class LightboxDOM {
 		this.reset()
 	}
 
-	addClass(cls: LightboxClass) {
-		this.root.classList.add(cls)
-	}
-
-	removeClass(cls: LightboxClass) {
-		this.root.classList.remove(cls)
-	}
-
 	setProperties(properties: LightboxProperties) {
 		Object.entries(properties)
 			.forEach(([prop, value]) => this.root.setAttribute(prop, `${value}`))
@@ -188,14 +157,10 @@ class LightboxAnimation {
 		element.classList.remove(cls)
 		void element.offsetHeight		// trigger reflow
 		element.classList.add(cls)
-		// console.log('FIRED', element)
 	}
 
-	fadeArrows(
-		isActive: boolean,
-		pointers: ArrowsGroup
-	) {
-		const arrows = Object.keys(pointers).reverse() as (keyof NavigationOptions)[],
+	fadeArrows(pointers: ArrowsGroup) {
+		const arrows = Object.keys(pointers).reverse() as (DirectionsList)[],
 			menu = this.dom.get('navigation')
 
 		if (!menu) return
@@ -225,8 +190,6 @@ class LightboxAnimation {
 			start = 0
 		}
 
-		console.log('	FIRED BLOCKS')
-
 		elements.filter(block => block.classList.contains(className))
 			.forEach((htmlBlock, index) => {
 				setAnimation(htmlBlock, { index, stagger: .125, start })
@@ -239,26 +202,52 @@ class LightboxAnimation {
 	}
 
 	fadeInRoot() {
-		console.log('FADE IN')
 		this.dom.toggleDisable()
 		this.dom.setState('open')
 		this.reset(this.dom.get('root'))
 	}
 
 	fadeOutRoot() {
-		console.log('FADE OUT')
 		this.dom.toggleDisable()
 		this.dom.setState('close')
 		this.reset(this.dom.get('root'))
 	}
 
-	async waitForAnimationEnd(el: HTMLElement | undefined, event = 'animationend'): Promise<void> {
-		if (!el) return
-		await new Promise<void>(resolve => {
-			const onEnd = () => { el.removeEventListener(event, onEnd); resolve() }
-			el.addEventListener(event, onEnd, { once: true })
-		})
+	async fadeInMedia() {
+		const image = this.dom.get('image'),
+			video = this.dom.get('video')
+
+		if (!image || !video) return
+
+		this.fadeElement(video)
+		await this.waitForAnimationEnd(video)
+
+		this.fadeElement(image)
+		await this.waitForAnimationEnd(image)
+		image.remove()
 	}
+
+	async waitForAnimationEnd(
+		el: HTMLElement | undefined, event = 'animationend',
+		timeout = 1000
+	): Promise<void> {
+		if (!el) return
+		await Promise.race([
+			new Promise<void>(resolve => {
+				const onEnd = () => { el.removeEventListener(event, onEnd); resolve() }
+				el.addEventListener(event, onEnd, { once: true })
+			}),
+			new Promise<void>(resolve => setTimeout(resolve, timeout)),
+		])
+	}
+
+	// async waitForAnimationEnd(el: HTMLElement | undefined, event = 'animationend'): Promise<void> {
+	// 	if (!el) return
+	// 	await new Promise<void>(resolve => {
+	// 		const onEnd = () => { el.removeEventListener(event, onEnd); resolve() }
+	// 		el.addEventListener(event, onEnd, { once: true })
+	// 	})
+	// }
 }
 
 class LightboxEvents {
@@ -294,27 +283,27 @@ class LightboxMedia {
 
 	constructor(private dom: LightboxDOM) {}
 
-	async configure(animator: LightboxAnimation) {
+	async configure() {
 		const video = this.dom.get('video')
 		if (!video) return
 
 		const embed = video.querySelector('video') as HTMLVideoElement | undefined,
 			iframe = video.querySelector('iframe') as HTMLIFrameElement | undefined
 
-		if (embed) this.start.embed(embed)
-		else if (iframe) this.start.iframe(iframe)
+		if (embed) this.setup.embed(embed)
+		else if (iframe) this.setup.iframe(iframe)
 
 		const image = this.dom.get('image')
 		if (!image) return
 
 		;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
-		animator.fadeElement(video)
+		// animator.fadeElement(video)
 
-		await animator.waitForAnimationEnd(video)
-		animator.fadeElement(image)
+		// await animator.waitForAnimationEnd(video)
+		// animator.fadeElement(image)
 
-		await animator.waitForAnimationEnd(image)
-		image.remove()
+		// await animator.waitForAnimationEnd(image)
+		// image.remove()
 	}
 
 	dispose() {
@@ -326,7 +315,21 @@ class LightboxMedia {
 		this.instance = null
 	}
 
-	private start = {
+	private play(media: HTMLIFrameElement | HTMLVideoElement | undefined) {
+		const video = this.dom.get('video')!
+
+		const handler = () => {
+			video.removeEventListener('animationend', handler)
+			if (media instanceof HTMLVideoElement)
+				media.play()
+			else if (media instanceof HTMLIFrameElement)
+				media.src = `${media.src}&autoplay=1&mute=1`
+		}
+
+		video.addEventListener('animationend', handler)
+	}
+
+	private setup = {
 		embed: (embed: HTMLVideoElement) => {
 			const source = embed.src ?? ''
 
@@ -337,18 +340,21 @@ class LightboxMedia {
 				this.instance.attachMedia(embed)
 				embed.pause()
 				;(window as any).hls = this.instance
-				console.log('WORKS', this.instance, embed)
 
-			// hls.on(Hls.Events.MANIFEST_PARSED, () => {
-			// 	const player = new Plyr(embed, plyrOptions)
-			// 	embed.play()
-			// })
+				this.play(embed)
+
+				// this.instance.on(Hls.Events.MANIFEST_PARSED, () => {
+				// 	const player = new Plyr(embed, {})
+				// 	embed.play()
+				// })
 			} else {
 				new Plyr(embed)
 				// const player = new Plyr(embed)
 			}
 		},
-		iframe: (iframe: HTMLIFrameElement) => {}
+		iframe: (iframe: HTMLIFrameElement) => {
+			this.play(iframe)
+		}
 	}
 }
 
@@ -400,7 +406,6 @@ class LightboxNavigation {
 					text = wrapTrimEl(title, 'span') ?? document.createElement('span')
 
 				value = { ...value, target, rawTarget, text }
-				console.log({ title, text, navWrapper })
 			}
 
 			return [direction, value] as const
@@ -413,17 +418,17 @@ class LightboxNavigation {
 
 	async setArrows(
 		index: number,
-		onNavigate: (direction: keyof NavigationOptions) => void
+		onNavigate: (direction: DirectionsList) => void
 	) {
 		await this.createMenu(index)
-		const directions = Object.keys(this.navigation) as (keyof NavigationOptions)[],
+		const directions = Object.keys(this.navigation) as (DirectionsList)[],
 			menu = this.dom.get('navigation')
 
 		if (!directions?.length) return
 
 		directions.forEach((direction, i) => {
 			const arrow = menu?.querySelector(`.lightbox__arrow--${direction}`),
-				item = (this.navigation as NavigationOptions)[direction]
+				item = (this.navigation as ArrowsGroup)[direction]
 
 			if (!arrow) return
 
@@ -446,13 +451,13 @@ class LightboxNavigation {
 				arrow.addEventListener('click', handler)
 				;(arrow as any).__lightboxHandler = handler
 			} else {
-				arrow?.remove()
+				arrow.remove()
 			}
 		})
 	}
 
 	async swapContent(
-		direction: keyof NavigationOptions,
+		direction: DirectionsList,
 		animator: LightboxAnimation,
 		media: LightboxMedia
 	) {
@@ -463,28 +468,40 @@ class LightboxNavigation {
 			const { index, target } = item
 			const newContent = await this.contentService.loadBlockContent(target)
 
+			this.dom.toggleDisable()
 			this.dom.setState('change')
 			animator.fadeBlocks(false)
+
+			await animator.waitForAnimationEnd(this.dom.get('video'))
 			media.dispose()
 
-			// await new Promise(res => setTimeout(res, 50))
-			// this.dom.update(newContent)
+			await new Promise(res => setTimeout(res, 50))
+			this.dom.update(newContent)
+			await this.createMenu(index)
+			media.configure()
 
-			// await this.createMenu(index)
-			// media.configure(animator)
-			// animator.fadeBlocks(true)
-			// this.dom.setState('open')
+			// const image = this.dom.get('image')!
+			// animator.fadeElement(image)
+			// await animator.waitForAnimationEnd(image)
+
+			this.dom.setState('open')
+			animator.fadeBlocks(true)
+
+			await animator.waitForAnimationEnd(Array.from(this.dom.get('blocks')!).at(-1))
+			animator.fadeInMedia()
+
+			await animator.waitForAnimationEnd(this.dom.get('video'))
+			this.dom.toggleDisable()
 		} catch (err) { console.error('lightbox swap failed', err) }
 	}
 }
 
 export class LightboxController {
-	private dom: LightboxDOM
-	private animator: LightboxAnimation
-	private events: LightboxEvents
-	private media: LightboxMedia
-	private navigator: LightboxNavigation
-
+	private readonly dom: LightboxDOM
+	private readonly animator: LightboxAnimation
+	private readonly events: LightboxEvents
+	private readonly media: LightboxMedia
+	private readonly navigator: LightboxNavigation
 	private isActive: boolean = false
 
 	constructor(private options: LightboxOptions) {
@@ -495,6 +512,7 @@ export class LightboxController {
 		this.events = new LightboxEvents(this.dom, this)
 
 		this.dom.append()
+		this.media.configure()
 		this.events.bind()
 		this.setInitialArrows()
 	}
@@ -503,7 +521,7 @@ export class LightboxController {
 		await this.navigator.setArrows(this.options.index, (dir) => this.navigate(dir))
 	}
 
-	private async navigate(direction: keyof NavigationOptions) {
+	private async navigate(direction: DirectionsList) {
 		if (!this.isActive) return
 		await this.navigator.swapContent(direction, this.animator, this.media)
 	}
@@ -514,7 +532,7 @@ export class LightboxController {
 
 		this.animator.fadeInRoot()
 		await this.animator.waitForAnimationEnd(this.dom.get('body'))
-		this.media.configure(this.animator)
+		await this.animator.fadeInMedia()
 
 		try {
 			const arrows = this.dom.get('navigation')?.querySelectorAll('button')!,
@@ -522,10 +540,16 @@ export class LightboxController {
 
 			this.animator.fadeBlocks(true)
 
-			await this.animator.waitForAnimationEnd(Array.from(blocks).at(-2))
-			this.animator.fadeArrows(true, this.navigator.getPointers(this.options.index))
+			const beforeLastBlock = Array.from(blocks).at(-2)
+			if (beforeLastBlock)
+				await this.animator.waitForAnimationEnd(beforeLastBlock)
 
-			await this.animator.waitForAnimationEnd(Array.from(arrows).at(-1))
+			this.animator.fadeArrows(this.navigator.getPointers(this.options.index))
+
+			const lastArrow = Array.from(arrows).at(-1)
+			if (lastArrow)
+				await this.animator.waitForAnimationEnd(lastArrow)
+
 			this.dom.toggleDisable()
 		} catch (err) { console.error('lightbox elements failed to animate', err) }
 	}
@@ -533,11 +557,7 @@ export class LightboxController {
 	async close() {
 		if (!this.isActive) return
 		this.isActive = false
-
 		this.animator.fadeOutRoot()
-
-		// this.animator.fadeBlocks(false)
-		// await this.animator.waitForAnimationEnd(this.dom.get('video'))
 
 		await this.animator.waitForAnimationEnd(this.dom.get('overlay'))
 
@@ -550,4 +570,3 @@ export class LightboxController {
 		this.isActive ? this.close() : this.open()
 	}
 }
-
