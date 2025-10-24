@@ -1,7 +1,7 @@
 
 import { getPage } from '../../global/fetch.ts'
-import { resetAttrs, setAnimation } from '../../utils/css.ts'
 import { findElement } from '../../utils/content.ts'
+import { AnimationService } from '../../utils/AnimationService.ts'
 import type { BlockOptions, PageGroup } from '../../global/utils.types'
 
 
@@ -55,16 +55,11 @@ export class BlockContact {
 	private style(): void {
 		if (!this.block) return
 
-		setAnimation(this.block, {
+		AnimationService.stagger(this.block, {
+			className: 'block--disabled',
 			index: this.index,
-			order: this.index + 1,
 			stagger: .25,
 			start: .5,
-		})
-
-		resetAttrs({
-			block: this.block,
-			className: 'block--disabled',
 		})
 	}
 }

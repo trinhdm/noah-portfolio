@@ -8,6 +8,100 @@
 	--dt-lb-stagger-start: calc(var(--dt-lb-duration) - var(--dt-lb-stagger));
 }
 
+.lightbox {
+	&:not(.lightbox--animated) {
+		.lightbox__body,
+		.lightbox__container,
+		.lightbox__overlay  {
+			opacity: 1;
+		}
+
+		.lightbox__body,
+		.lightbox__container {
+			transform: var(--dt-fade-base);
+		}
+	}
+
+	/*	shared fade styles
+		-----------------	*/
+
+	&:is(.lightbox--animated) {
+		.lightbox__body,
+		.lightbox__container,
+		.lightbox__overlay {
+			animation-duration: var(--dt-lb-duration);
+			animation-fill-mode: forwards;
+		}
+
+		.lightbox__body,
+		.lightbox__container {
+			animation-name: fadeInUp;
+		}
+
+		.lightbox__overlay {
+			animation-delay: 0s;
+			animation-name: fadeIn;
+			animation-timing-function: var(--ease-in-out-back);
+		}
+
+		/*	fade out
+			-----------------	*/
+
+		&:is([data-state="close"]) {
+			.lightbox__body,
+			.lightbox__container,
+			.lightbox__overlay {
+				animation-direction: reverse;
+				opacity: 1;
+			}
+
+			.lightbox__body,
+			.lightbox__container {
+				transform: var(--dt-fade-base);
+			}
+
+			.lightbox__body {
+				animation-delay: var(--dt-lb-delay-start);
+				animation-timing-function: var(--ease-out-quart);
+			}
+
+			.lightbox__container {
+				animation-delay: var(--dt-lb-stagger-start);
+				animation-timing-function: var(--ease-out-quad);
+			}
+		}
+
+		/*	fade in
+			-----------------	*/
+
+		&:is([data-state="open"]) {
+			.lightbox__body,
+			.lightbox__container,
+			.lightbox__overlay {
+				animation-direction: normal;
+				opacity: 0;
+			}
+
+			.lightbox__body,
+			.lightbox__container {
+				transform: var(--dt-fade-up);
+			}
+
+			.lightbox__body {
+				animation-delay: var(--dt-lb-stagger-start);
+				animation-timing-function: var(--ease-in-quart);
+			}
+
+			.lightbox__container {
+				animation-delay: var(--dt-lb-delay-start);
+				animation-timing-function: var(--ease-in-quad);
+			}
+		}
+	}
+}
+
+/*	prevents navigation arrows from animating too early
+*/
 
 .lightbox:has(.lightbox__navigation:not([data-hidden])) {
 	&:not(.lightbox--animated) {
@@ -73,106 +167,6 @@
 				&.lightbox__prev-button {
 					transform: var(--dt-fade-right);
 				}
-			}
-		}
-	}
-}
-
-.lightbox {
-	&:not(.lightbox--animated) {
-		.lightbox__body,
-		.lightbox__container,
-		.lightbox__overlay  {
-			opacity: 1;
-		}
-
-		.lightbox__body,
-		.lightbox__container {
-			transform: var(--dt-fade-base);
-		}
-	}
-
-	/*	shared fade styles
-		-----------------	*/
-
-	&:is(.lightbox--animated) {
-		.lightbox__body,
-		.lightbox__container,
-		.lightbox__overlay {
-			animation-fill-mode: forwards;
-		}
-
-		.lightbox__body,
-		.lightbox__container {
-			animation-duration: var(--dt-lb-duration);
-			animation-name: fadeInUp;
-		}
-
-		.lightbox__overlay {
-			animation-duration: var(--dt-lb-duration);
-			animation-name: fadeIn;
-			animation-timing-function: var(--ease-in-out-back);
-		}
-
-		/*	fade out
-			-----------------	*/
-
-		&:is([data-state="close"]) {
-			.lightbox__body,
-			.lightbox__container,
-			.lightbox__overlay {
-				animation-direction: reverse;
-				opacity: 1;
-			}
-
-			.lightbox__body,
-			.lightbox__container {
-				transform: var(--dt-fade-base);
-			}
-
-			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
-				animation-timing-function: var(--ease-out-quart);
-			}
-
-			.lightbox__container {
-				animation-delay: var(--dt-lb-stagger-start);
-				animation-timing-function: var(--ease-out-quad);
-			}
-
-			.lightbox__overlay {
-				animation-delay: calc(var(--dt-lb-delay-start) + var(--dt-lb-duration));
-			}
-		}
-
-		/*	fade in
-			-----------------	*/
-
-		&:is([data-state="open"]) {
-			.lightbox__body,
-			.lightbox__container,
-			.lightbox__overlay {
-				animation-direction: normal;
-				opacity: 0;
-			}
-
-			.lightbox__body,
-			.lightbox__container {
-				transform: var(--dt-fade-up);
-			}
-
-			.lightbox__body {
-				animation-delay: var(--dt-lb-stagger-start);
-				animation-timing-function: var(--ease-in-quart);
-			}
-
-			.lightbox__container {
-				animation-delay: var(--dt-lb-delay-start);
-				animation-timing-function: var(--ease-in-quad);
-			}
-
-			.lightbox__overlay {
-				animation-delay: 0s;
 			}
 		}
 	}

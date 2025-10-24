@@ -1,8 +1,8 @@
 
 import { getPage } from '../../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
-import { resetAttrs, setAnimation } from '../../../utils/css.ts'
 import { findElement, setContent } from '../../../utils/content.ts'
+import { AnimationService } from '../../../utils/AnimationService.ts'
 import type { BlockOptions, PageGroup } from '../../../global/utils.types'
 
 
@@ -65,14 +65,10 @@ export class Block {
 	private applyStyle(): void {
 		if (!this.block) return
 
-		setAnimation(this.block, {
+		AnimationService.stagger(this.block, {
+			className: 'block--disabled',
 			index: this.index,
 			stagger: .12,
-		})
-
-		resetAttrs({
-			block: this.block,
-			className: 'block--disabled',
 		})
 	}
 
