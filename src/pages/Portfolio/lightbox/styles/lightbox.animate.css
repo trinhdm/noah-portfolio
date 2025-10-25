@@ -100,10 +100,8 @@
 	}
 }
 
-/*	prevents navigation arrows from animating too early
-*/
 
-.lightbox:has(.lightbox__navigation:not([data-hidden])) {
+.lightbox {
 	&:not(.lightbox--animated) {
 		.lightbox__button {
 			&.lightbox__next-button {
@@ -120,6 +118,7 @@
 		.lightbox__button {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
+			animation-play-state: paused;
 			animation-timing-function: var(--ease-in-out-sine);
 
 			&.lightbox__close-button {

@@ -13,7 +13,7 @@
 			/* background-color: var(--menuOverlayBackgroundColor); */
 			background-color: rgba(0, 0, 0, .35);
 			border-radius: var(--dt-border-radius);
-			padding: calc(.25 * var(--dt-gap)) calc(.5 * var(--dt-gap));
+			padding: calc(.375 * var(--dt-gap)) calc(.625 * var(--dt-gap));
 
 			p:not(:has(> strong)) {
 				opacity: .85;

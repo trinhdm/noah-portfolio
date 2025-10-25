@@ -194,13 +194,14 @@ class LightboxAnimation {
 
 		if (!menu) return
 
-		menu.removeAttribute('data-hidden')
 		arrows?.forEach((direction, index) => {
-			const arrowBtn = menu?.querySelector(`.lightbox__${direction}-button`) as HTMLButtonElement | undefined
+			const arrowBtn = menu.querySelector(`.lightbox__${direction}-button`) as HTMLButtonElement | undefined
+
 			if (!arrowBtn) return
 
 			setAnimation(arrowBtn, { index, stagger: .175 })
 			this.reset(arrowBtn)
+			arrowBtn.style.animationPlayState = 'running'
 		})
 	}
 

@@ -1,6 +1,6 @@
 
 .lightbox {
-	&:not([data-disabled="true"]) {
+	&:is([data-disabled="false"]) {
 		.lightbox__arrow,
 		.lightbox__button {
 			& > span {
