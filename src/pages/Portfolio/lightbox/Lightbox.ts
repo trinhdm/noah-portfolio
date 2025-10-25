@@ -207,17 +207,11 @@ class LightboxAnimation {
 		const blocks = this.dom.get('blocks')
 		if (!blocks?.length) return
 
-		let elements = [...blocks],
-			delay: number = parseFloat(window.getComputedStyle(blocks[0]).getPropertyValue('animation-delay'))
-
-		if (!isActive) {
-			elements = [...blocks].slice().reverse()
-			delay = 0
-		}
+		const blockList = [...blocks],
+			elements = isActive ? blockList : blockList.slice().reverse()
 
 		const options = {
-			// delay,
-			// hasReset: false,
+			hasReset: false,
 			stagger: .125,
 		}
 
@@ -227,11 +221,11 @@ class LightboxAnimation {
 			})
 	}
 
-	fadeInRoot() {
-		this.dom.toggleDisable()
-		this.dom.setState('open')
-		this.reset(this.dom.get('root'))
-	}
+	// fadeInRoot() {
+	// 	this.dom.toggleDisable()
+	// 	this.dom.setState('open')
+	// 	this.reset(this.dom.get('root'))
+	// }
 
 	async fadeOutRoot() {
 		this.dom.toggleDisable()
@@ -254,6 +248,28 @@ class LightboxAnimation {
 
 		AnimationService.set(image)
 		await this.waitForAnimationEnd(image)
+	}
+
+	async fadeRootIn(menu: LightboxMenu) {
+		this.dom.toggleDisable()
+		this.dom.setState('open')
+		this.reset(this.dom.get('root'))
+		await this.waitForAnimationEnd(this.dom.get('body'))
+
+		this.fadeInMedia()
+		this.fadeBlocks(true)
+
+		try {
+			await new Promise(res => setTimeout(res, 500))
+			const blocks = this.dom.get('blocks')!,
+				lastBlock = Array.from(blocks).at(-1)
+
+			await this.waitForAnimationEnd(lastBlock)
+		} catch (err) {
+
+		} finally {
+			this.fadeArrows(menu.directory)
+		}
 	}
 
 	async waitForAnimationEnd(
@@ -621,21 +637,11 @@ export class LightboxController {
 		if (this.isActive) return
 		this.isActive = true
 
-		this.animator.fadeInRoot()
-		await this.animator.waitForAnimationEnd(this.dom.get('body'))
-		this.animator.fadeInMedia()
-		this.animator.fadeBlocks(true)
-
 		try {
-			await new Promise(res => setTimeout(res, 50))
+			this.animator.fadeRootIn(this.menu)
+
 			const arrows = this.dom.get('navigation')?.querySelectorAll('button')!,
-				blocks = this.dom.get('blocks')!
-
-			const lastBlock = Array.from(blocks).at(-1)
-			await this.animator.waitForAnimationEnd(lastBlock)
-			this.animator.fadeArrows(this.menu.directory)
-
-			const lastArrow = Array.from(arrows).at(-1)
+				lastArrow = Array.from(arrows).at(-1)
 			await this.animator.waitForAnimationEnd(lastArrow)
 		} catch (err) {
 			console.error('lightbox failed to open', err)
@@ -643,6 +649,29 @@ export class LightboxController {
 			this.dom.toggleDisable()
 			this.media.play()
 		}
+
+		// this.animator.fadeInRoot()
+		// await this.animator.waitForAnimationEnd(this.dom.get('body'))
+		// this.animator.fadeInMedia()
+		// this.animator.fadeBlocks(true)
+
+		// try {
+		// 	await new Promise(res => setTimeout(res, 50))
+		// 	const arrows = this.dom.get('navigation')?.querySelectorAll('button')!,
+		// 		blocks = this.dom.get('blocks')!
+
+		// 	const lastBlock = Array.from(blocks).at(-1)
+		// 	await this.animator.waitForAnimationEnd(lastBlock)
+		// 	this.animator.fadeArrows(this.menu.directory)
+
+		// 	const lastArrow = Array.from(arrows).at(-1)
+		// 	await this.animator.waitForAnimationEnd(lastArrow)
+		// } catch (err) {
+		// 	console.error('lightbox failed to open', err)
+		// } finally {
+		// 	this.dom.toggleDisable()
+		// 	this.media.play()
+		// }
 	}
 
 	async close() {
@@ -653,7 +682,7 @@ export class LightboxController {
 			this.animator.fadeBlocks(false)
 
 			this.animator.fadeOutRoot()
-			await this.animator.waitForAnimationEnd(this.dom.get('overlay'), 2000)
+			await this.animator.waitForAnimationEnd(this.dom.get('overlay'))
 			console.log('ENDED')
 		} catch (err) {
 			console.error('lightbox failed to close', err)
