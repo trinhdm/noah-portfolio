@@ -1,5 +1,13 @@
 
 .lightbox {
+	/* .fe-block {
+		&.lightbox__html,
+		&.lightbox__image,
+		&.lightbox__video {
+			opacity: 0;
+		}
+	} */
+
 	&:is([data-state="change"]) .fe-block {
 		&.lightbox__image {
 			opacity: 0;
@@ -7,25 +15,97 @@
 	}
 
 	&:is([data-state="open"]) .fe-block {
+		&.lightbox__html,
+		&.lightbox__video {
+			opacity: 0;
+		}
+
+		&.lightbox__html {
+			transform: var(--dt-fade-down);
+		}
+
 		&.lightbox__image {
 			opacity: 1;
 		}
 	}
 }
 
-.lightbox:has(.fe-block.lightbox--animated) {
-	/* &:not(.lightbox--animated) {
+.lightbox:is(.lightbox--animated) {
+	.fe-block {
+		animation-fill-mode: forwards;
+		animation-play-state: paused;
+
+		&.lightbox__html {
+			animation-duration: calc(.75 * var(--dt-lb-duration));
+			animation-name: fadeInDown;
+		}
+
+		&.lightbox__image,
+		&.lightbox__video {
+			animation-duration: calc(1.25 * var(--dt-lb-duration));
+			animation-name: fadeIn;
+		}
+	}
+
+	&:is([data-state="change"]) {
 		.fe-block {
-			&:not(.lightbox--animated) {
+			&.lightbox__html,
+			&.lightbox__video {
+				animation-direction: reverse;
+				animation-name: fadeInDown;
+				animation-timing-function: var(--ease-in-out-sine);
 				opacity: 1;
 			}
 
-			&:is(.lightbox--animated) {
+			&.lightbox__html {
+				transform: var(--dt-fade-base);
+			}
+
+			&.lightbox__video {
+				animation-duration: calc(.625 * var(--dt-lb-duration));
+				animation-name: fadeInDown;
+			}
+		}
+	}
+
+	&:is([data-state="close"]) {
+		.fe-block {
+			animation-direction: reverse;
+			opacity: 1;
+
+			&.lightbox__html,
+			&.lightbox__video {
+				animation-timing-function: var(--ease-out-sine);
+			}
+
+			&.lightbox__html {
+				animation-name: fadeInUp;
+				transform: var(--dt-fade-base);
+			}
+
+			&.lightbox__image {
 				opacity: 0;
 			}
 		}
-	} */
+	}
 
+	&:is([data-state="open"]) {
+		.fe-block {
+			&.lightbox__html,
+			&.lightbox__video {
+				animation-timing-function: var(--ease-in-sine);
+			}
+
+			&.lightbox__image {
+				animation-delay: var(--dt-lb-duration);
+				animation-direction: reverse;
+				animation-timing-function: var(--ease-out-sine);
+			}
+		}
+	}
+}
+
+/* .lightbox:has(.fe-block.lightbox--animated) {
 	&:is(.lightbox--animated) {
 		.fe-block:is(.lightbox--animated) {
 			animation-fill-mode: forwards;
@@ -105,4 +185,4 @@
 			}
 		}
 	}
-}
+} */

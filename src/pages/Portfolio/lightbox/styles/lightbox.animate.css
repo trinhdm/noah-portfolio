@@ -61,13 +61,17 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
+				animation-delay: var(--dt-lb-stagger-start);
 				animation-timing-function: var(--ease-out-quart);
 			}
 
 			.lightbox__container {
-				animation-delay: var(--dt-lb-stagger-start);
+				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-out-quad);
+			}
+
+			.lightbox__overlay {
+				animation-play-state: paused;
 			}
 		}
 
@@ -88,12 +92,12 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-stagger-start);
+				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-in-quart);
 			}
 
 			.lightbox__container {
-				animation-delay: var(--dt-lb-delay-start);
+				animation-delay: var(--dt-lb-stagger-start);
 				animation-timing-function: var(--ease-in-quad);
 			}
 		}

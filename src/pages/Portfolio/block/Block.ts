@@ -65,10 +65,11 @@ export class Block {
 	private applyStyle(): void {
 		if (!this.block) return
 
-		AnimationService.stagger(this.block, {
+		AnimationService.set(this.block, {
 			className: 'block--disabled',
 			index: this.index,
 			stagger: .12,
+			timeout: 500,
 		})
 	}
 

@@ -2,8 +2,8 @@
 .content {
 	.fe-block {
 		&.header-block {
-			pointer-events: none;
 			opacity: .9;
+			pointer-events: none;
 			user-select: none;
 
 			.portfolio-block__header {
@@ -12,7 +12,7 @@
 				flex-direction: column;
 
 				& > span {
-					animation: fadeInDown 1.5s var(--ease-out-sine) forwards;
+					animation: .5s var(--ease-out-sine) forwards fadeInDown;
 					opacity: 0;
 					transform: var(--dt-fade-down);
 
@@ -30,10 +30,7 @@
 		}
 
 		&.portfolio-block {
-			animation-duration: .375s;
-			animation-fill-mode: forwards;
-			animation-name: fadeIn;
-			animation-timing-function: var(--ease-in-sine);
+			animation: .375s var(--ease-in-sine) forwards fadeIn;
 			box-shadow: var(--dt-box-shadow);
 
 			&:hover .portfolio-block__details {

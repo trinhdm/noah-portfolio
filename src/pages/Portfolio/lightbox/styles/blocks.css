@@ -6,7 +6,6 @@
 	&.lightbox__html {
 		grid-column: 1 / span var(--dt-col-span);
 		letter-spacing: var(--dt-letter-spacing);
-		opacity: 0;
 		z-index: 2;
 
 		&:nth-last-child(1) {
@@ -83,6 +82,7 @@
 		&:has(+ .lightbox__video) {
 			pointer-events: none;
 			position: absolute;
+			user-select: none;
 			z-index: 20;
 		}
 
@@ -92,7 +92,6 @@
 	}
 
 	&.lightbox__video {
-		opacity: 0;
 		z-index: 10;
 
 		.lightbox__video-player {
@@ -102,7 +101,6 @@
 		}
 
 		.lightbox__video-wrapper {
-			/* max-height: var(--dt-media-size); */
 			min-width: auto;
 			overflow: hidden;
 

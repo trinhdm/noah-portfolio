@@ -2,10 +2,11 @@ import type * as CSS from 'csstype'
 
 
 type BaseAnimationOptions = {
+	delay?: number
 	duration?: number
-	index: number
+	hasReset?: boolean
+	index?: number
 	stagger?: number
-	start?: number
 	timeout?: number
 }
 
@@ -16,26 +17,25 @@ type AnimationOptions<T extends keyof CSS.Properties = keyof CSS.Properties> = B
 
 export class AnimationService {
 	private static readonly baseOptions: Required<BaseAnimationOptions> = {
+		delay: 0,
 		duration: .875,
+		hasReset: true,
 		index: 0,
-		stagger: .15,
-		start: 0,
-		timeout: 1000,
+		stagger: 0,
+		timeout: 2500,
 	}
 
 	private static computeStyles(options: AnimationOptions) {
 		const {
+			delay,
 			duration,
 			index,
 			stagger,
-			start,
 			...styles
 		} = { ...this.baseOptions, ...options }
 
 		const baseTime = Math.max(duration - stagger, 0),
-			startTime = start >= 0 ? start : baseTime
-
-		delete (styles as BaseAnimationOptions).timeout
+			startTime = delay >= 0 ? delay : baseTime
 
 		return {
 			animationDelay: `${((stagger * index) + startTime).toFixed(4)}s`,
@@ -48,25 +48,48 @@ export class AnimationService {
 		target: HTMLElement,
 		options: AnimationOptions
 	) {
-		const computed = window.getComputedStyle(target),
-			baseDuration = parseFloat(computed.getPropertyValue('animation-duration'))
+		const computed = window.getComputedStyle(target)
+		let base = {}
 
-		const merged = baseDuration
-			? { duration: baseDuration, ...options }
-			: options
+		if (Object.hasOwn(computed, 'animationDelay')) {
+			const baseDelay = parseFloat(computed.getPropertyValue('animation-delay'))
 
-		Object.assign(target.style, this.computeStyles(merged) as AnimationOptions)
+			if (baseDelay > 0)
+				Object.assign(base, { delay: baseDelay })
+		}
+
+		if (Object.hasOwn(computed, 'animationDuration')) {
+			const baseDuration = parseFloat(computed.getPropertyValue('animation-duration'))
+
+			if (baseDuration > 0)
+				Object.assign(base, { duration: baseDuration })
+		}
+
+		if (Object.hasOwn(computed, 'animationPlayState')) {
+			const basePlayState = computed.getPropertyValue('animation-play-state')
+
+			if (basePlayState === 'paused')
+				Object.assign(base, { animationPlayState: 'running' })
+		}
+
+		const merged = Object.assign({}, base, options),
+			args = this.computeStyles(merged) as AnimationOptions
+
+		Object.assign(target.style, args)
 	}
 
 	static resetStyles = (
 		target: HTMLElement,
-		options: Pick<AnimationOptions, 'className' | 'timeout'>
+		options: AnimationOptions
 	) => {
 		const {
-			className,
+			className = '',
+			hasReset = this.baseOptions.hasReset,
 			timeout = this.baseOptions.timeout,
 		} = options
 		let timeoutID: ReturnType<typeof setTimeout> | null = null
+
+		if (!hasReset) return
 
 		const handleReset = (event: AnimationEvent) => {
 			event.stopPropagation()
@@ -85,15 +108,27 @@ export class AnimationService {
 		}
 	}
 
-	static stagger = (
+	static set = (
 		target: HTMLElement | undefined,
-		options: AnimationOptions
+		options: AnimationOptions | {} = {}
 	) => {
 		if (!target) return
+		let args = {} as AnimationOptions
 
-		const { className, timeout, ...args } = options
+		if (!!Object.keys(options).length) {
+			const omitted = ['className', 'hasReset', 'timeout'] as (keyof AnimationOptions)[],
+				opts = Object.keys(options) as (keyof AnimationOptions)[]
+
+			args = opts.reduce((obj: AnimationOptions, key: keyof AnimationOptions) => {
+				if (!omitted.includes(key))
+					(obj as any)[key] = (options as AnimationOptions)[key]
+
+				return obj
+			}, {}) as Omit<AnimationOptions, keyof AnimationOptions>
+		}
+
 		this.applyStyles(target, args)
 
-		return AnimationService.resetStyles(target, { className, timeout })
+		return AnimationService.resetStyles(target, options)
 	}
 }
