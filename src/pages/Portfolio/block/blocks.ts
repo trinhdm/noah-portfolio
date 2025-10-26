@@ -1,13 +1,13 @@
+import { AnimationService } from '../../../utils/AnimationService.ts'
 import { getDeepestChild, tidyContent } from '../../../global/utils.ts'
-import { setAnimation } from '../../../utils/css.ts'
 import type { BlockOptions } from '../../../global/utils.types'
 
 
 /** Static: Apply typography styles globally to all non-portfolio blocks */
 
 const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) => {
-	const items = document.querySelectorAll(`.fe-block:not(${className})`)
-	// console.log('glob', (window as any).GLOBAL_BLOCK_CLASS)
+	const parent = document.querySelector('.content .fluid-engine'),
+		items = parent?.querySelectorAll(`.fe-block:not(${className})`)
 
 	items?.forEach(item => {
 		const [deepest] = getDeepestChild(item)
@@ -24,11 +24,7 @@ const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) =>
 				const span = tidyContent(str, 'span')
 
 				if (span)
-					setAnimation(span, {
-						duration: .5,
-						index,
-						stagger: .375,
-					})
+					AnimationService.set(span, { index, stagger: .375 })
 
 				return span
 			})

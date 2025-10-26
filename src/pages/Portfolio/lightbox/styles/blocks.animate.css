@@ -15,11 +15,6 @@
 	}
 
 	&:is([data-state="open"]) .fe-block {
-		&.lightbox__html,
-		&.lightbox__video {
-			opacity: 0;
-		}
-
 		&.lightbox__html {
 			transform: var(--dt-fade-down);
 		}

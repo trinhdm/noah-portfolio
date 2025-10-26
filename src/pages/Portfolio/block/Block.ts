@@ -87,7 +87,8 @@ export class Block {
 
 		if (formattedTitle) {
 			newTitle = formattedTitle
-			title.innerHTML = formattedTitle.innerHTML
+			title.replaceChildren(formattedTitle.cloneNode(true))
+			// title.innerHTML = formattedTitle.innerHTML
 		}
 
 		details.classList.add(`${this.className}__details`)
