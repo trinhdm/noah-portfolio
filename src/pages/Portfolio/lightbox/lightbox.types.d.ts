@@ -10,8 +10,8 @@ type LightboxElements = {
 	container: HTMLElement | undefined
 	content: HTMLDivElement | undefined
 	image?: HTMLImageElement | undefined
-	navigation: HTMLElement | undefined
 	overlay: HTMLElement | undefined
+	pagination: HTMLElement | undefined
 	root: HTMLDivElement
 	video?: HTMLIFrameElement | HTMLVideoElement | undefined
 }

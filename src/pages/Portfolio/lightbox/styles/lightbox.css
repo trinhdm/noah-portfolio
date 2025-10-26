@@ -3,6 +3,11 @@
 	overflow-x: clip;
 	z-index: 9999;
 
+	&:is([data-disabled="true"]) .lightbox__container {
+		pointer-events: none;
+		user-select: none;
+	}
+
 	&,
 	.lightbox__body,
 	.lightbox__header,
@@ -25,11 +30,6 @@
 		position: fixed;
 	}
 
-	&:is([data-disabled="true"]) .lightbox__container {
-		pointer-events: none;
-		user-select: none;
-	}
-
 	.lightbox__container,
 	.lightbox__content {
 		display: flex;
@@ -41,7 +41,6 @@
 		background-color: var(--siteBackgroundColor);
 		border-radius: var(--dt-border-radius);
 		box-shadow: var(--dt-box-shadow);
-		/* grid-area: 3 / 6 / 20 / 22; */
 		overflow: hidden;
 		padding: var(--dt-gap);
 		place-self: center;

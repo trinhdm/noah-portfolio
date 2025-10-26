@@ -3,7 +3,7 @@
 type NavigationItem = {
 	index: number
 	target: HTMLElement | null
-	text?: HTMLElement
+	text?: string
 }
 
 type ArrowsGroup = {

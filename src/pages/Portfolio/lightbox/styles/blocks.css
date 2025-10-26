@@ -75,6 +75,8 @@
 	}
 
 	&.lightbox__image {
+		z-index: 15;
+
 		&,
 		.sqs-block {
 			height: 100%;
@@ -84,7 +86,6 @@
 			pointer-events: none;
 			position: absolute;
 			user-select: none;
-			z-index: 20;
 		}
 
 		.fluid-image-container {

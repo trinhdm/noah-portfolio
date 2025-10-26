@@ -129,12 +129,10 @@
 
 			&.lightbox__next-button {
 				animation-name: fadeInLeft;
-				transform-origin: right;
 			}
 
 			&.lightbox__prev-button {
 				animation-name: fadeInRight;
-				transform-origin: left;
 			}
 		}
 
