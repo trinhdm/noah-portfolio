@@ -1,6 +1,20 @@
 import type { PageGroup } from '../../../global/utils.types'
 
 
+type NavigationItem = {
+	index: number
+	target: HTMLElement | null
+	text?: string
+}
+
+type ArrowsGroup = {
+	next: NavigationItem
+	prev: NavigationItem
+}
+
+type DirectionsList = keyof ArrowsGroup
+
+
 type LightboxProperties<T extends HTMLElement = HTMLDivElement> = Record<keyof T, T[keyof T]> | {}
 
 type LightboxElements = {
@@ -26,6 +40,8 @@ type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
 
 
 export type {
+	ArrowsGroup,
+	DirectionsList,
 	LightboxElements,
 	LightboxOptions,
 	LightboxProperties,

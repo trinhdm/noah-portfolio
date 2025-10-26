@@ -1,5 +1,5 @@
 import { Block, styleBlockTypography } from './block'
-import { LightboxController } from './lightbox'
+import { LightboxController } from '../../components/Lightbox'
 
 
 const Portfolio = {

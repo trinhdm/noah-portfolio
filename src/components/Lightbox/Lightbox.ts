@@ -1,20 +1,21 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 
-import { AnimationService } from '../../../utils/AnimationService.ts'
-import { fetchContent, getPage } from '../../../global/fetch.ts'
-import { findChildBy } from '../../../global/utils.ts'
-import { findElement, setContent } from '../../../utils/content'
+import { AnimationService } from '../../utils/AnimationService.ts'
+import { fetchContent, getPage } from '../../global/fetch.ts'
+import { findChildBy } from '../../global/utils.ts'
+import { findElement, setContent } from '../../utils/content'
 
-import type { ArrowsGroup, DirectionsList } from '../block/block.types'
-import type { PageGroup } from '../../../global/utils.types'
+import type { PageGroup } from '../../global/utils.types'
 import type {
+	ArrowsGroup,
+	DirectionsList,
 	LightboxElements,
 	LightboxOptions,
 	LightboxProperties,
 } from './lightbox.types'
 
-import template from './template'
+import template from './template.ts'
 import './styles'
 
 
