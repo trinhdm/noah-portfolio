@@ -1,5 +1,5 @@
 import { fetchContent } from "../global/fetch"
-import { formatBlock } from "../portfolio/block/formatBlock"
+import { formatBlock } from "../pages/Portfolio/block/formatBlock"
 import type { PageGroup } from "../global/utils.types"
 
 
@@ -7,13 +7,10 @@ const findElement = (
 	target:  HTMLElement | null,
 	selector = '.fe-block'
 ): HTMLElement | null => {
-	if (!target)
-		return null
+	if (!target) return null
+	else if (target.matches(selector)) return target
 
-	else if (target.classList.contains(selector))
-		return target
-
-	return target.closest(selector)
+	return target.closest(selector) as HTMLElement | null
 }
 
 
@@ -26,24 +23,24 @@ const setContent = async (
 ): Promise<HTMLDivElement | undefined> => {
 	const { block, page } = instance
 
-	const content = await fetchContent(page) ?? ''
+	try {
+		const content = await fetchContent(page)
 
-	if (typeof content !== 'string') return
+		if (typeof content !== 'string') return
 
-	const imageWrapper: HTMLElement | null = (block
-		?.querySelector('[data-sqsp-image-block-image-container]')
-		?.closest(selector)) ?? null
-	const temp: HTMLDivElement | undefined = document.createElement('div')
+		const container = document.createElement('div')
+		const imageWrapper = block
+			?.querySelector('[data-sqsp-image-block-image-container]')
+			?.closest(selector)
 
-	if (imageWrapper && !temp.contains(imageWrapper)) {
-		const imageCopy = imageWrapper?.cloneNode(true) as HTMLElement ?? null
-		temp.prepend(imageCopy!)
-	}
+		if (imageWrapper)
+			container.prepend(imageWrapper.cloneNode(true) as HTMLElement)
 
-	temp.innerHTML += content
-	temp.querySelectorAll(selector).forEach(block => formatBlock(block as HTMLElement, page.id))
+		container.innerHTML += content
+		container.querySelectorAll(selector).forEach(block => formatBlock(block as HTMLElement, page.id))
 
-	return temp
+		return container
+	} catch(err) { console.error(err) }
 }
 
 

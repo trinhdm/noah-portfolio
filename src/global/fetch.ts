@@ -2,7 +2,7 @@ import { findChildBy } from './utils.ts'
 import type { PageGroup } from './utils.types'
 
 
-export const getPage = (element: HTMLElement | null) => {
+export const getPage = (element: HTMLElement | null): PageGroup => {
 	let settings: PageGroup = { id: '', url: '' }
 
 	const anchorLink = !!element
@@ -22,15 +22,14 @@ export const getPage = (element: HTMLElement | null) => {
 
 
 export const fetchContent = ({ id, url }: PageGroup): Promise<string | undefined> => {
-	if (!id || !url) return
-
 	const separator = url?.includes('?') ? '&' : '?',
-		htmlURL = `${url}${separator}format=html`
+		htmlURL = `${url}${separator}format=html`,
+		messageErr = 'Content not found.'
 
 	return fetch(htmlURL)
 		.then(response => {
 			if (!response.ok)
-				throw new Error('page not found')
+				throw new Error(messageErr)
 
 			return response.text()
 		}).then(html => {
@@ -43,8 +42,8 @@ export const fetchContent = ({ id, url }: PageGroup): Promise<string | undefined
 
 			return !!content?.length
 				? content
-				: '<p>No content found.</p>'
+				: `<p>${messageErr}</p>`
 		}).catch(err => {
-			console.error('error fetching page', err)
-		})
+			console.error(messageErr, err)
+		}) as Promise<string | undefined>
 }

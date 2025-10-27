@@ -8,10 +8,10 @@ import type { BlockOptions, PageGroup } from '../../../global/utils.types'
 
 export class Block {
 	private readonly className: string
-	public block: HTMLElement | null
-	public content: HTMLDivElement | undefined
-	public index: number
-	public page: PageGroup
+	block: HTMLElement | null
+	// content: HTMLDivElement | undefined
+	index: number
+	page: PageGroup
 
 	constructor({
 		className,
@@ -39,7 +39,7 @@ export class Block {
 
 		if (content) {
 			this.renderDetails(content)
-			this.content = content
+			// this.content = content
 		}
 	}
 
@@ -99,7 +99,7 @@ export class Block {
 	toLightboxOptions() {
 		return {
 			block: this.block,
-			content: this.content,
+			// content: this.content,
 			index: this.index,
 			page: this.page,
 		}

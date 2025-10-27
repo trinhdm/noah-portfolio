@@ -12,7 +12,7 @@ type ArrowsGroup = {
 	prev: NavigationItem
 }
 
-type DirectionsList = keyof ArrowsGroup
+type ArrowDirection = keyof ArrowsGroup
 
 
 type LightboxProperties<T extends HTMLElement = HTMLDivElement> = Record<keyof T, T[keyof T]> | {}
@@ -31,7 +31,8 @@ type LightboxElements = {
 }
 
 type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
-	content: HTMLDivElement | undefined
+	block: HTMLElement | null
+	// content: HTMLElement | undefined
 	elements: HTMLElement[]
 	index: number
 	page: PageGroup | undefined
@@ -41,7 +42,7 @@ type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
 
 export type {
 	ArrowsGroup,
-	DirectionsList,
+	ArrowDirection,
 	LightboxElements,
 	LightboxOptions,
 	LightboxProperties,

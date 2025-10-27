@@ -9,7 +9,7 @@ import { findElement, setContent } from '../../utils/content'
 import type { PageGroup } from '../../global/utils.types'
 import type {
 	ArrowsGroup,
-	DirectionsList,
+	ArrowDirection,
 	LightboxElements,
 	LightboxOptions,
 	LightboxProperties,
@@ -25,14 +25,14 @@ enum LightboxClass {
 
 
 class ContentService {
-	private cache = new Map<string, HTMLDivElement>()
+	private cache = new Map<string, HTMLElement>()
 
 	async fetchPageHtml(page: PageGroup | undefined): Promise<string | undefined> {
 		if (!page) return undefined
 		return await fetchContent(page)
 	}
 
-	async loadBlockContent(target: HTMLElement): Promise<HTMLDivElement | undefined> {
+	async loadBlockContent(target: HTMLElement): Promise<HTMLElement | undefined> {
 		const page = getPage(target),
 			id = target.dataset.id || target.id || ''
 
@@ -60,6 +60,7 @@ class ContentService {
 
 class LightboxDOM {
 	private cache: Partial<LightboxElements> = {}
+	private contentService: ContentService = new ContentService()
 	private root: HTMLDivElement
 
 	constructor(private options: LightboxOptions) {
@@ -67,9 +68,9 @@ class LightboxDOM {
 	}
 
 	private createRoot({
-		content,
+		block,
 		properties = {},
-	}: Pick<LightboxOptions, 'content' | 'properties'>) {
+	}: Pick<LightboxOptions, 'block' | 'properties'>) {
 		const root = document.createElement('div') as HTMLDivElement
 
 		root.classList.add(LightboxClass.Root)
@@ -89,12 +90,12 @@ class LightboxDOM {
 			})
 		}
 
-		const container = root.querySelector('.lightbox__content')
-
-		if (container && content) {
-			// console.log(content)
-			// container.replaceChildren(content.cloneNode(true))
-			container.innerHTML = content.innerHTML
+		if (block) {
+			const container = root.querySelector('.lightbox__content')
+			this.contentService.loadBlockContent(block).then(content => {
+				if (container && content)
+					container.innerHTML = content.innerHTML
+			})
 		}
 
 		return root
@@ -178,7 +179,7 @@ class LightboxDOM {
 class LightboxAnimation {
 	constructor(private dom: LightboxDOM) {}
 
-	reset(element: HTMLElement | undefined = this.dom.get('root')) {
+	private reset(element: HTMLElement | undefined = this.dom.get('root')) {
 		if (!element) return
 		const cls = 'lightbox--animated'
 		element.classList.remove(cls)
@@ -439,93 +440,137 @@ class LightboxMedia {
 }
 
 class LightboxMenu {
+	private data: InstanceType<typeof LightboxMenu.Data>
+	private view: InstanceType<typeof LightboxMenu.View>
+
 	directory: ArrowsGroup = {} as ArrowsGroup
-	directions: (keyof ArrowsGroup)[] = []
 
 	constructor(
 		private dom: LightboxDOM,
 		private options: LightboxOptions
-	) {}
-
-	getPointers(index: number) {
-		const elements = this.options.elements
-
-		const max = elements.length,
-			next = index + 1 < max ? index + 1 : 0,
-			prev = index - 1 >= 0 ? index - 1 : max - 1
-
-		return {
-			next: {
-				index: next,
-				target: elements[next],
-			},
-			prev: {
-				index: prev,
-				target: elements[prev],
-			},
-		} as ArrowsGroup
-	}
-
-	async createMenu(index: number): Promise<ArrowsGroup> {
-		const pointers = this.getPointers(index),
-			directions = Object.keys(pointers) as (keyof ArrowsGroup)[]
-
-		const entries = await Promise.all(directions.map(async direction => {
-			const { target: rawTarget, ...rest } = pointers[direction]
-			const target = findElement(rawTarget)
-			let value: any = { ...rest, target }
-
-			if (target) {
-				const navWrapper = document.createElement('div'),
-					newPage = getPage(target)
-
-				navWrapper.innerHTML = (await fetchContent(newPage)) ?? ''
-
-				const text = findChildBy(navWrapper, { tagName: 'strong' })?.innerHTML
-				value = { ...value, target, text }
-			}
-
-			return [direction, value] as const
-		}))
-
-		this.directory = Object.fromEntries(entries) as ArrowsGroup
-		this.directions = directions
-
-		return this.directory
-	}
-
-	async setArrows(
-		index: number,
-		onNavigate: (direction: DirectionsList) => void
 	) {
-		await this.createMenu(index)
-		const directions = Object.keys(this.directory) as (DirectionsList)[],
-			navigation = this.dom.get('pagination')
+		this.data = new LightboxMenu.Data(this.options)
+		this.view = new LightboxMenu.View(this.dom)
+	}
 
-		if (!directions?.length) return
+	async render(
+		index: number,
+		onNavigate: (direction: ArrowDirection) => void
+	) {
+		this.directory = await this.data.createDirectory(index)
+		this.view.construct(this.directory, onNavigate)
+		await this.data.prefetchAdjacent(index).catch(() => {})
+	}
 
-		directions.forEach(direction => {
-			const arrow = navigation?.querySelector(`[data-direction='${direction}']`)
+	// destroy() {
+	// 	this.view.destroy()
+	// }
+
+	static Data = class {
+		private contentService: ContentService = new ContentService()
+
+		constructor(private options: LightboxOptions) {}
+
+		private getPointers(index: number) {
+			const elements = this.options.elements
+
+			const max = elements.length,
+				next = index + 1 < max ? index + 1 : 0,
+				prev = index - 1 >= 0 ? index - 1 : max - 1
+
+			return {
+				next: {
+					index: next,
+					target: elements[next],
+				},
+				prev: {
+					index: prev,
+					target: elements[prev],
+				},
+			} as ArrowsGroup
+		}
+
+		async createDirectory(index: number): Promise<ArrowsGroup> {
+			const pointers = this.getPointers(index),
+				directions = Object.keys(pointers) as (keyof ArrowsGroup)[]
+
+			const directory = Object.fromEntries(
+				await Promise.all(
+					directions.map(async direction => {
+						const { target: rawTarget, ...rest } = pointers[direction]
+						const target = findElement(rawTarget)
+						let value: any = { ...rest, target }
+
+						if (target) {
+							const navWrapper = document.createElement('div'),
+								newPage = getPage(target)
+
+							navWrapper.innerHTML = (await fetchContent(newPage)) ?? ''
+
+							const text = findChildBy(navWrapper, { tagName: 'strong' })?.innerHTML
+							value = { ...value, target, text }
+						}
+
+						return [direction, value] as const
+					})
+				)
+			) as ArrowsGroup
+
+			return directory
+		}
+
+		async prefetchAdjacent(index: number) {
+			const { next, prev } = await this.createDirectory(index)
+			const tasks: Promise<any>[] = []
+
+			if (next?.target && next.index !== index)
+				tasks.push(this.contentService.prefetchBlockContent(next.target))
+			if (prev?.target && prev.index !== index)
+				tasks.push(this.contentService.prefetchBlockContent(prev.target))
+
+			await Promise.allSettled(tasks)
+		}
+	}
+
+	static View = class {
+		private handlers = new WeakMap<HTMLElement, (e: Event) => void>()
+
+		constructor(private dom: LightboxDOM) {}
+
+		configure<T extends ArrowDirection>(
+			target: ArrowsGroup[T],
+			direction: ArrowDirection,
+			handler: () => void
+		) {
+			const navigation = this.dom.get('pagination'),
+				arrow = navigation?.querySelector(`[data-direction='${direction}']`) as HTMLDivElement | undefined
+
 			if (!arrow) return
 
-			const item = (this.directory as ArrowsGroup)[direction]
+			arrow.setAttribute('data-position', `${target.index}`)
 
-			if (item?.text) {
-				arrow.setAttribute('data-position', `${item.index}`)
+			const arrowText = arrow.querySelector('.navbar__title')
+			if (!!arrowText && target.text)
+				arrowText.innerHTML = target.text
 
-				const arrowText = arrow.querySelector('.navbar__title')
-				if (!!arrowText)
-					arrowText.innerHTML = item.text
+			arrow.addEventListener('click', handler)
+			this.handlers.set(arrow, handler)
 
-				const handler = (event: Event) => {
-					event.preventDefault()
-					onNavigate(direction)
-				}
+			return arrow
+		}
 
-				arrow.addEventListener('click', handler, { once: true })
-				;(arrow as any).__lightboxHandler = handler
+		construct(
+			directory: ArrowsGroup,
+			onNavigate: (direction: ArrowDirection) => void
+		) {
+			const directions = (Object.keys(directory) as (ArrowDirection)[]).reverse()
+
+			for (const direction of directions) {
+				const handler = () => onNavigate(direction)
+				const target = (directory as ArrowsGroup)[direction]
+				this.configure<typeof direction>(target, direction, handler)
 			}
-		})
+		}
 	}
 }
 
@@ -539,7 +584,7 @@ class LightboxNavigation {
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
-		private onNavigate?: (direction: DirectionsList) => void
+		private onNavigate?: (direction: ArrowDirection) => void
 	) {}
 
 	private async preSwap(newImage: Element | null | undefined) {
@@ -565,7 +610,7 @@ class LightboxNavigation {
 		this.media.dispose()
 	}
 
-	private async performSwap(newContent: HTMLDivElement) {
+	private async performSwap(newContent: HTMLElement) {
 		await new Promise(res => setTimeout(res, 10))
 		this.dom.update(newContent)
 		this.media.configure()
@@ -582,27 +627,14 @@ class LightboxNavigation {
 
 	private async postSwap(index: number) {
 		this.dom.reset()
-		await this.menu.setArrows(index, direction => this.onNavigate?.(direction))
-		await this.prefetchAdjacent(index)
+		await this.menu.render(index, direction => this.onNavigate?.(direction))
 
 		this.media.play()
 		this.events.bind()
 		this.dom.toggleDisable()
 	}
 
-	private async prefetchAdjacent(currentIndex: number) {
-		const { next, prev } = this.menu.directory
-		const tasks: Promise<any>[] = []
-
-		if (next?.target && next.index !== currentIndex)
-			tasks.push(this.contentService.prefetchBlockContent(next.target))
-		if (prev?.target && prev.index !== currentIndex)
-			tasks.push(this.contentService.prefetchBlockContent(prev.target))
-
-		await Promise.allSettled(tasks)
-	}
-
-	async swapContent(direction: DirectionsList) {
+	async swapContent(direction: ArrowDirection) {
 		if (this.isSwapping) return
 		this.isSwapping = true
 
@@ -622,7 +654,6 @@ class LightboxNavigation {
 			console.error('lightbox swap failed', err)
 		} finally {
 			this.isSwapping = false
-			console.log('swap')
 		}
 	}
 }
@@ -642,6 +673,8 @@ export class LightboxController {
 		this.menu = new LightboxMenu(this.dom, this.options)
 		this.events = new LightboxEvents(this.dom, this)
 
+		console.log({ options })
+
 		this.animator = new LightboxAnimation(this.dom)
 		this.navigator = new LightboxNavigation(
 			this.dom,
@@ -654,14 +687,14 @@ export class LightboxController {
 
 		this.dom.append()
 		this.media.configure()
-		this.setInitialArrows()
+		this.initializeMenu()
 	}
 
-	private async setInitialArrows() {
-		await this.menu.setArrows(this.options.index, dir => this.navigate(dir))
+	private async initializeMenu() {
+		await this.menu.render(this.options.index, dir => this.navigate(dir))
 	}
 
-	private async navigate(direction: DirectionsList) {
+	private async navigate(direction: ArrowDirection) {
 		if (!this.isActive) return
 		await this.navigator.swapContent(direction)
 	}
