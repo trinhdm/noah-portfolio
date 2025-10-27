@@ -3,13 +3,13 @@ import {
 	findElement,
 	getPage,
 	wrapContent,
-} from '../../../utils'
+} from '../../utils'
 
-import { AnimationService, ContentService } from '../../../services'
-import type { BlockOptions, PageGroup } from '../../../utils/utils.types'
+import { AnimationService, ContentService } from '../../services'
+import type { BlockOptions, PageGroup } from '../../utils/utils.types'
 
 
-export class Block {
+export class BlockPortfolio {
 	private readonly className: string
 	private contentService: ContentService
 
@@ -34,8 +34,8 @@ export class Block {
 		this.contentService = new ContentService()
 	}
 
-	static async init(options: BlockOptions): Promise<Block> {
-		const instance = new Block(options)
+	static async init(options: BlockOptions): Promise<BlockPortfolio> {
+		const instance = new BlockPortfolio(options)
 		await instance.generate()
 		return instance
 	}

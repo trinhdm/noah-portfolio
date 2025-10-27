@@ -1,5 +1,7 @@
-import { Block, styleBlockTypography } from './block'
+import { styleBlockTypography } from './helpers'
+import { BlockPortfolio } from './BlockPortfolio'
 import { LightboxController } from '../../components/Lightbox'
+import './portfolio.css'
 
 
 const Portfolio = {
@@ -9,9 +11,9 @@ const Portfolio = {
 
 		try {
 			const instances = await Promise.all(
-					blocks.map((block, index) =>
-						Block.init({ className, index, target: block })
-					)
+				blocks.map((block, index) =>
+					BlockPortfolio.init({ className, index, target: block })
+				)
 			)
 
 			document.body.addEventListener('click', (event: MouseEvent) => {
@@ -29,9 +31,9 @@ const Portfolio = {
 
 				lightbox.open()
 			})
-		} catch (err) { console.error(err) }
 
-		styleBlockTypography({ className })
+			styleBlockTypography({ className })
+		} catch (err) { console.error(err) }
 	}
 }
 
