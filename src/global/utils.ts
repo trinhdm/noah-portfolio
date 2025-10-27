@@ -2,42 +2,46 @@
 export const findChildBy = (
 	element: HTMLElement | undefined,
 	criteria: Record<string, number | string> = {}
-) => {
-	let [property, value] = Object.entries(criteria)[0]
+): HTMLElement | null => {
+	if (!element) return null
 
-	if (!element || property in element === false)
-		return
+	const [property, value] = Object.entries(criteria)[0]
+	if (!property) return null
 
-	value = property === 'tagName' && typeof value === 'string'
-		? value.toUpperCase()
-		: value
+	const actual = (element as any)[property],
+		expected = property === 'tagName' && typeof value === 'string'
+			? value.toUpperCase()
+			: value
 
-	const target = element[`${property as keyof typeof element}`]
-	let condition = target === value
+	const matches = actual === expected
+		|| (actual && typeof actual === 'object' && Object.keys(actual).includes(String(expected)))
 
-	if (!!target && typeof target === 'object') {
-		const values = Object.keys(Object.fromEntries(Object.entries(target)))
-		condition = !!values?.length && values?.includes(`${value}`)
-	}
+	// const target = element[`${property as keyof typeof element}`]
+	// let condition = target === value
 
-	if (condition)
-		return element
+	// if (!!target && typeof target === 'object') {
+	// 	const values = Object.keys(Object.fromEntries(Object.entries(target)))
+	// 	condition = !!values?.length && values?.includes(`${value}`)
+	// }
 
-	for (let child of element.children) {
-		const match = findChildBy(child as HTMLElement | undefined, criteria) as HTMLElement | undefined
+	if (matches) return element
+
+	for (let child of Array.from(element.children)) {
+		const match = findChildBy(child as HTMLElement, criteria)
 		if (match) return match
 	}
+
+	return null
 }
 
 
 export const getBackground = (selector: string = '.section-background') => {
-	const background = document.createElement('div'),
-		 target = document.querySelector(selector)
+	const target = document.querySelector(selector)
+	if (!target || !target.children.length || !target.querySelector('img')) return null
 
-	if (!target?.children.length || !target.querySelector('img')) return
-
-	background.append(target)
+	const background = document.createElement('div')
 	background.classList.add('background')
+	background.append(target.cloneNode(true))
 
 	const image = findChildBy(background, { tagName: 'img' }),
 		overlay = background.querySelector('.section-background-overlay')
@@ -45,104 +49,35 @@ export const getBackground = (selector: string = '.section-background') => {
 	if (!!image && !!overlay)
 		(image as HTMLImageElement).style.opacity = (overlay as HTMLDivElement).style.opacity
 
-	const container = document.querySelector('.content-wrapper')
-	container?.prepend(background)
+	document.querySelector('.content-wrapper')?.prepend(background)
 }
 
 
-export const getDeepestChild = (parent: Element): Element[] => Array
-	.from(parent.children)
-	.reduce<Element[]>((acc, node) => {
-		const children = Array.from(node.children)
+export const getDeepestChild = (parent: Element): Element[] => (
+	Array.from(parent.children)
+		.reduce<Element[]>((acc, child) => {
+			if (child.children.length === 0) acc.push(child)
+			else acc.push(...getDeepestChild(child))
 
-		if (!children.length) {
-			acc.push(node);
 			return acc
-		}
-
-		return [...acc, ...getDeepestChild(node)]
-	}, [])
+		}, [])
+)
 
 
-// tidyContent
-export const tidyContent = (
-	content: HTMLElement | string | undefined,
-	wrapTag: string = 'span'
-) => {
-	if (!content) return
+export const wrapContent = (
+	input: HTMLElement | string | null | undefined,
+	tag: string = 'span',
+	sanitize = true
+): HTMLElement | null => {
+	if (!input) return null
 
-	const wrapEl = document.createElement(wrapTag)
+	let content = typeof input === 'string' ? input : input.innerHTML
+	const wrapper = document.createElement(tag)
 
-	switch (typeof content) {
-		case 'object':
-			const element = content.innerHTML.replaceAll('<br>', '').trim()
-			wrapEl.innerHTML = element
-			break
-		case 'string':
-			wrapEl.textContent = content
-			break
-	}
+	if (sanitize)
+		content = content.replaceAll('<br>', '').trim()
 
-	return wrapEl
+	wrapper.innerHTML = content
+
+	return wrapper
 }
-
-
-export const wrapTrimEl = (
-	element: HTMLElement | undefined,
-	wrapTag: string = 'span'
-) => {
-	if (!element) return
-
-	const content = element.innerHTML.replaceAll('<br>', '').trim(),
-		wrapEl = document.createElement(wrapTag)
-
-	wrapEl.innerHTML = content
-
-	return wrapEl
-}
-
-
-// class Dimensions {
-// 	constructor(index, init, span) {
-// 		this.index = index
-// 		this.init = init
-// 		this.span = span
-// 	}
-
-// 	get start() {
-// 		return this.init + (this.span * this.index)
-// 	}
-
-// 	get end() {
-// 		return this.start + this.span
-// 	}
-// }
-
-// class Grid {
-// 	constructor(
-// 		index = 1,
-// 		colInit = 5,
-// 		colSpan = 6,
-// 		rowInit = 4,
-// 		rowSpan = 4
-// 	) {
-// 		this._index = index
-// 		this.Column = new Dimensions(index, colInit, colSpan)
-// 		this.Row = new Dimensions(index, rowInit, rowSpan)
-// 	}
-
-// 	get Area() {
-// 		const col = this.Column,
-// 			row = this.Row,
-// 			areaStart = `${row.start} / ${col.start}`
-
-// 		return {
-// 			get layout() {
-// 				return `${areaStart} / span ${row.span} / span ${col.span}`;
-// 			},
-// 			get size() {
-// 				return `${areaStart} / ${row.end} / ${col.end}`;
-// 			}
-// 		}
-// 	}
-// }

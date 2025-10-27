@@ -2,7 +2,7 @@ import Hls from 'hls.js'
 import Plyr from 'plyr'
 
 import { AnimationService, ContentService } from '../../utils'
-import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
+import { findChildBy, wrapContent } from '../../global/utils.ts'
 import { findElement } from '../../utils/content'
 import { getPage } from '../../global/fetch.ts'
 
@@ -466,12 +466,14 @@ class LightboxMenu {
 							const navWrapper = document.createElement('div'),
 								newPage = getPage(target)
 
-							navWrapper.innerHTML = (await this.contentService.fetch(newPage)) ?? ''
+							if (newPage) {
+								navWrapper.innerHTML = (await this.contentService.fetch(newPage)) ?? ''
 
-							const title = findChildBy(navWrapper, { tagName: 'strong' }),
-								text = wrapTrimEl(title, 'strong')?.innerHTML
+								const title = findChildBy(navWrapper, { tagName: 'strong' }),
+									text = wrapContent(title, 'strong')?.innerHTML
 
-							value = { ...value, target, text }
+								value = { ...value, text }
+							}
 						}
 
 						return [direction, value] as const
@@ -514,7 +516,7 @@ class LightboxMenu {
 
 			const arrowText = arrow.querySelector('.navbar__title')
 			if (!!arrowText && target.text)
-				arrowText.innerHTML = target.text
+				arrowText.replaceChildren(target.text)
 
 			arrow.addEventListener('click', handler)
 			this.handlers.set(arrow, handler)

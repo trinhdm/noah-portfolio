@@ -1,5 +1,5 @@
 import { AnimationService } from '../../../utils/AnimationService.ts'
-import { getDeepestChild, tidyContent } from '../../../global/utils.ts'
+import { getDeepestChild, wrapContent } from '../../../global/utils.ts'
 import type { BlockOptions } from '../../../global/utils.types'
 
 
@@ -21,7 +21,7 @@ const styleBlockTypography = ({ className }: Pick<BlockOptions, 'className'>) =>
 
 		textContent.split(' ')
 			.map((str, index) => {
-				const span = tidyContent(str, 'span')
+				const span = wrapContent(str, 'span')
 
 				if (span)
 					AnimationService.set(span, { index, stagger: .375 })

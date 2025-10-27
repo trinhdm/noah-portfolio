@@ -6,14 +6,11 @@ import type { BlockOptions, PageGroup } from '../../global/utils.types'
 
 
 export class BlockAbout {
-	private className: string = ''
+	private readonly className: string
 
 	block: HTMLElement | null
 	index: number = 0
-	page: PageGroup = {
-		id: '',
-		url: '',
-	}
+	page: PageGroup | null
 
 	constructor({
 		className,
@@ -48,18 +45,19 @@ export class BlockAbout {
 			`${this.className}__${type}`,
 			'block--disabled'
 		)
-		this.block.id = `block-${this.page.id}`
-		this.block.dataset.position = String(this.index)
+
+		if (this.page)
+			this.block.id = `block-${this.page.id}`
 	}
 
 	private style(): void {
 		if (!this.block) return
 
-		AnimationService.stagger(this.block, {
+		AnimationService.set(this.block, {
 			className: 'block--disabled',
+			delay: .875,
 			index: this.index,
 			stagger: .5,
-			start: .875,
 		})
 	}
 }

@@ -1,6 +1,6 @@
 
 import { getPage } from '../../../global/fetch.ts'
-import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
+import { findChildBy, wrapContent } from '../../../global/utils.ts'
 import { findElement } from '../../../utils/content.ts'
 import { AnimationService } from '../../../utils/AnimationService.ts'
 import { ContentService } from '../../../utils/ContentService.ts'
@@ -13,7 +13,7 @@ export class Block {
 
 	block: HTMLElement | null
 	index: number
-	page: PageGroup
+	page: PageGroup | null
 	target: Node
 
 	constructor({
@@ -65,7 +65,7 @@ export class Block {
 		)
 
 		Object.assign(this.block.dataset, {
-			id: `block-${this.page.id}`,
+			...this.page && { id: `block-${this.page.id}` },
 			position: String(this.index),
 		})
 	}
@@ -94,7 +94,7 @@ export class Block {
 
 		let newTitle = title.cloneNode(true)
 		const details = document.createElement('div'),
-			formattedTitle = wrapTrimEl(title, 'span')
+			formattedTitle = wrapContent(title, 'span')
 
 		if (formattedTitle) {
 			newTitle = formattedTitle
