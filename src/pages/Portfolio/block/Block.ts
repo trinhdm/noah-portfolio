@@ -1,54 +1,62 @@
 
 import { getPage } from '../../../global/fetch.ts'
 import { findChildBy, wrapTrimEl } from '../../../global/utils.ts'
-import { findElement, setContent } from '../../../utils/content.ts'
+import { findElement } from '../../../utils/content.ts'
 import { AnimationService } from '../../../utils/AnimationService.ts'
+import { ContentService } from '../../../utils/ContentService.ts'
 import type { BlockOptions, PageGroup } from '../../../global/utils.types'
 
 
 export class Block {
 	private readonly className: string
+	private contentService: ContentService
+
 	block: HTMLElement | null
-	// content: HTMLDivElement | undefined
 	index: number
 	page: PageGroup
+	target: Node
 
 	constructor({
 		className,
 		index,
 		target,
 	}: BlockOptions) {
+		const block = findElement(target)
+
 		this.className = className
 		this.index = index
-		this.block = findElement(target)
 		this.page = getPage(target)
+		this.target = block!.cloneNode(true)
+		this.block = findElement(target)
+
+		this.contentService = new ContentService()
 	}
 
 	static async init(options: BlockOptions): Promise<Block> {
-		const instance = new Block(options),
-			content = await setContent(instance)
-		await instance.generate(content)
+		const instance = new Block(options)
+		await instance.generate()
 		return instance
 	}
 
-	private async generate(content?: HTMLDivElement): Promise<void> {
+	private async generate(): Promise<void> {
 		if (!this.block) return
 
 		this.configureBlock()
 		this.applyStyle()
 
-		if (content) {
+		const content = await this.contentService.load(this.block)
+
+		if (content)
 			this.renderDetails(content)
-			// this.content = content
-		}
 	}
 
 	private configureBlock(): void {
 		if (!this.block) return
 
-		const type = this.block.querySelector('.sqs-block')
+		const type = this.block.firstElementChild
 						?.classList[1]
-						?.split('-block')[0] ?? 'base'
+						?.match(/([a-z0-9-]+)-block/i)
+						?.[1] ?? 'base'
 
 		this.block.classList.add(
 			this.className,
@@ -73,11 +81,14 @@ export class Block {
 		})
 	}
 
-	private renderDetails(content?: HTMLElement): void {
+	private renderDetails(content: HTMLElement): void {
 		if (!this.block) return
 
-		const titleWrapper = content?.querySelector('[data-sqsp-text-block-content]') as HTMLElement | undefined,
-			title = findChildBy(titleWrapper, { tagName: 'strong' })
+		const textBlocks = content.querySelectorAll('[data-sqsp-text-block-content]'),
+			[titleBlock] = [...textBlocks].filter(
+				el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
+			)
+		const title = findChildBy(titleBlock as HTMLElement | undefined, { tagName: 'strong' })
 
 		if (!title) return
 
@@ -88,7 +99,6 @@ export class Block {
 		if (formattedTitle) {
 			newTitle = formattedTitle
 			title.replaceChildren(formattedTitle.cloneNode(true))
-			// title.innerHTML = formattedTitle.innerHTML
 		}
 
 		details.classList.add(`${this.className}__details`)
@@ -98,10 +108,9 @@ export class Block {
 
 	toLightboxOptions() {
 		return {
-			block: this.block,
-			// content: this.content,
 			index: this.index,
 			page: this.page,
+			target: this.target,
 		}
 	}
 }
