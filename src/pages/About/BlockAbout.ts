@@ -1,8 +1,6 @@
-
-import { getPage } from '../../global/fetch.ts'
-import { findElement } from '../../utils/content.ts'
-import { AnimationService } from '../../utils/AnimationService.ts'
-import type { BlockOptions, PageGroup } from '../../global/utils.types'
+import { findElement, getPage } from '../../utils'
+import { AnimationService } from '../../services'
+import type { BlockOptions, PageGroup } from '../../utils/utils.types'
 
 
 export class BlockAbout {

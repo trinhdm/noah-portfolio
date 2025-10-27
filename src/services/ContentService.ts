@@ -1,6 +1,6 @@
-import { getPage } from '../global/fetch.ts'
+import { getPage } from '../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
-import type { PageGroup } from '../global/utils.types'
+import type { PageGroup } from '../utils/utils.types'
 
 
 export class ContentService {
@@ -15,8 +15,11 @@ export class ContentService {
 		return container?.innerHTML?.trim() || undefined
 	}
 
-	async fetch({ id, url }: PageGroup): Promise<string | undefined> {
+	async fetch(page: PageGroup): Promise<string | undefined> {
+		if (!page) return
+
 		try {
+			const { id, url } = page
 			const separator = url?.includes('?') ? '&' : '?',
 				htmlURL = `${url}${separator}format=html`
 
@@ -28,7 +31,7 @@ export class ContentService {
 
 			return this.extract(doc, id)
 		} catch (err) {
-			console.error(`[ContentService] fetch() failed for ${url}`, err)
+			console.error(`[ContentService] fetch() failed for ${page?.url}`, err)
 			return undefined
 		}
 	}

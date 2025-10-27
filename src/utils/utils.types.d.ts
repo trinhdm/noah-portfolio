@@ -5,7 +5,7 @@ type BlockOptions = {
 	target: HTMLElement
 }
 
-type PageGroup = {
+type PageGroup = null | {
 	id: string
 	url: string
 }

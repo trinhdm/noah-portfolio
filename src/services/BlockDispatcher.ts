@@ -1,4 +1,4 @@
-import { findChildBy } from "../global/utils"
+import { findChildBy } from "../utils/dom"
 
 const BLOCK_TYPES = ['html', 'image', 'video'] as const
 type BlockTypes = typeof BLOCK_TYPES[number]

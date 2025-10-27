@@ -1,10 +1,12 @@
+import {
+	findChildBy,
+	findElement,
+	getPage,
+	wrapContent,
+} from '../../../utils'
 
-import { getPage } from '../../../global/fetch.ts'
-import { findChildBy, wrapContent } from '../../../global/utils.ts'
-import { findElement } from '../../../utils/content.ts'
-import { AnimationService } from '../../../utils/AnimationService.ts'
-import { ContentService } from '../../../utils/ContentService.ts'
-import type { BlockOptions, PageGroup } from '../../../global/utils.types'
+import { AnimationService, ContentService } from '../../../services'
+import type { BlockOptions, PageGroup } from '../../../utils/utils.types'
 
 
 export class Block {

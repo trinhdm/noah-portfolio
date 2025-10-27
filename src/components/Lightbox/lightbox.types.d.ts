@@ -1,4 +1,4 @@
-import type { PageGroup } from '../../../global/utils.types'
+import type { PageGroup } from '../../utils/utils.types'
 
 
 type NavigationItem = {

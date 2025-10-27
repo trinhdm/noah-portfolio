@@ -1,10 +1,14 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 
-import { AnimationService, ContentService } from '../../utils'
-import { findChildBy, wrapContent } from '../../global/utils.ts'
-import { findElement } from '../../utils/content'
-import { getPage } from '../../global/fetch.ts'
+import { AnimationService, ContentService } from '../../services/index.ts'
+
+import {
+	findChildBy,
+	findElement,
+	getPage,
+	wrapContent,
+} from '../../utils'
 
 import type {
 	ArrowsGroup,

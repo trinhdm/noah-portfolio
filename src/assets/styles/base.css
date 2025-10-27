@@ -1,0 +1,54 @@
+
+/* html:not(:has(.lightbox)) {
+	overflow-y: scroll;
+} */
+
+html {
+	scrollbar-gutter: stable;
+}
+
+body {
+	overflow-y: scroll;
+}
+
+/* body::-webkit-scrollbar {
+	display: none;
+} */
+
+
+/* `.background > .section-background` prevents flash of unstyled content */
+.section-background {
+	opacity: 0;
+}
+
+.background {
+	height: 100%;
+	inset-block: 0;
+	overflow: hidden;
+	pointer-events: none;
+	position: fixed;
+
+	&,
+	.section-background {
+		inset-inline: 0;
+		width: 100%;
+	}
+
+	.section-background {
+		opacity: 1;
+        margin: auto;
+        max-width: 80vw;
+        position: absolute;
+        top: 12.5%;
+        z-index: 0;
+	}
+}
+
+
+#site-title {
+	color: hsl(var(--lightAccent-hsl));
+
+	&:hover {
+		color: hsl(var(--accent-hsl));
+	}
+}

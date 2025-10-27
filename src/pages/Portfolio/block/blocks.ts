@@ -1,6 +1,6 @@
-import { AnimationService } from '../../../utils/AnimationService.ts'
-import { getDeepestChild, wrapContent } from '../../../global/utils.ts'
-import type { BlockOptions } from '../../../global/utils.types'
+import { AnimationService } from '../../../services'
+import { getDeepestChild, wrapContent } from '../../../utils'
+import type { BlockOptions } from '../../../utils/utils.types'
 
 
 /** Static: Apply typography styles globally to all non-portfolio blocks */

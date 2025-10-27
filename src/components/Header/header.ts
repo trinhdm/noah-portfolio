@@ -1,20 +1,22 @@
-import { setAnimation } from '../../utils/css'
+import { AnimationService } from '../../services/AnimationService'
 
 
 type NavEventOptions = {
 	args: {
-		duration: number
+		duration?: number
 		stagger: number
 	}
 	navList: HTMLElement
 	timer: NodeJS.Timeout
 }
 
+
 const onLoadHeader = (headerNav: HTMLElement) => {
-	headerNav.dataset.loading = 'true'
+	// headerNav.dataset.loading = 'true'
 
 	headerNav.addEventListener('animationend', () => {
-		delete headerNav.dataset.loading
+		// delete headerNav.dataset.loading
+		headerNav.setAttribute('data-loaded', 'true')
 	}, { passive: true })
 }
 
@@ -32,18 +34,10 @@ const onEnterNav = ({
 }: NavEventOptions) => {
 	const navItems = navList.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
 
-	// navItems.forEach((item, index) => Object.assign(
-	// 	item?.style, setAnimation({
-	// 		...args,
-	// 		index: i,
-	// 		start: Math.abs(args.stagger * navItems.length),
-	// 	})
-	// ))
-
-	navItems.forEach((item, index) => setAnimation(item, {
+	navItems.forEach((item, index) => AnimationService.set(item, {
 		...args,
+		delay: Math.abs(args.stagger * navItems.length),
 		index,
-		start: Math.abs(args.stagger * navItems.length),
 	}))
 
 	clearTimeout(timer)
@@ -61,18 +55,10 @@ const onLeaveNav = ({
 }: NavEventOptions) => {
 	const navItems = navList.querySelectorAll('.header-nav-item') as NodeListOf<HTMLElement>
 
-	// navItems.forEach((item, i) => Object.assign(
-	// 	item?.style, setAnimation({
-	// 		...args,
-	// 		index: i,
-	// 		stagger: Math.abs(args.stagger),
-	// 	})
-	// ))
-
-	navItems.forEach((item, index) => setAnimation(item, {
+	navItems.forEach((item, index) => AnimationService.set(item, {
 		...args,
+		delay: Math.abs(args.stagger),
 		index,
-		stagger: Math.abs(args.stagger),
 	}))
 
 	clearTimeout(timer)
@@ -95,7 +81,7 @@ export const handleHeader = () => {
 
 	if (!headerNav || !navList) return
 
-	const args = { duration: .25, stagger: -0.1 }
+	const args = { stagger: -0.1 }
 	let timer: NodeJS.Timeout
 
 	onLoadHeader(headerNav)

@@ -1,5 +1,4 @@
-
-import { getBackground } from './global'
+import { getBackground } from './utils'
 import { handleHeader } from './components'
 
 import {
@@ -9,6 +8,7 @@ import {
 	Portfolio,
 } from './pages'
 
+import './assets/styles'
 
 document.addEventListener('DOMContentLoaded', () => {
 	getBackground()
