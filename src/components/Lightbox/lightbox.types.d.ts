@@ -30,13 +30,13 @@ type LightboxElements = {
 	video?: HTMLIFrameElement | HTMLVideoElement | undefined
 }
 
-type LightboxOptions<T extends HTMLElement = HTMLDivElement> = {
-	block: HTMLElement | null
-	// content: HTMLElement | undefined
+type LightboxOptions = {
+	content?: Promise<string | undefined>
 	elements: HTMLElement[]
 	index: number
 	page: PageGroup | undefined
-	properties: Record<keyof T, T[keyof T]> | {};
+	properties?: LightboxProperties
+	target: Node
 }
 
 

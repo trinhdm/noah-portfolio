@@ -26,6 +26,6 @@ const template = `
 			</div>
 		</div>
 	</div>
-`
+`.trim()
 
 export default template

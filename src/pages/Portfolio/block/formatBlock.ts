@@ -1,9 +1,18 @@
 import { findChildBy } from '../../../global/utils.ts'
 
 
-const getSource = (json: string | undefined) => {
-	let url = '',
-		poster = '',
+type SourceResult = {
+	poster: string
+	source: string
+}
+
+const isHeaderTag = (tag: string) => /^H[1-4]$/.test(tag)
+
+const clone = <T extends Node>(node: T | null): T | null =>
+	(node ? (node.cloneNode(true) as T) : null)
+
+const getSource = (json: string | undefined): SourceResult => {
+	let poster = '',
 		source = ''
 
 	if (json?.length) {
@@ -13,139 +22,120 @@ const getSource = (json: string | undefined) => {
 		} = JSON.parse(json)
 
 		if (alexandriaLibraryId.length && systemDataId.length) {
-			const slug = `${alexandriaLibraryId}/${systemDataId}`
-
-			url = `https://video.squarespace-cdn.com/content/v1/${slug}`
-			source = `${url}/playlist.m3u8`
+			const slug = `${alexandriaLibraryId}/${systemDataId}`,
+				url = `https://video.squarespace-cdn.com/content/v1/${slug}`
 			poster = `${url}/thumbnail`
+			source = `${url}/playlist.m3u8`
 		}
 	}
 
-	const config = {
-		poster,
-		source,
-	}
-
-	return config
+	return { poster, source }
 }
 
+const createVideo = (json: string): HTMLVideoElement => {
+	const { poster, source } = getSource(json)
+	const video: HTMLVideoElement = document.createElement('video')
 
-export const formatBlock = (
-	block: HTMLElement,
-	id: string = ''
-) => {
-	const getChildBlocks = (selector: string) => (
-		(block.querySelector(selector) as HTMLElement | undefined)?.children
-	)
+	Object.assign(video, {
+		controls: true,
+		crossOrigin: true,
+		id: 'lightbox-player',
+		muted: 'muted',
+		playsInline: true,
+		poster,
+		src: source,
+	})
 
-	const type = block.querySelector('.sqs-block')?.classList[1]?.split('-block')[0]
+	return video
+}
 
-	let condition: boolean | undefined,
-		els = undefined,
-		html: HTMLElement | string | undefined = ''
+const createIFrame = (json: string): HTMLIFrameElement | null => {
+	const { html } = JSON.parse(json)
+	let iframe: HTMLIFrameElement | null = null
+
+	if (typeof html === 'string') {
+		const parsed = new DOMParser().parseFromString(html, 'text/html')
+		const fragment = document.createDocumentFragment()
+
+		Array.from(parsed.body.childNodes).forEach(node => fragment.appendChild(node.cloneNode(true)))
+
+		iframe = parsed.body.childNodes[0] as HTMLIFrameElement
+	}
+
+	return iframe
+}
+
+export const formatBlock = (block: HTMLElement) => {
+	const clonedBlock = clone(block)!,
+		type = block.firstElementChild?.classList[1]?.match(/([a-z0-9-]+)-block/i)?.[1]
+
+	let container: HTMLElement | null = null,
+		formatted: HTMLElement | null = null
 
 	switch (type) {
-		case 'code':
-			els = !!id ? getChildBlocks(`#${id}`) : undefined
-			break
 		case 'html':
-			els = getChildBlocks('.sqs-html-content')
-			// condition = [...els!].filter(el => (['H1', 'H2', 'H3', 'H4'].includes(el.tagName)))
+			container = block.querySelector('.sqs-html-content') as HTMLElement | null
+			if (!container) return null
 
-			condition = !!els
-				? !(els.length === 1 && ['H1', 'H2', 'H3', 'H4'].includes(els[0].tagName))
-				: undefined
+			const children = Array.from(container.children)
+			if (children.length === 1 && isHeaderTag(children[0].tagName)) return null
+
+			formatted = clonedBlock
 			break
+
 		case 'image':
-			[els] = getChildBlocks('[data-animation-role]')
-			html = !!els ? findChildBy(els as HTMLElement, { tagName: 'img' }) : ''
-			// console.log({ els, list: getChildBlocks('[data-animation-role]'), html })
+			container = block.querySelector('[data-animation-role]') as HTMLElement | null
+			const img = container ? findChildBy(container, { tagName: 'img' }) : null
+			if (!img) return null
+
+			formatted = clonedBlock
 			break
-		case 'video':
+
+		case 'video': {
 			const nativeVideo = block.querySelector('[data-config-video]'),
 				ytVideo = block.querySelector('[data-html]')
 
-			let json,
-				wrapper = document.createElement('div')
+			let container: Element | null = null,
+				json: string | undefined = undefined,
+				videoChild: HTMLIFrameElement | HTMLVideoElement | null = null
+
+			if (ytVideo) {
+				const jsonEl = ytVideo.closest('[data-block-json]') as HTMLElement | null
+				json = jsonEl?.dataset?.blockJson
+
+				if (json) {
+					try {
+						videoChild = createIFrame(json)
+						container = clonedBlock.querySelector('.embed-block-wrapper')
+					} catch {}
+				}
+			} else if (nativeVideo) {
+				json = (nativeVideo as HTMLElement).dataset?.configVideo
+
+				if (json) {
+					try {
+						videoChild = createVideo(json)
+						container = clonedBlock.querySelector('.native-video-player')
+						container?.classList.add('lightbox__video-player')
+					} catch {}
+				}
+			}
+
+			if (!container || !videoChild) return null
+
+			const wrapper = document.createElement('div')
 			wrapper.classList.add('lightbox__video-wrapper')
+			wrapper.appendChild(videoChild)
 
-			if (!!ytVideo) {
-				json = (ytVideo?.closest('[data-block-json]')as HTMLElement)?.dataset?.blockJson
+			container.replaceChildren(wrapper)
+			formatted = clonedBlock
 
-				const { html, url } = JSON.parse(json!)
-				// 	id = url.split('=').at(-1),
-				// 	source = `https://www.youtube.com/embed/${id}?feature=oembed`
-
-				// const template = `
-				// 	<iframe
-				// 		allowfullscreen
-				// 		allow="autoplay; encrypted-media"
-				// 		frameborder="0"
-				// 		id="lightbox-player"
-				// 		modestbranding=1
-				// 		src="${source}"
-				// 	></iframe>
-				// `.trim()
-
-				els = (ytVideo as HTMLElement)?.closest('.embed-block-wrapper')
-				wrapper.innerHTML = html
-
-				// els = ytVideo as HTMLElement
-				// wrapper.innerHTML = (els?.dataset?.html) ?? ''
-				// console.log('youtube', els?.dataset?.html)
-			}
-
-			else if (!!nativeVideo) {
-				json = (nativeVideo as HTMLElement)?.dataset?.configVideo
-				const { poster, source } = getSource(json)
-
-				const template = `
-					<video
-						autoplay
-						controls
-						crossorigin
-						playsinline
-						id="lightbox-player"
-						muted="muted"
-						poster="${poster}"
-						src="${source}"
-					></video>
-				`.trim()
-
-				els = (nativeVideo as HTMLElement)?.querySelector('.native-video-player')
-				els?.classList.add('lightbox__video-player')
-
-				wrapper.innerHTML = template
-			}
-
-			html = wrapper
 			break
-	}
-
-	if (!els) return
-
-	if (typeof condition !== 'boolean')
-		condition = els instanceof HTMLCollection
-			? !!els?.length
-			: !!els
-
-	if (!!condition) {
-		block.classList.add(`lightbox__${type}`)
-
-		if (!html) return
-
-		els = els as HTMLElement
-		els.innerHTML = ''
-		// console.log(html, typeof html)
-
-		switch (typeof html) {
-			case 'object':
-				return els.appendChild(html)
-			case 'string':
-				return els.append(html.trim())
-				// return (els.innerHTML = html.trim())
 		}
-	} else {
-		block.remove()
 	}
+
+	if (!!formatted)
+		formatted.classList.add(`lightbox__${type}`)
+
+	return formatted ?? null
 }

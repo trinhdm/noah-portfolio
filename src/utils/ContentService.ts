@@ -8,98 +8,91 @@ export class ContentService {
 
 	constructor(private selector: string = '.fe-block') {}
 
-	static async fetch({ id, url }: PageGroup): Promise<string | undefined> {
-		const separator = url?.includes('?') ? '&' : '?',
-			htmlURL = `${url}${separator}format=html`,
-			messageErr = 'Content not found.'
+	private extract(doc: Document, id: string) {
+		const anchor = doc.getElementById(id),
+			container = anchor?.closest('.content')?.querySelector('.fluid-engine')
 
-		return fetch(htmlURL)
-			.then(response => {
-				if (!response.ok)
-					throw new Error(messageErr)
-
-				return response.text()
-			}).then(html => {
-				const parser = new DOMParser(),
-					docu = parser.parseFromString(html, 'text/html')
-
-				const anchor = docu.getElementById(id),
-					container = anchor?.closest('.content')?.querySelector('.fluid-engine'),
-					content = container?.innerHTML.trim()
-
-				return !!content?.length
-					? content
-					: `<p>${messageErr}</p>`
-			}).catch(err => {
-				console.error(messageErr, err)
-			}) as Promise<string | undefined>
+		return container?.innerHTML?.trim() || undefined
 	}
 
-	private async get(target: HTMLElement | null): Promise<string | undefined> {
+	async fetch({ id, url }: PageGroup): Promise<string | undefined> {
+		const separator = url?.includes('?') ? '&' : '?',
+			htmlURL = `${url}${separator}format=html`
+
+		const response = await fetch(htmlURL)
+		if (!response.ok) throw new Error('content not found')
+
+		const html = await response.text(),
+			doc = new DOMParser().parseFromString(html, 'text/html')
+
+		return this.extract(doc, id)
+	}
+
+	private async retrieve(target: HTMLElement): Promise<string | undefined> {
 		const page = getPage(target)
 
-		if (!page) return undefined
-		return await ContentService.fetch(page)
+		if (!page) return
+		return await this.fetch(page)
 	}
 
-	private async set(target: HTMLElement | null): Promise<HTMLDivElement | undefined> {
-		try {
-			const content = await this.get(target)
-			if (typeof content !== 'string') return
+	private async build(target: HTMLElement): Promise<HTMLDivElement | undefined> {
+		const content = await this.retrieve(target)
+		if (!content) return
 
-			const container = document.createElement('div')
-			const imageWrapper = target
-				?.querySelector('[data-sqsp-image-block-image-container]')
-				?.closest(this.selector)
+		const container = document.createElement('div')
+		const imgSelector = '[data-sqsp-image-block-image-container]',
+			image = target?.querySelector(imgSelector)?.closest(this.selector)
 
-			if (imageWrapper)
-				container.prepend(imageWrapper.cloneNode(true) as HTMLElement)
+		if (image) {
+			// ;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
+			container.prepend(image.cloneNode(true) as HTMLElement)
+		}
 
-			container.innerHTML += content
+		container.insertAdjacentHTML('beforeend', content)
 
-			return container
-		} catch(err) { console.error(err) }
+		return container
 	}
 
-	static async load(target: HTMLElement): Promise<HTMLElement | undefined> {
-		const id = target.dataset.id || target.id || '',
-			instance = new ContentService()
+	private format(fragment: HTMLElement | undefined) {
+		const container = document.createElement('div'),
+			elements = (fragment as Element)?.querySelectorAll(this.selector)
 
-		if (instance.cache.has(id)) return instance.cache.get(id)
+		elements?.forEach(el => {
+			const formatted = formatBlock(el as HTMLElement)
+			if (formatted) container.appendChild(formatted)
+		})
 
-		const fragment = await instance.set(target)
-		if (fragment) instance.cache.set(id, fragment)
+		return container.childNodes.length ? container : undefined
+	}
+
+	async load(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
+		const targetEl = target as HTMLElement,
+			id = targetEl.dataset.id || targetEl.id
+
+		if (this.cache.has(id)) return this.cache.get(id)
+
+		const fragment = await this.build(targetEl)
+		if (fragment) this.cache.set(id, fragment)
 
 		return fragment ?? undefined
 	}
 
-	static async prefetch(target: HTMLElement): Promise<void> {
-		const id = target.dataset.id || target.id || '',
-			instance = new ContentService()
-		if (instance.cache.has(id)) return
+	async prefetch(target: HTMLElement | Node): Promise<void> {
+		const targetEl = target as HTMLElement,
+			id = targetEl.dataset.id || targetEl.id
+
+		if (this.cache.has(id)) return
 
 		try {
-			const fragment = await instance.set(target)
-			if (fragment) instance.cache.set(id, fragment)
+			const fragment = await this.build(targetEl)
+			if (fragment) this.cache.set(id, fragment)
 		} catch (err) {
 			console.warn(`Prefetch failed for ${id}:`, err)
 		}
 	}
 
-	static async format(
-		fragment: HTMLElement | undefined,
-		id: string,
-	): Promise<void> {
-		const instance = new ContentService(),
-			elements = fragment?.querySelectorAll(instance.selector)
-
-		elements?.forEach(el => formatBlock(el as HTMLElement, id))
-	}
-
-	static async render(target: HTMLElement): Promise<HTMLElement | undefined> {
-		const fragment = await ContentService.load(target)
-		await ContentService.format(fragment, target.id)
-
-		return fragment
+	async render(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
+		const fragment = await this.load(target)
+		return this.format(fragment)
 	}
 }

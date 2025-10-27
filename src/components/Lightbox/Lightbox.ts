@@ -2,11 +2,11 @@ import Hls from 'hls.js'
 import Plyr from 'plyr'
 
 import { AnimationService } from '../../utils/AnimationService.ts'
-import { fetchContent, getPage } from '../../global/fetch.ts'
-import { findChildBy } from '../../global/utils.ts'
-import { findElement, setContent } from '../../utils/content'
+import { ContentService } from '../../utils/ContentService.ts'
+import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
+import { findElement } from '../../utils/content'
+import { getPage } from '../../global/fetch.ts'
 
-import type { PageGroup } from '../../global/utils.types'
 import type {
 	ArrowsGroup,
 	ArrowDirection,
@@ -23,58 +23,33 @@ enum LightboxClass {
 	Root = 'lightbox',
 }
 
-
-class ContentService {
-	private cache = new Map<string, HTMLElement>()
-
-	async fetchPageHtml(page: PageGroup | undefined): Promise<string | undefined> {
-		if (!page) return undefined
-		return await fetchContent(page)
-	}
-
-	async loadBlockContent(target: HTMLElement): Promise<HTMLElement | undefined> {
-		const page = getPage(target),
-			id = target.dataset.id || target.id || ''
-
-		if (this.cache.has(id)) return this.cache.get(id)
-
-		const fragment = await setContent({ block: target, page })
-		if (fragment) this.cache.set(id, fragment)
-
-		return fragment ?? undefined
-	}
-
-	async prefetchBlockContent(target: HTMLElement): Promise<void> {
-		const page = getPage(target)
-		const id = target.dataset.id || target.id || ''
-		if (this.cache.has(id)) return
-
-		try {
-			const fragment = await setContent({ block: target, page })
-			if (fragment) this.cache.set(id, fragment)
-		} catch (err) {
-			console.warn(`Prefetch failed for ${id}:`, err)
-		}
-	}
-}
-
 class LightboxDOM {
 	private cache: Partial<LightboxElements> = {}
-	private contentService: ContentService = new ContentService()
 	private root: HTMLDivElement
 
-	constructor(private options: LightboxOptions) {
-		this.root = this.createRoot(this.options)
+	constructor(
+		private options: LightboxOptions,
+		private contentService: ContentService
+	) {
+		this.root = this.createRoot()
 	}
 
-	private createRoot({
-		block,
-		properties = {},
-	}: Pick<LightboxOptions, 'block' | 'properties'>) {
+	async setContent(): Promise<void> {
+		const container = this.root.querySelector('.lightbox__content') as HTMLElement | null
+		if (!container) return
+
+		const content = await this.contentService.render(this.options.target)
+		if (content) container.replaceChildren(...content.children)
+		this.reset()
+	}
+
+	private createRoot(): HTMLDivElement {
 		const root = document.createElement('div') as HTMLDivElement
 
 		root.classList.add(LightboxClass.Root)
-		root.innerHTML = template.trim()
+		root.innerHTML = template
+
+		const { properties } = this.options
 
 		if (properties) {
 			const ignore = [
@@ -90,24 +65,12 @@ class LightboxDOM {
 			})
 		}
 
-		if (block) {
-			const container = root.querySelector('.lightbox__content')
-			this.contentService.loadBlockContent(block).then(content => {
-				if (container && content)
-					container.innerHTML = content.innerHTML
-			})
-		}
-
 		return root
 	}
 
-	append() {
-		document.body.appendChild(this.root)
-	}
+	append() { document.body.appendChild(this.root) }
 
-	remove() {
-		this.root.remove()
-	}
+	remove() { this.root.remove() }
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
 		const root = this.root,
@@ -134,9 +97,7 @@ class LightboxDOM {
 		return this.cache[key] as LightboxElements[K]
 	}
 
-	reset() {
-		this.cache = {}
-	}
+	reset() { this.cache = {} }
 
 	update(newContent: HTMLElement | undefined) {
 		const content = this.get('content')
@@ -362,12 +323,10 @@ class LightboxMedia {
 
 	constructor(private dom: LightboxDOM) {}
 
-	private setup(media: HTMLIFrameElement | HTMLVideoElement) {
-		let source = ''
+	private init(media: HTMLIFrameElement | HTMLVideoElement) {
+		const source = media.src ?? ''
 
 		if (media instanceof HTMLVideoElement) {
-			source = media.src ?? ''
-
 			if (Hls.isSupported()) {
 				this.instance = new Hls()
 
@@ -384,11 +343,7 @@ class LightboxMedia {
 				new Plyr(media)
 				// const player = new Plyr(embed)
 			}
-		}
-
-		else if (media instanceof HTMLIFrameElement) {
-			source = media.src ?? ''
-		}
+		} else if (media instanceof HTMLIFrameElement) {}
 
 		this.media = media
 		this.source = source
@@ -403,16 +358,17 @@ class LightboxMedia {
 			;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
 		}
 
-		const embed = video.querySelector('video'),
-			iframe = video.querySelector('iframe')
+		const native = video.querySelector('video'),
+			youtube = video.querySelector('iframe')
 
-		if (embed) this.setup(embed as HTMLVideoElement)
-		else if (iframe) this.setup(iframe as HTMLIFrameElement)
+		if (native) this.init(native as HTMLVideoElement)
+		else if (youtube) this.init(youtube as HTMLIFrameElement)
 	}
 
 	dispose() {
 		if (this.instance) {
 			try {
+
 				this.instance.destroy()
 			} catch (err) {}
 		}
@@ -447,9 +403,10 @@ class LightboxMenu {
 
 	constructor(
 		private dom: LightboxDOM,
-		private options: LightboxOptions
+		private options: LightboxOptions,
+		private contentService: ContentService
 	) {
-		this.data = new LightboxMenu.Data(this.options)
+		this.data = new LightboxMenu.Data(this.options, this.contentService)
 		this.view = new LightboxMenu.View(this.dom)
 	}
 
@@ -463,13 +420,18 @@ class LightboxMenu {
 	}
 
 	// destroy() {
-	// 	this.view.destroy()
+	// 	this.view.clear()
 	// }
 
 	static Data = class {
-		private contentService: ContentService = new ContentService()
+		private contentService: ContentService
 
-		constructor(private options: LightboxOptions) {}
+		constructor(
+			private options: LightboxOptions,
+			contentService: ContentService
+		) {
+			this.contentService = contentService
+		}
 
 		private getPointers(index: number) {
 			const elements = this.options.elements
@@ -505,9 +467,11 @@ class LightboxMenu {
 							const navWrapper = document.createElement('div'),
 								newPage = getPage(target)
 
-							navWrapper.innerHTML = (await fetchContent(newPage)) ?? ''
+							navWrapper.innerHTML = (await this.contentService.fetch(newPage)) ?? ''
 
-							const text = findChildBy(navWrapper, { tagName: 'strong' })?.innerHTML
+							const title = findChildBy(navWrapper, { tagName: 'strong' }),
+								text = wrapTrimEl(title, 'strong')?.innerHTML
+
 							value = { ...value, target, text }
 						}
 
@@ -521,12 +485,12 @@ class LightboxMenu {
 
 		async prefetchAdjacent(index: number) {
 			const { next, prev } = await this.createDirectory(index)
-			const tasks: Promise<any>[] = []
+			const tasks: Promise<void>[] = []
 
 			if (next?.target && next.index !== index)
-				tasks.push(this.contentService.prefetchBlockContent(next.target))
+				tasks.push(this.contentService.prefetch(next.target))
 			if (prev?.target && prev.index !== index)
-				tasks.push(this.contentService.prefetchBlockContent(prev.target))
+				tasks.push(this.contentService.prefetch(prev.target))
 
 			await Promise.allSettled(tasks)
 		}
@@ -575,7 +539,6 @@ class LightboxMenu {
 }
 
 class LightboxNavigation {
-	private contentService: ContentService = new ContentService()
 	private isSwapping = false
 
 	constructor(
@@ -584,6 +547,7 @@ class LightboxNavigation {
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
+		private contentService: ContentService,
 		private onNavigate?: (direction: ArrowDirection) => void
 	) {}
 
@@ -642,7 +606,7 @@ class LightboxNavigation {
 		if (!target) return
 
 		try {
-			const newContent = await this.contentService.loadBlockContent(target),
+			const newContent = await this.contentService.render(target),
 				newImage = newContent?.querySelector('.lightbox__image')
 
 			if (!newContent) return
@@ -659,6 +623,7 @@ class LightboxNavigation {
 }
 
 export class LightboxController {
+	private readonly contentService: ContentService
 	private readonly dom: LightboxDOM
 	private readonly menu: LightboxMenu
 	private readonly animator: LightboxAnimation
@@ -668,12 +633,12 @@ export class LightboxController {
 	private isActive: boolean = false
 
 	constructor(private options: LightboxOptions) {
-		this.dom = new LightboxDOM(this.options)
-		this.media = new LightboxMedia(this.dom)
-		this.menu = new LightboxMenu(this.dom, this.options)
-		this.events = new LightboxEvents(this.dom, this)
+		this.contentService = new ContentService()
 
-		console.log({ options })
+		this.dom = new LightboxDOM(this.options, this.contentService)
+		this.menu = new LightboxMenu(this.dom, this.options, this.contentService)
+		this.media = new LightboxMedia(this.dom)
+		this.events = new LightboxEvents(this.dom, this)
 
 		this.animator = new LightboxAnimation(this.dom)
 		this.navigator = new LightboxNavigation(
@@ -682,15 +647,21 @@ export class LightboxController {
 			this.events,
 			this.media,
 			this.menu,
+			this.contentService,
 			direction => this.navigate(direction)
 		)
 
 		this.dom.append()
-		this.media.configure()
-		this.initializeMenu()
+		void this.initialize()
 	}
 
-	private async initializeMenu() {
+	private async initialize() {
+		await this.dom.setContent()
+		this.media.configure()
+		await this.showMenu()
+	}
+
+	private async showMenu() {
 		await this.menu.render(this.options.index, dir => this.navigate(dir))
 	}
 
