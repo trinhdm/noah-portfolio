@@ -1,5 +1,5 @@
 import { getPage } from '../global/fetch.ts'
-import { formatBlock } from '../pages/Portfolio/block/formatBlock.ts'
+import { BlockDispatcher } from './BlockDispatcher.ts'
 import type { PageGroup } from '../global/utils.types'
 
 
@@ -16,16 +16,21 @@ export class ContentService {
 	}
 
 	async fetch({ id, url }: PageGroup): Promise<string | undefined> {
-		const separator = url?.includes('?') ? '&' : '?',
-			htmlURL = `${url}${separator}format=html`
+		try {
+			const separator = url?.includes('?') ? '&' : '?',
+				htmlURL = `${url}${separator}format=html`
 
-		const response = await fetch(htmlURL)
-		if (!response.ok) throw new Error('content not found')
+			const response = await fetch(htmlURL)
+			if (!response.ok) throw new Error('content not found')
 
-		const html = await response.text(),
-			doc = new DOMParser().parseFromString(html, 'text/html')
+			const html = await response.text(),
+				doc = new DOMParser().parseFromString(html, 'text/html')
 
-		return this.extract(doc, id)
+			return this.extract(doc, id)
+		} catch (err) {
+			console.error(`[ContentService] fetch() failed for ${url}`, err)
+			return undefined
+		}
 	}
 
 	private async retrieve(target: HTMLElement): Promise<string | undefined> {
@@ -43,10 +48,8 @@ export class ContentService {
 		const imgSelector = '[data-sqsp-image-block-image-container]',
 			image = target?.querySelector(imgSelector)?.closest(this.selector)
 
-		if (image) {
-			// ;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
+		if (image)
 			container.prepend(image.cloneNode(true) as HTMLElement)
-		}
 
 		container.insertAdjacentHTML('beforeend', content)
 
@@ -54,13 +57,29 @@ export class ContentService {
 	}
 
 	private format(fragment: HTMLElement | undefined) {
-		const container = document.createElement('div'),
-			elements = (fragment as Element)?.querySelectorAll(this.selector)
+		if (!fragment) return undefined
 
-		elements?.forEach(el => {
-			const formatted = formatBlock(el as HTMLElement)
-			if (formatted) container.appendChild(formatted)
-		})
+		const container = document.createElement('div'),
+			elements = fragment.querySelectorAll(this.selector)
+
+		const mediaEls: Partial<Record<'image' | 'video', HTMLElement>> = {}
+
+		for (const el of elements) {
+			const formatted = BlockDispatcher.format(el as HTMLElement)
+			if (!formatted) continue
+
+			const type = BlockDispatcher.getType(formatted)
+			if (type === 'image' || type === 'video')
+				mediaEls[type] = formatted
+
+			container.appendChild(formatted)
+		}
+
+		if (mediaEls.image && mediaEls.video) {
+			requestAnimationFrame(() => {
+				mediaEls.image!.style.maxHeight = `${mediaEls.video!.offsetHeight}px`
+			})
+		}
 
 		return container.childNodes.length ? container : undefined
 	}
@@ -87,7 +106,7 @@ export class ContentService {
 			const fragment = await this.build(targetEl)
 			if (fragment) this.cache.set(id, fragment)
 		} catch (err) {
-			console.warn(`Prefetch failed for ${id}:`, err)
+			console.warn(`prefetch failed for ${id}:`, err)
 		}
 	}
 

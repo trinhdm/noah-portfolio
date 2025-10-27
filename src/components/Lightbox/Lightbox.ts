@@ -1,8 +1,7 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 
-import { AnimationService } from '../../utils/AnimationService.ts'
-import { ContentService } from '../../utils/ContentService.ts'
+import { AnimationService, ContentService } from '../../utils'
 import { findChildBy, wrapTrimEl } from '../../global/utils.ts'
 import { findElement } from '../../utils/content'
 import { getPage } from '../../global/fetch.ts'
@@ -353,10 +352,10 @@ class LightboxMedia {
 		const video = this.dom.get('video')
 		if (!video) return
 
-		const image = this.dom.get('image')
-		if (image) {
-			;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
-		}
+		// const image = this.dom.get('image')
+		// if (image) {
+		// 	;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
+		// }
 
 		const native = video.querySelector('video'),
 			youtube = video.querySelector('iframe')
