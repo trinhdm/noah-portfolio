@@ -1,7 +1,12 @@
 
 .lightbox {
+	opacity: 0;
 	overflow-x: clip;
 	z-index: 9999;
+
+	&:is([data-state]) {
+		opacity: 1;
+	}
 
 	&:is([data-disabled="true"]) .lightbox__container {
 		pointer-events: none;

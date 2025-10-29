@@ -1,12 +1,11 @@
 import {
-	findChildBy,
-	findElement,
-	getPage,
-	wrapContent,
-} from '../../utils'
+	AnimationService,
+	BlockDispatcher,
+	ContentService,
+} from '../../services'
 
-import { AnimationService, ContentService } from '../../services'
-import type { BlockOptions, PageGroup } from '../../utils/utils.types'
+import { findElement, wrapContent } from '../../utils'
+import type { BlockOptions } from '../../types'
 
 
 export class BlockPortfolio {
@@ -14,8 +13,8 @@ export class BlockPortfolio {
 	private contentService: ContentService
 
 	block: HTMLElement | null
+	id: string
 	index: number
-	page: PageGroup | null
 	target: Node
 
 	constructor({
@@ -23,13 +22,13 @@ export class BlockPortfolio {
 		index,
 		target,
 	}: BlockOptions) {
-		const block = findElement(target)
-
 		this.className = className
+		this.id = ''
 		this.index = index
-		this.page = getPage(target)
-		this.target = block!.cloneNode(true)
-		this.block = findElement(target)
+
+		const element = findElement(target)
+		this.block = element
+		this.target = element!.cloneNode(true)
 
 		this.contentService = new ContentService()
 	}
@@ -43,31 +42,26 @@ export class BlockPortfolio {
 	private async generate(): Promise<void> {
 		if (!this.block) return
 
+		const { id, title } = await this.contentService.retrieve(this.block)
+		this.id = id
+
 		this.configureBlock()
 		this.applyStyle()
-
-		const content = await this.contentService.load(this.block)
-
-		if (content)
-			this.renderDetails(content)
+		this.renderDetails(title)
 	}
 
 	private configureBlock(): void {
 		if (!this.block) return
 
-		const type = this.block.firstElementChild
-						?.classList[1]
-						?.match(/([a-z0-9-]+)-block/i)
-						?.[1] ?? 'base'
+		const type = BlockDispatcher.getType(this.block) ?? 'base'
 
 		this.block.classList.add(
 			this.className,
-			`${this.className}__${type}`,
-			'block--disabled'
+			`${this.className}__${type}`
 		)
 
 		Object.assign(this.block.dataset, {
-			...this.page && { id: `block-${this.page.id}` },
+			id: `block-${this.id}`,
 			position: String(this.index),
 		})
 	}
@@ -76,42 +70,29 @@ export class BlockPortfolio {
 		if (!this.block) return
 
 		AnimationService.set(this.block, {
-			className: 'block--disabled',
 			index: this.index,
 			stagger: .12,
 			timeout: 500,
 		})
 	}
 
-	private renderDetails(content: HTMLElement): void {
+	private renderDetails(title?: string): void {
 		if (!this.block) return
 
-		const textBlocks = content.querySelectorAll('[data-sqsp-text-block-content]'),
-			[titleBlock] = [...textBlocks].filter(
-				el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
-			)
-		const title = findChildBy(titleBlock as HTMLElement | undefined, { tagName: 'strong' })
-
-		if (!title) return
-
-		let newTitle = title.cloneNode(true)
 		const details = document.createElement('div'),
-			formattedTitle = wrapContent(title, 'span')
+			newTitle = wrapContent(title, 'span')
 
-		if (formattedTitle) {
-			newTitle = formattedTitle
-			title.replaceChildren(formattedTitle.cloneNode(true))
-		}
+		if (newTitle)
+			details.appendChild(newTitle)
 
 		details.classList.add(`${this.className}__details`)
-		details.appendChild(newTitle)
 		this.block.appendChild(details)
 	}
 
 	toLightboxOptions() {
 		return {
+			id: this.id,
 			index: this.index,
-			page: this.page,
 			target: this.target,
 		}
 	}

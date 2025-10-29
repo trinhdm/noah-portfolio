@@ -1,6 +1,11 @@
-import { getPage } from '../utils'
+import { findChildBy } from '../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
-import type { PageGroup } from '../utils/utils.types'
+
+
+type PageGroup = {
+	id: string
+	url: string
+}
 
 
 export class ContentService {
@@ -8,22 +13,34 @@ export class ContentService {
 
 	constructor(private selector: string = '.fe-block') {}
 
-	private extract(doc: Document, id: string) {
+	private extract(doc: Document, id: string): HTMLElement {
 		const anchor = doc.getElementById(id),
 			container = anchor?.closest('.content')?.querySelector('.fluid-engine')
 
-		return container?.innerHTML?.trim() || undefined
+		return container as HTMLElement || undefined
 	}
 
-	async fetch(page: PageGroup): Promise<string | undefined> {
-		if (!page) return
+	private parse(target: HTMLElement): PageGroup {
+		const anchor = target ? findChildBy(target, { tagName: 'a' }) : null
+		let id = '', url = ''
+
+		if (anchor) {
+			const { hash, href } = anchor as HTMLAnchorElement
+			const [link] = href?.split('#'),
+				separator = link?.includes('?') ? '&' : '?'
+
+			id = hash.slice(1)
+			url = `${link}${separator}format=html`
+		}
+
+		return { id, url }
+	}
+
+	private async fetch(page: PageGroup): Promise<HTMLElement | undefined> {
+		const { id, url } = page
 
 		try {
-			const { id, url } = page
-			const separator = url?.includes('?') ? '&' : '?',
-				htmlURL = `${url}${separator}format=html`
-
-			const response = await fetch(htmlURL)
+			const response = await fetch(url)
 			if (!response.ok) throw new Error('content not found')
 
 			const html = await response.text(),
@@ -31,30 +48,46 @@ export class ContentService {
 
 			return this.extract(doc, id)
 		} catch (err) {
-			console.error(`[ContentService] fetch() failed for ${page?.url}`, err)
+			console.error(`[ContentService] fetch() failed for ${url}`, err)
 			return undefined
 		}
 	}
 
-	private async retrieve(target: HTMLElement): Promise<string | undefined> {
-		const page = getPage(target)
+	async retrieve(target: HTMLElement): Promise<PageGroup & {
+		content: string | undefined
+		title: string | undefined
+	}> {
+		const page = this.parse(target),
+			element = await this.fetch(page)
+		let content, title
 
-		if (!page) return
-		return await this.fetch(page)
+		if (element) {
+			const textEls = element.querySelectorAll('[data-sqsp-text-block-content]'),
+				titleEl = [...textEls].find(
+					el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
+				) as HTMLElement | undefined
+
+			content = element.innerHTML.trim()
+			title = findChildBy(titleEl, { tagName: 'strong' })?.innerText
+		}
+
+		return { ...page, content, title }
 	}
 
-	private async build(target: HTMLElement): Promise<HTMLDivElement | undefined> {
-		const content = await this.retrieve(target)
+	private async construct(target: HTMLElement, hasImage: boolean = true): Promise<HTMLDivElement | undefined> {
+		const { content } = await this.retrieve(target)
 		if (!content) return
 
 		const container = document.createElement('div')
-		const imgSelector = '[data-sqsp-image-block-image-container]',
-			image = target?.querySelector(imgSelector)?.closest(this.selector)
-
-		if (image)
-			container.prepend(image.cloneNode(true) as HTMLElement)
-
 		container.insertAdjacentHTML('beforeend', content)
+
+		if (hasImage) {
+			const imgSelector = '[data-sqsp-image-block-image-container]',
+				image = target?.querySelector(imgSelector)?.closest(this.selector)
+
+			if (image)
+				container.prepend(image.cloneNode(true) as HTMLElement)
+		}
 
 		return container
 	}
@@ -93,7 +126,7 @@ export class ContentService {
 
 		if (this.cache.has(id)) return this.cache.get(id)
 
-		const fragment = await this.build(targetEl)
+		const fragment = await this.construct(targetEl)
 		if (fragment) this.cache.set(id, fragment)
 
 		return fragment ?? undefined
@@ -106,7 +139,7 @@ export class ContentService {
 		if (this.cache.has(id)) return
 
 		try {
-			const fragment = await this.build(targetEl)
+			const fragment = await this.construct(targetEl)
 			if (fragment) this.cache.set(id, fragment)
 		} catch (err) {
 			console.warn(`prefetch failed for ${id}:`, err)

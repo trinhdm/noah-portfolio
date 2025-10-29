@@ -1,6 +1,6 @@
-import { findElement, getPage } from '../../utils'
+import { findElement } from '../../utils'
 import { AnimationService } from '../../services'
-import type { BlockOptions, PageGroup } from '../../utils/utils.types'
+import type { BlockOptions } from '../../types'
 
 
 export class BlockAbout {
@@ -8,7 +8,6 @@ export class BlockAbout {
 
 	block: HTMLElement | null
 	index: number = 0
-	page: PageGroup | null
 
 	constructor({
 		className,
@@ -17,9 +16,7 @@ export class BlockAbout {
 	}: BlockOptions) {
 		this.className = className
 		this.index = index
-
 		this.block = findElement(target)
-		this.page = getPage(target)
 
 		console.log('IS ABOUT')
 	}
@@ -40,19 +37,14 @@ export class BlockAbout {
 
 		this.block.classList.add(
 			this.className,
-			`${this.className}__${type}`,
-			'block--disabled'
+			`${this.className}__${type}`
 		)
-
-		if (this.page)
-			this.block.id = `block-${this.page.id}`
 	}
 
 	private style(): void {
 		if (!this.block) return
 
 		AnimationService.set(this.block, {
-			className: 'block--disabled',
 			delay: .875,
 			index: this.index,
 			stagger: .5,

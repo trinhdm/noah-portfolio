@@ -1,14 +1,8 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 
-import { AnimationService, ContentService } from '../../services/index.ts'
-
-import {
-	findChildBy,
-	findElement,
-	getPage,
-	wrapContent,
-} from '../../utils'
+import { findElement, wrapContent } from '../../utils'
+import { AnimationService, ContentService } from '../../services'
 
 import type {
 	ArrowsGroup,
@@ -457,30 +451,21 @@ class LightboxMenu {
 
 		async createDirectory(index: number): Promise<ArrowsGroup> {
 			const pointers = this.getPointers(index),
-				directions = Object.keys(pointers) as (keyof ArrowsGroup)[]
+				directions = Object.keys(pointers) as ArrowDirections[]
 
 			const directory = Object.fromEntries(
 				await Promise.all(
 					directions.map(async direction => {
-						const { target: rawTarget, ...rest } = pointers[direction]
-						const target = findElement(rawTarget)
-						let value: any = { ...rest, target }
+						const { target: currentTarget, ...rest } = pointers[direction]
+						const target = findElement(currentTarget)
+						let props: ArrowGroup[typeof direction] = { ...rest, target }
 
 						if (target) {
-							const navWrapper = document.createElement('div'),
-								newPage = getPage(target)
-
-							if (newPage) {
-								navWrapper.innerHTML = (await this.contentService.fetch(newPage)) ?? ''
-
-								const title = findChildBy(navWrapper, { tagName: 'strong' }),
-									text = wrapContent(title, 'strong')?.innerHTML
-
-								value = { ...value, text }
-							}
+							const details = await this.contentService.retrieve(target)
+							props = { ...props, ...details }
 						}
 
-						return [direction, value] as const
+						return [direction, props] as const
 					})
 				)
 			) as ArrowsGroup
@@ -518,9 +503,11 @@ class LightboxMenu {
 
 			arrow.setAttribute('data-position', `${target.index}`)
 
-			const arrowText = arrow.querySelector('.navbar__title')
-			if (!!arrowText && target.text)
-				arrowText.replaceChildren(target.text)
+			const arrowText = arrow.querySelector('.pagination__text')
+			if (!!arrowText && target.title) {
+				const text = wrapContent(target.title, 'strong')
+				arrowText.replaceChildren(text ?? '')
+			}
 
 			arrow.addEventListener('click', handler)
 			this.handlers.set(arrow, handler)
@@ -681,6 +668,7 @@ export class LightboxController {
 
 		try {
 			this.dom.toggleDisable()
+			await new Promise(res => setTimeout(res, 50))	// buffer for image.maxHeight
 			await this.animator.fadeRootIn()
 			this.media.play()
 

@@ -31,10 +31,8 @@ type LightboxElements = {
 }
 
 type LightboxOptions = {
-	content?: Promise<string | undefined>
 	elements: HTMLElement[]
 	index: number
-	page: PageGroup | undefined
 	properties?: LightboxProperties
 	target: Node
 }

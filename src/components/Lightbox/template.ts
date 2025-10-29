@@ -11,14 +11,14 @@ const template = `
 		</div>
 		<div class="lightbox__footer">
 			<div class="pagination lightbox__pagination">
-				<div class="lightbox__arrow lightbox__arrow--prev" data-direction="prev">
+				<div class="lightbox__arrow lightbox__arrow--prev pagination__prev" data-direction="prev">
 					<button class="lightbox__button lightbox__prev-button">
 						<span>&lsaquo;</span>
 					</button>
-					<span class="navbar__title"></span>
+					<span class="pagination__text"></span>
 				</div>
-				<div class="lightbox__arrow lightbox__arrow--next" data-direction="next">
-					<span class="navbar__title"></span>
+				<div class="lightbox__arrow lightbox__arrow--next pagination__next" data-direction="next">
+					<span class="pagination__text"></span>
 					<button class="lightbox__button lightbox__next-button">
 						<span>&rsaquo;</span>
 					</button>
