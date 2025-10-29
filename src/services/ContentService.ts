@@ -1,4 +1,4 @@
-import { findChildBy } from '../utils'
+import { findChildBy, wrapContent } from '../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
 
 
@@ -13,11 +13,32 @@ export class ContentService {
 
 	constructor(private selector: string = '.fe-block') {}
 
-	private extract(doc: Document, id: string): HTMLElement {
-		const anchor = doc.getElementById(id),
-			container = anchor?.closest('.content')?.querySelector('.fluid-engine')
+	async retrieve(target: HTMLElement): Promise<PageGroup & {
+		content: string | undefined
+		title: string | undefined
+	}> {
+		const page = this.parse(target),
+			element = await this.fetch(page)
+		let content, title
 
-		return container as HTMLElement || undefined
+		if (element) {
+			const textEls = element.querySelectorAll('[data-sqsp-text-block-content]')
+			let titleEl = [...textEls].find(
+					el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
+				) as HTMLElement | null
+
+			titleEl = findChildBy(titleEl, { tagName: 'strong' })
+
+			if (titleEl) {
+				const newTitleEl = wrapContent(titleEl, 'strong')
+				titleEl.replaceWith(newTitleEl ?? '')
+			}
+
+			content = element.innerHTML.trim()
+			title = titleEl?.innerText
+		}
+
+		return { ...page, content, title }
 	}
 
 	private parse(target: HTMLElement): PageGroup {
@@ -34,6 +55,13 @@ export class ContentService {
 		}
 
 		return { id, url }
+	}
+
+	private extract(doc: Document, id: string): HTMLElement {
+		const anchor = doc.getElementById(id),
+			container = anchor?.closest('.content')?.querySelector('.fluid-engine')
+
+		return container as HTMLElement || undefined
 	}
 
 	private async fetch(page: PageGroup): Promise<HTMLElement | undefined> {
@@ -53,27 +81,6 @@ export class ContentService {
 		}
 	}
 
-	async retrieve(target: HTMLElement): Promise<PageGroup & {
-		content: string | undefined
-		title: string | undefined
-	}> {
-		const page = this.parse(target),
-			element = await this.fetch(page)
-		let content, title
-
-		if (element) {
-			const textEls = element.querySelectorAll('[data-sqsp-text-block-content]'),
-				titleEl = [...textEls].find(
-					el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
-				) as HTMLElement | undefined
-
-			content = element.innerHTML.trim()
-			title = findChildBy(titleEl, { tagName: 'strong' })?.innerText
-		}
-
-		return { ...page, content, title }
-	}
-
 	private async construct(target: HTMLElement, hasImage: boolean = true): Promise<HTMLDivElement | undefined> {
 		const { content } = await this.retrieve(target)
 		if (!content) return
@@ -90,34 +97,6 @@ export class ContentService {
 		}
 
 		return container
-	}
-
-	private format(fragment: HTMLElement | undefined) {
-		if (!fragment) return undefined
-
-		const container = document.createElement('div'),
-			elements = fragment.querySelectorAll(this.selector)
-
-		const mediaEls: Partial<Record<'image' | 'video', HTMLElement>> = {}
-
-		for (const el of elements) {
-			const formatted = BlockDispatcher.format(el as HTMLElement)
-			if (!formatted) continue
-
-			const type = BlockDispatcher.getType(formatted)
-			if (type === 'image' || type === 'video')
-				mediaEls[type] = formatted
-
-			container.appendChild(formatted)
-		}
-
-		if (mediaEls.image && mediaEls.video) {
-			requestAnimationFrame(() => {
-				mediaEls.image!.style.maxHeight = `${mediaEls.video!.offsetHeight}px`
-			})
-		}
-
-		return container.childNodes.length ? container : undefined
 	}
 
 	async load(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
@@ -144,6 +123,56 @@ export class ContentService {
 		} catch (err) {
 			console.warn(`prefetch failed for ${id}:`, err)
 		}
+	}
+
+	private sanitize(image: HTMLElement | undefined) {
+		if (!image) return
+
+		const attributes = Array.from(image.attributes)
+
+		attributes.forEach(({ name, value }) => {
+			if (name === 'class') {
+				const classes = value.split(' ')
+					.filter(cl => ['fe-block', 'lightbox'].some(c => cl.includes(c)))
+					.join(' ')
+				image.setAttribute(name, classes)
+			} else {
+				image.removeAttribute(name)
+			}
+		})
+	}
+
+	private format(fragment: HTMLElement | undefined) {
+		if (!fragment) return undefined
+
+		const container = document.createElement('div'),
+			elements = fragment.querySelectorAll(this.selector)
+
+		const mediaEls: Partial<Record<'image' | 'video', HTMLElement>> = {}
+
+		for (const el of elements) {
+			const formatted = BlockDispatcher.format(el as HTMLElement)
+			if (!formatted) continue
+
+			const type = BlockDispatcher.getType(formatted)
+
+			if (type === 'image' || type === 'video')
+				mediaEls[type] = formatted
+			if (type === 'image')
+				this.sanitize(formatted)
+
+			container.appendChild(formatted)
+		}
+
+		if (mediaEls.image && mediaEls.video) {
+			requestAnimationFrame(() => {
+				const videoHeight = mediaEls.video!.offsetHeight
+				if (videoHeight > 0)
+					mediaEls.image!.style.maxHeight = `${videoHeight}px`
+			})
+		}
+
+		return container.childNodes.length ? container : undefined
 	}
 
 	async render(target: HTMLElement | Node): Promise<HTMLElement | undefined> {

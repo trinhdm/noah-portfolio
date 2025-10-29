@@ -72,6 +72,11 @@
 		@media screen and (min-width: 450px) {
 			grid-area: 1 / 1 / var(--dt-col-span) / calc(1 + var(--dt-col-span));
 		}
+
+		:is([data-disabled="true"]) & {
+			pointer-events: none;
+			user-select: none;
+		}
 	}
 
 	&.lightbox__image {
@@ -121,7 +126,11 @@
 				width: 100%;
 			}
 		}
+	}
 
+	&.lightbox__temp {
+		opacity: 0;
+		z-index: 5;
 	}
 
 	.sqs-block {

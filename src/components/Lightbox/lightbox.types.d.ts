@@ -5,6 +5,7 @@ type NavigationItem = {
 	index: number
 	target: HTMLElement | null
 	title?: string
+	url?: string
 }
 
 type ArrowGroup = {
@@ -14,8 +15,6 @@ type ArrowGroup = {
 
 type ArrowDirections = keyof ArrowGroup
 
-
-type LightboxProperties<T extends HTMLElement = HTMLDivElement> = Record<keyof T, T[keyof T]> | {}
 
 type LightboxElements = {
 	blocks: NodeListOf<HTMLElement> | undefined
@@ -43,5 +42,4 @@ export type {
 	ArrowDirections,
 	LightboxElements,
 	LightboxOptions,
-	LightboxProperties,
 }

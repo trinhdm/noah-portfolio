@@ -1,6 +1,6 @@
 
 export const findChildBy = (
-	element: HTMLElement | undefined,
+	element: HTMLElement | null,
 	criteria: Record<string, number | string> = {}
 ): HTMLElement | null => {
 	if (!element) return null
@@ -46,7 +46,6 @@ export const findElement = (
 }
 
 
-
 export const getDeepestChild = (parent: Element): Element[] => (
 	Array.from(parent.children)
 		.reduce<Element[]>((acc, child) => {
@@ -56,3 +55,19 @@ export const getDeepestChild = (parent: Element): Element[] => (
 			return acc
 		}, [])
 )
+
+export const toggleDisableAttr = <T extends HTMLElement = HTMLElement>(target: T) => {
+	let isDisabled = true
+
+	const setProperties = (
+		properties: Record<keyof T, T[keyof T]> | {}
+	) => Object.entries(properties)
+		.forEach(([prop, value]) => target.setAttribute(prop, `${value}`))
+
+	if (target.hasAttribute('data-disabled')) {
+		isDisabled = target.dataset.disabled === 'true'
+		isDisabled = !isDisabled
+	}
+
+	setProperties({ 'data-disabled': `${isDisabled}` })
+}

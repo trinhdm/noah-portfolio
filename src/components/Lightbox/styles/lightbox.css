@@ -8,9 +8,13 @@
 		opacity: 1;
 	}
 
-	&:is([data-disabled="true"]) .lightbox__container {
-		pointer-events: none;
-		user-select: none;
+	&:is([data-disabled="true"]) {
+		.lightbox__header,
+		.lightbox__footer,
+		.lightbox__overlay {
+			pointer-events: none;
+			user-select: none;
+		}
 	}
 
 	&,
