@@ -5,15 +5,14 @@ import { findElement, wrapContent } from '../../utils'
 import { AnimationService, ContentService } from '../../services'
 
 import type {
-	ArrowsGroup,
-	ArrowDirection,
+	ArrowGroup,
+	ArrowDirections,
 	LightboxElements,
 	LightboxOptions,
 	LightboxProperties,
 } from './lightbox.types'
 
 import template from './template.ts'
-import './styles'
 
 
 enum LightboxClass {
@@ -104,11 +103,6 @@ class LightboxDOM {
 		this.reset()
 	}
 
-	setProperties(properties: LightboxProperties) {
-		Object.entries(properties)
-			.forEach(([prop, value]) => this.root.setAttribute(prop, `${value}`))
-	}
-
 	setState(state: 'open' | 'change' | 'close') {
 		this.root.dataset.state = state
 
@@ -120,6 +114,11 @@ class LightboxDOM {
 
 		if (typeof overflow === 'string')
 			document.body.style.overflow = overflow
+	}
+
+	setProperties(properties: LightboxProperties) {
+		Object.entries(properties)
+			.forEach(([prop, value]) => this.root.setAttribute(prop, `${value}`))
 	}
 
 	toggleDisable() {
@@ -350,11 +349,6 @@ class LightboxMedia {
 		const video = this.dom.get('video')
 		if (!video) return
 
-		// const image = this.dom.get('image')
-		// if (image) {
-		// 	;(image as HTMLElement).style.maxHeight = `${(video as HTMLElement).offsetHeight}px`
-		// }
-
 		const native = video.querySelector('video'),
 			youtube = video.querySelector('iframe')
 
@@ -396,7 +390,7 @@ class LightboxMenu {
 	private data: InstanceType<typeof LightboxMenu.Data>
 	private view: InstanceType<typeof LightboxMenu.View>
 
-	directory: ArrowsGroup = {} as ArrowsGroup
+	directory: ArrowGroup = {} as ArrowGroup
 
 	constructor(
 		private dom: LightboxDOM,
@@ -409,7 +403,7 @@ class LightboxMenu {
 
 	async render(
 		index: number,
-		onNavigate: (direction: ArrowDirection) => void
+		onNavigate: (direction: ArrowDirections) => void
 	) {
 		this.directory = await this.data.createDirectory(index)
 		this.view.construct(this.directory, onNavigate)
@@ -446,10 +440,10 @@ class LightboxMenu {
 					index: prev,
 					target: elements[prev],
 				},
-			} as ArrowsGroup
+			} as ArrowGroup
 		}
 
-		async createDirectory(index: number): Promise<ArrowsGroup> {
+		async createDirectory(index: number): Promise<ArrowGroup> {
 			const pointers = this.getPointers(index),
 				directions = Object.keys(pointers) as ArrowDirections[]
 
@@ -468,7 +462,7 @@ class LightboxMenu {
 						return [direction, props] as const
 					})
 				)
-			) as ArrowsGroup
+			) as ArrowGroup
 
 			return directory
 		}
@@ -491,9 +485,9 @@ class LightboxMenu {
 
 		constructor(private dom: LightboxDOM) {}
 
-		configure<T extends ArrowDirection>(
-			target: ArrowsGroup[T],
-			direction: ArrowDirection,
+		configure<T extends ArrowDirections>(
+			target: ArrowGroup[T],
+			direction: ArrowDirections,
 			handler: () => void
 		) {
 			const navigation = this.dom.get('pagination'),
@@ -516,14 +510,14 @@ class LightboxMenu {
 		}
 
 		construct(
-			directory: ArrowsGroup,
-			onNavigate: (direction: ArrowDirection) => void
+			directory: ArrowGroup,
+			onNavigate: (direction: ArrowDirections) => void
 		) {
-			const directions = (Object.keys(directory) as (ArrowDirection)[]).reverse()
+			const directions = (Object.keys(directory) as (ArrowDirections)[]).reverse()
 
 			for (const direction of directions) {
 				const handler = () => onNavigate(direction)
-				const target = (directory as ArrowsGroup)[direction]
+				const target = (directory as ArrowGroup)[direction]
 				this.configure<typeof direction>(target, direction, handler)
 			}
 		}
@@ -540,7 +534,7 @@ class LightboxNavigation {
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
 		private contentService: ContentService,
-		private onNavigate?: (direction: ArrowDirection) => void
+		private onNavigate?: (direction: ArrowDirections) => void
 	) {}
 
 	private async preSwap(newImage: Element | null | undefined) {
@@ -590,7 +584,7 @@ class LightboxNavigation {
 		this.dom.toggleDisable()
 	}
 
-	async swapContent(direction: ArrowDirection) {
+	async swapContent(direction: ArrowDirections) {
 		if (this.isSwapping) return
 		this.isSwapping = true
 
@@ -657,7 +651,7 @@ export class LightboxController {
 		await this.menu.render(this.options.index, dir => this.navigate(dir))
 	}
 
-	private async navigate(direction: ArrowDirection) {
+	private async navigate(direction: ArrowDirections) {
 		if (!this.isActive) return
 		await this.navigator.swapContent(direction)
 	}
