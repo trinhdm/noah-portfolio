@@ -2,7 +2,7 @@
 .lightbox:is(.lightbox--animated) {
 	--dt-lb-duration: .6s;
 	--dt-lb-delay: .075s;
-	--dt-lb-stagger: calc(1.5 * var(--dt-lb-delay));
+	--dt-lb-stagger: calc(1.375 * var(--dt-lb-delay));
 
 	--dt-lb-delay-start: calc(var(--dt-lb-duration) - var(--dt-lb-delay));
 	--dt-lb-stagger-start: calc(var(--dt-lb-duration) - var(--dt-lb-stagger));
@@ -11,7 +11,7 @@
 .lightbox {
 	.lightbox__body,
 	.lightbox__container,
-	.lightbox__overlay  {
+	.lightbox__overlay {
 		opacity: 1;
 	}
 

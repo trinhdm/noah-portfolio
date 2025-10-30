@@ -46,7 +46,7 @@
 		display: flex;
 		flex: 1 100%;
 		justify-content: space-between;
-		padding-top: calc(.375 * var(--dt-gap));
+		padding-top: calc(.5 * var(--dt-gap));
 	}
 
 	.lightbox__arrow,

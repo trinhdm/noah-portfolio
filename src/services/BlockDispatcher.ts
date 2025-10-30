@@ -37,15 +37,16 @@ export class BlockDispatcher {
 			type = BlockDispatcher.getType(block)
 
 		cloned.classList.add(`lightbox__${type}`)
+
 		return cloned
 	}
 
 	private static processBlock(
 		block: HTMLElement,
-		callback: (clonedBlock: HTMLElement, original: HTMLElement) => HTMLElement | null
+		handler: (clonedBlock: HTMLElement, original: HTMLElement) => HTMLElement | null
 	) {
 		const cloned = BlockDispatcher.cloneBlock(block)
-		return callback(cloned, block)
+		return handler(cloned, block)
 	}
 
 	private static handleHtmlBlock(block: HTMLElement): HTMLElement | null {

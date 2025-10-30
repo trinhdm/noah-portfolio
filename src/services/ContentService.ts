@@ -154,6 +154,9 @@ export class ContentService {
 			const formatted = BlockDispatcher.format(el as HTMLElement)
 			if (!formatted) continue
 
+			if (el === [...elements].at(-1))
+				formatted.querySelector(':first-child')?.classList.add('block--animated')
+
 			const type = BlockDispatcher.getType(formatted)
 
 			if (type === 'image' || type === 'video')

@@ -5,12 +5,12 @@ import { findElement, toggleDisableAttr, wrapContent } from '../../utils'
 import { AnimationService, ContentService, EventDispatcher } from '../../services'
 
 import type {
-	ArrowGroup,
 	ArrowDirections,
-	LightboxElements,
-	LightboxEventNames,
-	LightboxOptions,
+	ArrowGroup,
 	DirectoryGroup,
+	LightboxElements,
+	LightboxEventMap,
+	LightboxOptions,
 } from './lightbox.types'
 
 import template from './template.ts'
@@ -32,6 +32,7 @@ enum LightboxClass {
 }
 
 class LightboxDOM {
+	// private content: InstanceType<typeof LightboxDOM.Content>
 	private cache: Partial<LightboxElements> = {}
 	private root: HTMLDivElement
 
@@ -40,7 +41,15 @@ class LightboxDOM {
 		private contentService: ContentService
 	) {
 		this.root = this.createRoot()
+		// this.content = new LightboxDOM.Content(this.root, this.contentService)
 	}
+
+	// static Content = class {
+	// 	constructor(
+	// 		private root: HTMLDivElement,
+	// 		private contentService: ContentService
+	// 	) {}
+	// }
 
 	async setContent(target: LightboxOptions['target']): Promise<void> {
 		const container = this.root.querySelector('.lightbox__content') as HTMLElement | null
@@ -48,6 +57,24 @@ class LightboxDOM {
 
 		const content = await this.contentService.render(target)
 		if (content) container.replaceChildren(...content.children)
+		this.resetCache()
+	}
+
+	updateContent(newContent: HTMLElement | undefined): void {
+		const content = this.get('content')
+		if (!content || !newContent) return
+
+		Array.from(content.children).forEach(child => {
+			const classes = Array.from(child.classList),
+				lbClass = classes.find(cl => cl.includes('lightbox')),
+				replacement = newContent.querySelector(`.${lbClass}`)
+
+			if (replacement)
+				child.replaceWith(replacement)
+			else if (classes.some(cl => cl.includes('temp')))
+				child.className = classes.filter(cl => !cl.includes('temp')).join(' ')
+		})
+
 		this.resetCache()
 	}
 
@@ -80,9 +107,9 @@ class LightboxDOM {
 
 	remove(): void { this.root.remove() }
 
-	resetCache(): void { this.cache = {} }
-
 	toggleDisable(): void { toggleDisableAttr(this.root) }
+
+	resetCache(): void { this.cache = {} }
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
 		const root = this.root,
@@ -119,34 +146,7 @@ class LightboxDOM {
 			open: 'hidden',
 		}[state]
 
-		if (typeof overflow === 'string')
-			document.body.style.overflow = overflow
-	}
-
-	overwrite(newContent: HTMLElement | undefined): void {
-		const content = this.get('content')
-		if (!content || !newContent) return
-
-		content.innerHTML = newContent.innerHTML ?? ''
-		this.resetCache()
-	}
-
-	update(newContent: HTMLElement | undefined): void {
-		const content = this.get('content')
-		if (!content || !newContent) return
-
-		Array.from(content.children).forEach(child => {
-			const classes = Array.from(child.classList),
-				lbClass = classes.find(cl => cl.includes('lightbox')),
-				replacement = newContent.querySelector(`.${lbClass}`)
-
-			if (replacement)
-				child.replaceWith(replacement)
-			else if (classes.some(cl => cl.includes('temp')))
-				child.className = classes.filter(cl => !cl.includes('temp')).join(' ')
-		})
-
-		this.resetCache()
+		if (!!overflow) document.body.style.overflow = overflow
 	}
 }
 
@@ -187,12 +187,23 @@ class LightboxAnimation {
 		if (!blocks?.length) return
 
 		const blockList = [...blocks],
-			blockOrder = isActive ? blockList : blockList.slice().reverse(),
-			delay = !isActive && { delay: .3 }
+			baseDelay = .3,
+			stagger = baseDelay * .5
+
+		let blockOrder = isActive ? blockList : blockList.slice().reverse(),
+			delay = isActive ? 0 : baseDelay
 
 		blockOrder.filter(block => block.classList.contains(className))
 			.forEach((htmlBlock, index) => {
-				AnimationService.set(htmlBlock, { ...delay, index, stagger: .15 })
+				// const htmlAnimChild = htmlBlock.querySelector('.sqs-html-content') as HTMLElement | undefined,
+				const firstChild = htmlBlock.querySelector(':first-child') as HTMLElement | undefined
+
+				if (firstChild?.classList.contains('block--animated')) {
+					delay = isActive ? baseDelay : baseDelay * 3
+					AnimationService.Pseudo.set(firstChild, { delay, index, stagger })
+				}
+
+				AnimationService.set(htmlBlock, { delay, index, stagger })
 			})
 	}
 
@@ -323,7 +334,7 @@ class LightboxEvents {
 
 	constructor(
 		private dom: LightboxDOM,
-		private dispatcher: EventDispatcher<LightboxEventNames>
+		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
 	private handleClick(element: HTMLElement) {
@@ -399,9 +410,13 @@ class LightboxMedia {
 		}
 
 		this.instance = null
+		this.media = undefined
+		this.source = ''
 	}
 
 	play(): void {
+		if (!this.media) return
+
 		if (this.media instanceof HTMLVideoElement)
 			this.media.play()
 		else if (this.media instanceof HTMLIFrameElement)
@@ -409,6 +424,8 @@ class LightboxMedia {
 	}
 
 	pause(): void {
+		if (!this.media) return
+
 		if (this.media instanceof HTMLVideoElement)
 			this.media.pause()
 		else if (this.media instanceof HTMLIFrameElement)
@@ -424,7 +441,7 @@ class LightboxMenu {
 		private dom: LightboxDOM,
 		private elements: LightboxOptions['elements'],
 		private contentService: ContentService,
-		private dispatcher: EventDispatcher<LightboxEventNames>
+		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {
 		this.data = new LightboxMenu.Data(this.elements, this.contentService)
 		this.view = new LightboxMenu.View(this.dom, this.dispatcher)
@@ -452,7 +469,7 @@ class LightboxMenu {
 
 			return {
 				current: {
-					index: index,
+					index,
 					target: this.elements[index],
 				},
 				next: {
@@ -511,7 +528,7 @@ class LightboxMenu {
 
 		constructor(
 			private dom: LightboxDOM,
-			private dispatcher: EventDispatcher<LightboxEventNames>
+			private dispatcher: EventDispatcher<LightboxEventMap>
 		) {}
 
 		configure(
@@ -570,7 +587,7 @@ class LightboxNavigation {
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
 		private contentService: ContentService,
-		private dispatcher: EventDispatcher<LightboxEventNames>
+		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
 	private async prepareSwap(target: NonNullable<ArrowGroup['next']['target']>) {
@@ -599,23 +616,27 @@ class LightboxNavigation {
 		this.events.unbind()
 		await AnimationService.wait('swap')		// buffer after pausing
 
-		this.dom.setState('change')
-		this.animator.fadeBlocks(false)
-		await AnimationService.wait()
-
 		const blocks = this.dom.get('blocks') ?? [],
 			targetBlock = Array.from(blocks).at(-1)
 
+		this.dom.setState('change')
+		this.animator.fadeBlocks(false)
+
 		await this.animator.waitForAnimationEnd(targetBlock)
 		await this.animator.fadeMedia?.(true)
-		this.media.dispose()
+
+		requestAnimationFrame(() => {
+			setTimeout(() => (this.media.dispose()), 0)
+		})
+
+		await AnimationService.wait()
 	}
 
 	private async performSwap() {
 		const image = this.dom.get('image')!,
 			{ animationName } = image.style
 
-		this.dom.update(this.newContent)
+		this.dom.updateContent(this.newContent)
 		this.media.configure()
 		image.style.animationName = 'none'
 
@@ -626,12 +647,13 @@ class LightboxNavigation {
 		const blocks = this.dom.get('blocks') ?? [],
 			targetBlock = Array.from(blocks).at(-1)
 
-		await this.animator.waitForAnimationEnd(targetBlock, 1000)
+		await this.animator.waitForAnimationEnd(targetBlock)
 
 		requestAnimationFrame(() => {
 			setTimeout(() => (image.style.animationName = animationName), 0)
 		})
 
+		await AnimationService.wait()
 		await this.animator.fadeMedia?.()
 	}
 
@@ -641,7 +663,6 @@ class LightboxNavigation {
 		this.media.play()
 		this.events.bind()
 		this.dom.toggleDisable()
-		await this.dispatcher.emit('swap:finish', { index: newIndex })
 	}
 
 	async swapContent<T extends ArrowDirections>(
@@ -684,7 +705,7 @@ export class LightboxController {
 	private readonly navigator: LightboxNavigation
 
 	private readonly contentService: ContentService
-	private readonly dispatcher: EventDispatcher<LightboxEventNames>
+	private readonly dispatcher: EventDispatcher<LightboxEventMap>
 	private currentIndex: number = 0
 	private directory: DirectoryGroup = {} as DirectoryGroup
 	private elements: LightboxOptions['elements'] = []
@@ -722,23 +743,29 @@ export class LightboxController {
 		this.dispatcher.on('navigate', this.handleSwap.bind(this))
 	}
 
-	private async handleInit(options: LightboxOptions) {
-		this.currentIndex = options.index ?? 0
-		this.elements = options.elements
+	private async handleInit({ elements, index, target }: LightboxOptions) {
+		this.currentIndex = index ?? 0
+		this.elements = elements ?? []
 
-		await this.dom.setContent(options.target)
+		await this.dom.setContent(target)
 		this.media.configure()
-		this.directory = await this.menu.render(this.currentIndex)
+
+		if (!!elements?.length)
+			this.directory = await this.menu.render(this.currentIndex)
 	}
 
 	private async handleSwap(dir: ArrowDirections) {
 		if (!this.isActive || !Object.keys(this.directory).length) return
-		const newContent = await this.navigator.swapContent<typeof dir>(this.directory, dir)
-		console.log(this.directory)
+		this.dispatcher.emit('swap:start', { direction: dir, index: this.currentIndex })
 
-		if (!newContent) return
-		this.currentIndex = newContent.index
-		this.directory = newContent.directory
+		const result = await this.navigator.swapContent<typeof dir>(this.directory, dir)
+
+		if (result) {
+			this.currentIndex = result.index
+			this.directory = result.directory
+		}
+
+		this.dispatcher.emit('swap:finish', { direction: dir, index: this.currentIndex })
 	}
 
 	private async handleOpen() {

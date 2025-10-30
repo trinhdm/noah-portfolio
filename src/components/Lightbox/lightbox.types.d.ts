@@ -44,9 +44,16 @@ type LightboxOptions = {
 type LightboxEventMap = {
 	close: void
 	open: void
-	ready: { index: number }
-	'swap:start': { direction: 'next' | 'prev'; index: number }
-	'swap:finish': { index: number }
+	navigate: ArrowDirections
+	ready: LightboxOptions
+	'swap:start': {
+		direction: ArrowDirections
+		index: number
+	}
+	'swap:finish': {
+		direction: ArrowDirections
+		index: number
+	}
 }
 
 type LightboxEventNames =

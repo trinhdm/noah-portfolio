@@ -1,5 +1,5 @@
-import { styleBlockTypography } from './helpers'
-import { BlockPortfolio } from './BlockPortfolio'
+import { stylePageHeaderBlock } from '../../components/Block/helpers'
+import { BlockPortfolio } from './BlockPortfolio.ts'
 import { LightboxController } from '../../components/Lightbox'
 import './portfolio.css'
 
@@ -26,13 +26,13 @@ const Portfolio = {
 				const lightbox = new LightboxController({
 					...block.toLightboxOptions(),
 					elements: blocks,
-					properties: { id: `lightbox-${block['page']?.id}` }
+					properties: { id: `lightbox-${block?.id}` }
 				})
 
 				lightbox.open()
 			})
 
-			styleBlockTypography({ className })
+			stylePageHeaderBlock({ className })
 		} catch (err) { console.error(err) }
 	}
 }
