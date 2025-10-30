@@ -12,7 +12,6 @@ import {
 import type {
 	ArrowDirections,
 	ArrowGroup,
-	DirectoryGroup,
 	LightboxElements,
 	LightboxEventMap,
 	LightboxOptions,
@@ -395,16 +394,12 @@ class LightboxMenu {
 		this.handlers = new Map()
 	}
 
-	private format(index: number): DirectoryGroup {
+	private format(index: number): ArrowGroup {
 		const max = this.elements.length,
 			next = index + 1 < max ? index + 1 : 0,
 			prev = index - 1 >= 0 ? index - 1 : max - 1
 
 		return {
-			current: {
-				index,
-				target: this.elements[index],
-			},
 			next: {
 				index: next,
 				target: this.elements[next],
@@ -413,18 +408,18 @@ class LightboxMenu {
 				index: prev,
 				target: this.elements[prev],
 			},
-		} as DirectoryGroup
+		} as ArrowGroup
 	}
 
-	private async create(index: number): Promise<DirectoryGroup> {
+	private async create(index: number): Promise<ArrowGroup> {
 		const pointers = this.format(index),
 			directions = Object.keys(pointers) as ArrowDirections[]
 
 		const directory = Object.fromEntries(
 			await Promise.all(
 				directions.map(async dir => {
-					let details = {} as Partial<DirectoryGroup[typeof dir]>,
-						props: DirectoryGroup[typeof dir] = pointers[dir]
+					let details = {} as Partial<ArrowGroup[typeof dir]>,
+						props: ArrowGroup[typeof dir] = pointers[dir]
 
 					if (props.target)
 						details = await this.content.retrieve(props.target) ?? {}
@@ -434,7 +429,7 @@ class LightboxMenu {
 					return [dir, props] as const
 				})
 			)
-		) as DirectoryGroup
+		) as ArrowGroup
 
 		return directory
 	}
@@ -442,7 +437,6 @@ class LightboxMenu {
 	private construct(directory: ArrowGroup): void {
 		const arrows = this.dom.get('arrows') ?? []
 		const directions = Object.keys(directory)
-			.filter(dir => dir !== 'current')
 			.reverse() as ArrowDirections[]
 
 		for (const dir of directions) {
@@ -468,7 +462,7 @@ class LightboxMenu {
 class LightboxNavigation {
 	private isSwapping = false
 	private newContent: HTMLElement | undefined = undefined
-	private newDirectory: DirectoryGroup = {} as DirectoryGroup
+	private newDirectory: ArrowGroup = {} as ArrowGroup
 
 	constructor(
 		private dom: LightboxDOM,
@@ -599,7 +593,7 @@ export class LightboxController {
 	private readonly content: ContentService
 	private readonly dispatcher: EventDispatcher<LightboxEventMap>
 	private currentIndex: number = 0
-	private directory: DirectoryGroup = {} as DirectoryGroup
+	private directory: ArrowGroup = {} as ArrowGroup
 	private elements: LightboxOptions['elements'] = []
 	private isActive: boolean = false
 
@@ -635,7 +629,7 @@ export class LightboxController {
 		this.dispatcher.on('navigate', this.handleNavigate.bind(this))
 	}
 
-	private async prefetchFrom(directory: DirectoryGroup) {
+	private async prefetchFrom(directory: ArrowGroup) {
 		const adjacentTargets = [] as (HTMLElement | Node | null | undefined)[],
 			directions = Object.keys(directory) as ArrowDirections[]
 

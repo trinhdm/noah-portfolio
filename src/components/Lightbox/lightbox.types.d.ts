@@ -13,10 +13,6 @@ type ArrowGroup = {
 	prev: NavigationItem
 }
 
-type DirectoryGroup = ArrowGroup & {
-	current: NavigationItem
-}
-
 type ArrowDirections = keyof ArrowGroup
 
 
@@ -52,7 +48,7 @@ type LightboxEventMap = {
 	}
 	'swap:finish': {
 		dir: ArrowDirections
-		directory: DirectoryGroup
+		directory: ArrowGroup
 	}
 }
 
@@ -68,7 +64,6 @@ type LightboxEventNames =
 export type {
 	ArrowGroup,
 	ArrowDirections,
-	DirectoryGroup,
 	LightboxElements,
 	LightboxEventMap,
 	LightboxEventNames,
