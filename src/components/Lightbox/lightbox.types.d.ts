@@ -47,12 +47,12 @@ type LightboxEventMap = {
 	navigate: ArrowDirections
 	ready: LightboxOptions
 	'swap:start': {
-		direction: ArrowDirections
+		dir: ArrowDirections
 		index: number
 	}
 	'swap:finish': {
-		direction: ArrowDirections
-		index: number
+		dir: ArrowDirections
+		directory: DirectoryGroup
 	}
 }
 

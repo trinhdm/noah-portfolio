@@ -32,9 +32,7 @@ export class EventDispatcher<E extends Record<string, any>> {
 			try {
 				const res = (handler as any)(payload)
 				if (res instanceof Promise) await res
-			} catch (err) {
-				console.error(`error in handler for event ${String(event)}`, err)
-			}
+			} catch (err) { console.error(`[EventService] failed on:`, String(event), err) }
 		}
 	}
 

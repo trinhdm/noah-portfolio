@@ -1,4 +1,4 @@
-import { findChildBy, wrapContent } from '../utils'
+import { findChildBy, findElement, wrapContent } from '../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
 
 
@@ -13,28 +13,33 @@ export class ContentService {
 
 	constructor(private selector: string = '.fe-block') {}
 
-	async retrieve(target: HTMLElement): Promise<PageGroup & {
+	async retrieve(element: HTMLElement): Promise<PageGroup & {
 		content: string | undefined
 		title: string | undefined
 	}> {
-		const page = this.parse(target),
-			element = await this.fetch(page)
 		let content, title
+		const target = element.classList.contains(this.selector)
+			? element
+			: findElement(element, this.selector) ?? element
 
-		if (element) {
-			const textEls = element.querySelectorAll('[data-sqsp-text-block-content]')
+		const page = this.parse(target),
+			html = await this.fetch(page)
+
+		if (html) {
+			const textEls = html.querySelectorAll('[data-sqsp-text-block-content]'),
+				tagName = 'strong'
 			let titleEl = [...textEls].find(
 					el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
 				) as HTMLElement | null
 
-			titleEl = findChildBy(titleEl, { tagName: 'strong' })
+			titleEl = findChildBy(titleEl, { tagName })
 
 			if (titleEl) {
-				const newTitleEl = wrapContent(titleEl, 'strong')
+				const newTitleEl = wrapContent(titleEl, tagName)
 				titleEl.replaceWith(newTitleEl ?? '')
 			}
 
-			content = element.innerHTML.trim()
+			content = html.innerHTML.trim()
 			title = titleEl?.innerText
 		}
 
@@ -81,7 +86,11 @@ export class ContentService {
 		}
 	}
 
-	private async construct(target: HTMLElement, hasImage: boolean = true): Promise<HTMLDivElement | undefined> {
+	private async construct(element: HTMLElement, hasImage: boolean = true): Promise<HTMLDivElement | undefined> {
+		const target = element.classList.contains(this.selector)
+			? element
+			: findElement(element, this.selector) ?? element
+
 		const { content } = await this.retrieve(target)
 		if (!content) return
 
@@ -99,29 +108,42 @@ export class ContentService {
 		return container
 	}
 
-	async load(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
-		const targetEl = target as HTMLElement,
-			id = targetEl.dataset.id || targetEl.id
+	async load(t: HTMLElement | Node): Promise<HTMLElement | undefined> {
+		const target = t as HTMLElement,
+			id = target.dataset.id || target.id
 
 		if (this.cache.has(id)) return this.cache.get(id)
 
-		const fragment = await this.construct(targetEl)
+		const fragment = await this.construct(target)
 		if (fragment) this.cache.set(id, fragment)
 
 		return fragment ?? undefined
 	}
 
-	async prefetch(target: HTMLElement | Node): Promise<void> {
-		const targetEl = target as HTMLElement,
-			id = targetEl.dataset.id || targetEl.id
+	async prefetch(t: HTMLElement | Node): Promise<void> {
+		const target = t as HTMLElement,
+			id = target.dataset.id || target.id
 
 		if (this.cache.has(id)) return
 
 		try {
-			const fragment = await this.construct(targetEl)
+			const fragment = await this.construct(target)
 			if (fragment) this.cache.set(id, fragment)
-		} catch (err) {
-			console.warn(`prefetch failed for ${id}:`, err)
+		} catch (err) { console.warn(`[ContentService] prefetch() failed for:`, id, err) }
+	}
+
+	async prefetcher(targets: (HTMLElement | Node | null | undefined)[]) {
+		const data = new WeakSet<HTMLElement>()
+
+		for (const t of targets) {
+			const target = t as HTMLElement
+
+			if (!target || data.has(target)) continue
+			data.add(target)
+
+			try { await this.prefetch(target) }
+			catch (err) { console.warn(`[ContentService] prefetcher() failed on:`, target, err) }
+			finally { data.delete(target) }
 		}
 	}
 

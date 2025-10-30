@@ -54,7 +54,7 @@
 			}
 		}
 
-		&.lightbox__image:not(.lightbox__temp) {
+		&.lightbox__image {
 			opacity: 1;
 		}
 	}
@@ -109,6 +109,11 @@
 				animation-duration: calc(1.25 * var(--dt-lb-duration));
 			}
 
+			&.lightbox__html {
+				animation-duration: calc(.625 * var(--dt-lb-duration));
+				animation-name: fadeInDown;
+			}
+
 			&.lightbox__temp {
 				animation-direction: normal;
 			}
@@ -150,6 +155,10 @@
 				animation-delay: var(--dt-lb-bl-delay);
 				animation-direction: reverse;
 				animation-timing-function: var(--ease-out-sine);
+			}
+
+			&.lightbox__temp {
+				animation-direction: normal;
 			}
 		}
 	}

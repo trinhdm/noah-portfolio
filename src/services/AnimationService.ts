@@ -13,6 +13,15 @@ type AnimationOptions<T extends keyof CSS.Properties = keyof CSS.Properties> = B
 	className?: string
 }
 
+type AnimationChoices = keyof AnimationOptions
+
+type PseudoElement = '::before' | '::after'
+
+
+type TargetOptions = {
+	parent: Element
+	pseudo: PseudoElement
+} | Element
 
 
 class Styles {
@@ -45,16 +54,15 @@ class Styles {
 	}
 
 	static getStyles(
-		target: HTMLElement | {
-			parent: HTMLElement
-			pseudo: string
-		},
+		target: TargetOptions,
 		options: AnimationOptions
 	) {
 		let base = {}
-		const computed = target instanceof HTMLElement
-			? window.getComputedStyle(target)
-			: window.getComputedStyle(target.parent, target.pseudo)
+		const element = (target instanceof Element
+			? [target]
+			: [target.parent, target.pseudo]) as [Element, string | undefined]
+
+		const computed = window.getComputedStyle(...element)
 
 		if (Object.hasOwn(computed, 'animationDelay')) {
 			const baseDelay = parseFloat(computed.getPropertyValue('animation-delay'))
@@ -77,9 +85,7 @@ class Styles {
 				Object.assign(base, { animationPlayState: 'running' })
 		}
 
-		const merged = Object.assign({}, base, options)
-
-		return merged
+		return Object.assign({}, base, options)
 	}
 
 	static applyStyles(
@@ -90,6 +96,8 @@ class Styles {
 			args = this.computeStyles(merged) as AnimationOptions
 
 		Object.assign(target.style, args)
+
+		return args
 	}
 
 	static resetStyles = (
@@ -106,10 +114,8 @@ class Styles {
 			event.stopPropagation()
 
 			timeoutID = setTimeout(() => {
-				if (className)
-					target.classList.remove(className)
-				if (target.hasAttribute('style'))
-					target.removeAttribute('style')
+				if (className) target.classList.remove(className)
+				if (target.hasAttribute('style')) target.removeAttribute('style')
 			}, timeout)
 		}
 
@@ -136,51 +142,61 @@ export class AnimationService {
 		return new Promise<void>(resolve => setTimeout(resolve, delayMs))
 	}
 
-	private static configure = (options: AnimationOptions | {} = {}) => {
-		let args = {} as AnimationOptions
-
-		if (!!Object.keys(options).length) {
-			const omitted = ['className', 'timeout'] as (keyof AnimationOptions)[],
-				opts = Object.keys(options) as (keyof AnimationOptions)[]
-
-			args = opts.reduce((obj: AnimationOptions, key: keyof AnimationOptions) => {
-				if (!omitted.includes(key))
-					(obj as any)[key] = (options as AnimationOptions)[key]
-
-				return obj
-			}, {}) as Omit<AnimationOptions, keyof AnimationOptions>
-		}
-
-		return args
-	}
-
 	static set = (
 		target: HTMLElement | undefined,
 		options: AnimationOptions | {} = {}
 	) => {
 		if (!target) return
-		const args = this.configure(options)
-		Styles.applyStyles(target, args)
+		const args = this.configure(options),
+			computed = this.get(target, args)
+
+		Object.assign(target.style, computed)
 
 		return Styles.resetStyles(target, options)
+	}
+
+	static get(
+		target: TargetOptions,
+		options: AnimationOptions
+	) {
+		const merged = Styles.getStyles(target, options),
+			computed = Styles.computeStyles(merged) as AnimationOptions
+
+		return computed
+	}
+
+	private static configure = (options: AnimationOptions | {} = {}) => {
+		let args = {} as AnimationOptions
+
+		if (!!Object.keys(options).length) {
+			const omitted = ['className', 'timeout'] as AnimationChoices[],
+				opts = Object.keys(options) as AnimationChoices[]
+
+			args = opts.reduce((obj: AnimationOptions, key: AnimationChoices) => {
+				if (!omitted.includes(key))
+					(obj as any)[key] = (options as AnimationOptions)[key]
+				return obj
+			}, {}) as Omit<AnimationOptions, AnimationChoices>
+		}
+
+		return args
 	}
 
 	static Pseudo = class {
 		private static applyStyles(
 			target: HTMLElement,
-			pseudo: string,
+			pseudo: PseudoElement,
 			options: AnimationOptions
 		) {
-			const pseudoTarget = { parent: target, pseudo }
-			const merged = Styles.getStyles(pseudoTarget, options),
-				args = Styles.computeStyles(merged) as AnimationOptions
+			const targetGroup = { parent: target, pseudo },
+				computed = AnimationService.get(targetGroup, options)
 
-			Object.entries(args).forEach(([property, value]) => {
+			Object.entries(computed).forEach(([property, value]) => {
 				target.style.setProperty(`--${property}`, `${value}`)
 			})
 		}
 
-		static validate = (target: HTMLElement | undefined) => {
+		private static validate = (target: HTMLElement | undefined): PseudoElement[] => {
 			if (!target) return []
 
 			const pseudoEls = ['::before', '::after'].filter(pseudo => {
@@ -188,7 +204,7 @@ export class AnimationService {
 				return !!pseudoStyle.length && pseudoStyle.content !== 'none'
 			})
 
-			return pseudoEls
+			return pseudoEls as PseudoElement[]
 		}
 
 		static set = (
