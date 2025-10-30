@@ -56,18 +56,19 @@ export const getDeepestChild = (parent: Element): Element[] => (
 		}, [])
 )
 
+const setProperties = <T extends HTMLElement>(
+	target: T,
+	properties: Record<keyof T, T[keyof T]> | {}
+) => Object.entries(properties)
+	.forEach(([prop, value]) => target.setAttribute(prop, `${value}`))
+
 export const toggleDisableAttr = <T extends HTMLElement = HTMLElement>(target: T) => {
 	let isDisabled = true
-
-	const setProperties = (
-		properties: Record<keyof T, T[keyof T]> | {}
-	) => Object.entries(properties)
-		.forEach(([prop, value]) => target.setAttribute(prop, `${value}`))
 
 	if (target.hasAttribute('data-disabled')) {
 		isDisabled = target.dataset.disabled === 'true'
 		isDisabled = !isDisabled
 	}
 
-	setProperties({ 'data-disabled': `${isDisabled}` })
+	setProperties<T>(target, { 'data-disabled': `${isDisabled}` })
 }

@@ -1,10 +1,9 @@
 import type * as CSS from 'csstype'
 
 
-type BaseAnimationOptions = {
+export type BaseAnimationOptions = {
 	delay?: number
 	duration?: number
-	hasReset?: boolean
 	index?: number
 	stagger?: number
 	timeout?: number
@@ -19,7 +18,6 @@ export class AnimationService {
 	private static readonly baseOptions: Required<BaseAnimationOptions> = {
 		delay: 0,
 		duration: .875,
-		hasReset: true,
 		index: 0,
 		stagger: 0,
 		timeout: 2500,
@@ -84,12 +82,9 @@ export class AnimationService {
 	) => {
 		const {
 			className = '',
-			hasReset = this.baseOptions.hasReset,
 			timeout = this.baseOptions.timeout,
 		} = options
 		let timeoutID: ReturnType<typeof setTimeout> | null = null
-
-		if (!hasReset) return
 
 		const handleReset = (event: AnimationEvent) => {
 			event.stopPropagation()
@@ -116,7 +111,7 @@ export class AnimationService {
 		let args = {} as AnimationOptions
 
 		if (!!Object.keys(options).length) {
-			const omitted = ['className', 'hasReset', 'timeout'] as (keyof AnimationOptions)[],
+			const omitted = ['className', 'timeout'] as (keyof AnimationOptions)[],
 				opts = Object.keys(options) as (keyof AnimationOptions)[]
 
 			args = opts.reduce((obj: AnimationOptions, key: keyof AnimationOptions) => {
@@ -130,5 +125,16 @@ export class AnimationService {
 		this.applyStyles(target, args)
 
 		return AnimationService.resetStyles(target, options)
+	}
+
+	static wait = (value: 'default' | 'pause' | 'swap' | number = 'default') => {
+		const buffer = {
+			default: 50,
+			pause: 500,
+			swap: 1000,
+		}[value]
+
+		const ms = typeof value === 'string' ? buffer : value
+		return new Promise<void>(resolve => setTimeout(resolve, ms))
 	}
 }
