@@ -195,13 +195,13 @@ class LightboxAnimation {
 				videoDelay = parseFloat(video.style.animationDelay),
 				mediaToWait = imageDelay >= videoDelay ? image : video
 
-			await this.waitForAnimationEnd(mediaToWait)
+			await AnimationService.waitForEnd(mediaToWait)
 		} else {
 			AnimationService.set(video)
-			await this.waitForAnimationEnd(video)
+			await AnimationService.waitForEnd(video)
 
 			AnimationService.set(image)
-			await this.waitForAnimationEnd(image)
+			await AnimationService.waitForEnd(image)
 		}
 	}
 
@@ -209,7 +209,7 @@ class LightboxAnimation {
 		this.dom.setState('open')
 
 		this.reflow(this.dom.get('root'))
-		await this.waitForAnimationEnd(this.dom.get('body'))
+		await AnimationService.waitForEnd(this.dom.get('body'))
 
 		this.fadeBlocks(true)
 
@@ -218,7 +218,7 @@ class LightboxAnimation {
 			const blocks = this.dom.get('blocks') ?? [],
 				targetBlock = Array.from(blocks).at(-2)
 
-			await this.waitForAnimationEnd(targetBlock)
+			await AnimationService.waitForEnd(targetBlock)
 		} catch (err) {
 			console.error('animation failed: lightbox fadeIN', err)
 		} finally {
@@ -240,11 +240,11 @@ class LightboxAnimation {
 			const arrows =  this.dom.get('arrows') ?? [],
 				[targetArrow] = Array.from(arrows) as HTMLButtonElement[]
 
-			await this.waitForAnimationEnd(targetArrow)
+			await AnimationService.waitForEnd(targetArrow)
 			this.fadeBlocks(false)
 
 			const [firstBlock] = this.dom.get('blocks') ?? []
-			await this.waitForAnimationEnd(firstBlock)
+			await AnimationService.waitForEnd(firstBlock)
 
 			AnimationService.set(this.dom.get('body'))
 			AnimationService.set(this.dom.get('container'))
@@ -255,51 +255,6 @@ class LightboxAnimation {
 		} finally {
 			AnimationService.set(this.dom.get('overlay'))
 		}
-	}
-
-	private getAnimation(target: HTMLElement): { nameAnim: string, totalMs: number } {
-		const styles = window.getComputedStyle(target)
-		let delay, duration, nameAnim
-
-		;({
-			animationDelay: delay,
-			animationDuration: duration,
-			animationName: nameAnim,
-		} = styles)
-
-		delay = parseFloat(styles.animationDelay) || 0
-		duration = parseFloat(styles.animationDuration) || 0
-
-		const totalMs = (duration + delay) * 1000
-
-		return { nameAnim, totalMs }
-	}
-
-	async waitForAnimationEnd(
-		target: HTMLElement | undefined,
-		timeoutMs = 50,
-		event = 'animationend'
-	): Promise<void> {
-		if (!target) return
-
-		await new Promise(requestAnimationFrame)
-		const { nameAnim, totalMs } = this.getAnimation(target)
-		if (!nameAnim || nameAnim === 'none' || totalMs === 0) return
-
-		const bufferTime = totalMs + timeoutMs
-
-		return Promise.race([
-			new Promise<void>(resolve => {
-				const handleEnd = (evt: Event) => {
-					if ((evt as AnimationEvent).target !== target) return
-					target.removeEventListener(event, handleEnd)
-					resolve()
-				}
-
-				target.addEventListener(event, handleEnd, { once: true })
-			}),
-			AnimationService.wait(bufferTime),
-		])
 	}
 }
 
@@ -555,11 +510,11 @@ class LightboxNavigation {
 		const blocks = this.dom.get('blocks') ?? [],
 			targetBlock = Array.from(blocks).at(-1)
 
-		try { await this.animator.waitForAnimationEnd(targetBlock) }
+		try { await AnimationService.waitForEnd(targetBlock) }
 		catch (err) { console.warn('[LightboxNavigation] preSwap() failed on:', err) }
 		finally {
 			await this.animator.fadeMedia?.(true)
-			await AnimationService.wait(150)
+			await AnimationService.wait(100)
 		}
 	}
 
@@ -574,7 +529,7 @@ class LightboxNavigation {
 			targetBlock = Array.from(blocks).at(-2)
 
 		try {
-			await this.animator.waitForAnimationEnd(targetBlock)
+			await AnimationService.waitForEnd(targetBlock)
 			await this.animator.fadeMedia?.()
 		}
 		catch (err) { console.warn('[LightboxNavigation] performSwap() failed on:', err) }
@@ -730,7 +685,7 @@ export class LightboxController {
 			const arrows = this.dom.get('arrows') ?? [],
 				targetArrow = Array.from(arrows).at(-2) as HTMLButtonElement
 
-			await this.animator.waitForAnimationEnd(targetArrow)
+			await AnimationService.waitForEnd(targetArrow)
 		}
 		catch (err) { console.error('[handleOpen] failed:', err) }
 		finally {
@@ -749,7 +704,7 @@ export class LightboxController {
 
 			await AnimationService.wait('pause')		// buffer after pausing
 			await this.animator.fadeRootOut()
-			await this.animator.waitForAnimationEnd(this.dom.get('overlay'))
+			await AnimationService.waitForEnd(this.dom.get('overlay'))
 		}
 		catch (err) { console.error('[handleClose] failed:', err) }
 		finally { this.destroy() }

@@ -142,6 +142,52 @@ export class AnimationService {
 		return new Promise<void>(resolve => setTimeout(resolve, delayMs))
 	}
 
+	static async waitForEnd(
+		target: HTMLElement | undefined,
+		timeoutMs = 50,
+		event = 'animationend'
+	): Promise<void> {
+		if (!target) return
+		await new Promise(requestAnimationFrame)
+
+		const { nameAnim, totalMs } = this.getAnimation(target)
+		if (!nameAnim || nameAnim === 'none' || totalMs === 0) return
+
+		const bufferTime = totalMs + timeoutMs
+
+		return Promise.race([
+			new Promise<void>(resolve => {
+				const handleEnd = (evt: Event) => {
+					if ((evt as AnimationEvent).target !== target) return
+					target.removeEventListener(event, handleEnd)
+					resolve()
+				}
+
+				target.addEventListener(event, handleEnd, { once: true })
+			}),
+			AnimationService.wait(bufferTime),
+		])
+	}
+
+	private static getAnimation(target: HTMLElement): { nameAnim: string, totalMs: number } {
+		const styles = window.getComputedStyle(target)
+		let delay, duration, nameAnim
+
+		;({
+			animationDelay: delay,
+			animationDuration: duration,
+			animationName: nameAnim,
+		} = styles)
+
+		delay = parseFloat(styles.animationDelay) || 0
+		duration = parseFloat(styles.animationDuration) || 0
+
+		const totalMs = (duration + delay) * 1000
+
+		return { nameAnim, totalMs }
+	}
+
+
 	static set = (
 		target: HTMLElement | undefined,
 		options: AnimationOptions | {} = {}
