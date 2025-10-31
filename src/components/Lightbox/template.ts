@@ -2,7 +2,7 @@ const template = `
 	<div class="lightbox__overlay"></div>
 	<div class="lightbox__container">
 		<div class="lightbox__header">
-			<button class="lightbox__button lightbox__close-button">
+			<button class="lightbox__icon" data-icon="close">
 				<span>&times;</span>
 			</button>
 		</div>
@@ -10,16 +10,16 @@ const template = `
 			<div class="lightbox__content"></div>
 		</div>
 		<div class="lightbox__footer">
-			<div class="pagination lightbox__pagination">
-				<div class="lightbox__arrow lightbox__arrow--prev pagination__prev" data-direction="prev">
-					<button class="lightbox__button lightbox__prev-button">
+			<div class="lightbox__navigation">
+				<div class="lightbox__control" data-direction="prev">
+					<button class="lightbox__icon" data-icon="arrow-prev">
 						<span>&lsaquo;</span>
 					</button>
-					<span class="pagination__text"></span>
+					<span class="lightbox__label"></span>
 				</div>
-				<div class="lightbox__arrow lightbox__arrow--next pagination__next" data-direction="next">
-					<span class="pagination__text"></span>
-					<button class="lightbox__button lightbox__next-button">
+				<div class="lightbox__control" data-direction="next">
+					<span class="lightbox__label"></span>
+					<button class="lightbox__icon" data-icon="arrow-next">
 						<span>&rsaquo;</span>
 					</button>
 				</div>

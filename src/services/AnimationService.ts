@@ -6,42 +6,37 @@ export type BaseAnimationOptions = {
 	duration?: number
 	index?: number
 	stagger?: number
-	timeout?: number
 }
 
 type AnimationOptions<T extends keyof CSS.Properties = keyof CSS.Properties> = BaseAnimationOptions & Partial<Record<T, CSS.Properties[T]>> & {
-	className?: string
+	timeout?: number
 }
 
-type AnimationChoices = keyof AnimationOptions
-
-type PseudoElement = '::before' | '::after'
-
-
-type TargetOptions = {
-	parent: Element
-	pseudo: PseudoElement
-} | Element
+const PSEUDO_ELEMENTS = ['::before', '::after'] as const
+type PseudoElement = typeof PSEUDO_ELEMENTS[number]
 
 
 class Styles {
-	private static readonly baseOptions: Required<BaseAnimationOptions> = {
+	private static readonly defaults: Required<BaseAnimationOptions> = {
 		delay: 0,
 		duration: .875,
 		index: 0,
 		stagger: 0,
-		timeout: 2500,
 	}
 
-	static computeStyles(options: AnimationOptions) {
+	static merge(options: AnimationOptions): Required<BaseAnimationOptions> {
+		const merged = { ...this.defaults, ...options } as Required<BaseAnimationOptions>
+		return merged
+	}
+
+	static compute(options: Required<BaseAnimationOptions>) {
 		const {
 			delay,
 			duration,
 			index,
 			stagger,
 			...styles
-		} = { ...this.baseOptions, ...options }
-		delete (styles as BaseAnimationOptions).timeout
+		} = options
 
 		const baseTime = Math.max(duration - stagger, 0),
 			startTime = delay >= 0 ? delay : baseTime
@@ -53,88 +48,30 @@ class Styles {
 		}
 	}
 
-	static getStyles(
-		target: TargetOptions,
-		options: AnimationOptions
-	) {
-		let base = {}
-		const element = (target instanceof Element
-			? [target]
-			: [target.parent, target.pseudo]) as [Element, string | undefined]
+	static deriveFromDOM(styles: CSSStyleDeclaration) {
+		const delay = parseFloat(styles.animationDelay) || 0,
+			duration = parseFloat(styles.animationDuration) || 0,
+			playState = styles.animationPlayState
 
-		const computed = window.getComputedStyle(...element)
+		let base: Partial<BaseAnimationOptions & CSSStyleDeclaration> = {}
 
-		if (Object.hasOwn(computed, 'animationDelay')) {
-			const baseDelay = parseFloat(computed.getPropertyValue('animation-delay'))
+		if (delay > 0) base.delay = delay
+		if (duration > 0) base.duration = duration
+		if (playState === 'paused') base.animationPlayState = 'running'
 
-			if (baseDelay > 0)
-				Object.assign(base, { delay: baseDelay })
-		}
-
-		if (Object.hasOwn(computed, 'animationDuration')) {
-			const baseDuration = parseFloat(computed.getPropertyValue('animation-duration'))
-
-			if (baseDuration > 0)
-				Object.assign(base, { duration: baseDuration })
-		}
-
-		if (Object.hasOwn(computed, 'animationPlayState')) {
-			const basePlayState = computed.getPropertyValue('animation-play-state')
-
-			if (basePlayState === 'paused')
-				Object.assign(base, { animationPlayState: 'running' })
-		}
-
-		return Object.assign({}, base, options)
-	}
-
-	static applyStyles(
-		target: HTMLElement,
-		options: AnimationOptions
-	) {
-		const merged = this.getStyles(target, options),
-			args = this.computeStyles(merged) as AnimationOptions
-
-		Object.assign(target.style, args)
-
-		return args
-	}
-
-	static resetStyles = (
-		target: HTMLElement,
-		options: AnimationOptions
-	) => {
-		const {
-			className = '',
-			timeout = this.baseOptions.timeout,
-		} = options
-		let timeoutID: ReturnType<typeof setTimeout> | null = null
-
-		const handleReset = (event: AnimationEvent) => {
-			event.stopPropagation()
-
-			timeoutID = setTimeout(() => {
-				if (className) target.classList.remove(className)
-				if (target.hasAttribute('style')) target.removeAttribute('style')
-			}, timeout)
-		}
-
-		target.addEventListener('animationend', handleReset, { once: true, passive: true })
-		return () => {
-			target.removeEventListener('animationend', handleReset)
-			if (timeoutID) clearTimeout(timeoutID)
-		}
+		return base
 	}
 }
 
 export class AnimationService {
-	private static readonly waitTimes: Record<'default' | 'pause' | 'swap', number> = {
+	private static readonly waitTimes: Record<'default' | 'pause' | 'swap' | 'timeout', number> = {
 		default: 50,
 		pause: 500,
 		swap: 1000,
+		timeout: 1500,
 	}
 
-	static wait = (value: keyof typeof AnimationService.waitTimes | number = 'default') => {
+	static wait(value: keyof typeof AnimationService.waitTimes | number = 'default') {
 		const delayMs: number = typeof value === 'string'
 			? AnimationService.waitTimes[value]
 			: value as number
@@ -147,14 +84,20 @@ export class AnimationService {
 		timeoutMs = 50,
 		event = 'animationend'
 	): Promise<void> {
-		if (!target) return
+		const animations = target?.getAnimations()
+		if (!target || !animations?.length) return
+
 		await new Promise(requestAnimationFrame)
 
-		const { nameAnim, totalMs } = this.getAnimation(target)
-		if (!nameAnim || nameAnim === 'none' || totalMs === 0) return
+		const {
+			delay = 0,
+			duration = 0,
+		} = Styles.deriveFromDOM(window.getComputedStyle(target))
 
-		const bufferTime = totalMs + timeoutMs
+		const totalMs = (duration + delay) * 1000,
+			bufferTime = totalMs + timeoutMs
 
+		if (totalMs === 0) return
 		return Promise.race([
 			new Promise<void>(resolve => {
 				const handleEnd = (evt: Event) => {
@@ -169,104 +112,85 @@ export class AnimationService {
 		])
 	}
 
-	private static getAnimation(target: HTMLElement): { nameAnim: string, totalMs: number } {
-		const styles = window.getComputedStyle(target)
-		let delay, duration, nameAnim
-
-		;({
-			animationDelay: delay,
-			animationDuration: duration,
-			animationName: nameAnim,
-		} = styles)
-
-		delay = parseFloat(styles.animationDelay) || 0
-		duration = parseFloat(styles.animationDuration) || 0
-
-		const totalMs = (duration + delay) * 1000
-
-		return { nameAnim, totalMs }
-	}
-
-
-	static set = (
-		target: HTMLElement | undefined,
+	static set(
+		element: Element | undefined,
 		options: AnimationOptions | {} = {}
-	) => {
-		if (!target) return
-		const args = this.configure(options),
-			computed = this.get(target, args)
+	) {
+		if (!element) return
+		const target = element as HTMLElement
 
-		Object.assign(target.style, computed)
+		const { styles, timeout } = this.get([target], options)
+		Object.assign(target.style, styles)
 
-		return Styles.resetStyles(target, options)
+		return this.resetOnEnd(target, timeout)
 	}
 
-	static get(
-		target: TargetOptions,
+	private static get(
+		targets: [HTMLElement] | [HTMLElement, string],
 		options: AnimationOptions
 	) {
-		const merged = Styles.getStyles(target, options),
-			computed = Styles.computeStyles(merged) as AnimationOptions
+		let styles = {}, timeout: AnimationOptions['timeout'] = undefined
+		const [target] = targets,
+			animations = target.getAnimations({ subtree: targets.length > 1 })
 
-		return computed
-	}
+		if (animations?.length) {
+			const domStyles = window.getComputedStyle(...targets as [Element, string | undefined]),
+				merged = Styles.merge({ ...Styles.deriveFromDOM(domStyles), ...options }),
+				computed = Styles.compute(merged)
 
-	private static configure = (options: AnimationOptions | {} = {}) => {
-		let args = {} as AnimationOptions
-
-		if (!!Object.keys(options).length) {
-			const omitted = ['className', 'timeout'] as AnimationChoices[],
-				opts = Object.keys(options) as AnimationChoices[]
-
-			args = opts.reduce((obj: AnimationOptions, key: AnimationChoices) => {
-				if (!omitted.includes(key))
-					(obj as any)[key] = (options as AnimationOptions)[key]
-				return obj
-			}, {}) as Omit<AnimationOptions, AnimationChoices>
+			;({ timeout, ...styles } = computed as AnimationOptions)
 		}
 
-		return args
+		return { styles, timeout }
+	}
+
+	private static resetOnEnd(
+		target: HTMLElement,
+		timeout: number = this.waitTimes.timeout
+	) {
+		let timeoutID: ReturnType<typeof setTimeout> | null = null
+
+		const handleReset = (event: AnimationEvent) => {
+			event.stopPropagation()
+			timeoutID = setTimeout(() => {
+				if (target.hasAttribute('style')) target.removeAttribute('style')
+			}, timeout)
+		}
+
+		target.addEventListener('animationend', handleReset, { once: true, passive: true })
+		if (timeoutID) clearTimeout(timeoutID)
+		return () => target.removeEventListener('animationend', handleReset)
 	}
 
 	static Pseudo = class {
-		private static applyStyles(
-			target: HTMLElement,
-			pseudo: PseudoElement,
-			options: AnimationOptions
-		) {
-			const targetGroup = { parent: target, pseudo },
-				computed = AnimationService.get(targetGroup, options)
-
-			Object.entries(computed).forEach(([property, value]) => {
-				target.style.setProperty(`--${property}`, `${value}`)
-			})
-		}
-
-		private static validate = (target: HTMLElement | undefined): PseudoElement[] => {
-			if (!target) return []
-
-			const pseudoEls = ['::before', '::after'].filter(pseudo => {
-				const pseudoStyle = window.getComputedStyle(target, pseudo)
-				return !!pseudoStyle.length && pseudoStyle.content !== 'none'
+		private static detect(target: HTMLElement): PseudoElement[] {
+			const pseudoEls = PSEUDO_ELEMENTS.filter(pseudo => {
+				const pseudoStyles = window.getComputedStyle(target, pseudo)
+				return !!pseudoStyles.length && pseudoStyles.content !== 'none'
 			})
 
 			return pseudoEls as PseudoElement[]
 		}
 
-		static set = (
-			target: HTMLElement | undefined,
+		static set(
+			element: Element | undefined,
 			options: AnimationOptions
-		) => {
-			const pseudoEls = this.validate(target)
-			if (!target || !pseudoEls.length) return
+		) {
+			if (!element) return
+			const target = element as HTMLElement,
+				pseudoEls = this.detect(target)
 
-			if (Object.hasOwn(options, 'className'))
-				target.classList.add(`${options.className}`)
+			if (!pseudoEls.length) return
 
-			const args = AnimationService.configure(options)
-			this.applyStyles(target, pseudoEls[0], args)
+			for (const pseudo of pseudoEls) {
+				const pseudoName = pseudo.replaceAll(':', ''),
+					{ styles, timeout } = AnimationService.get([target, pseudo], options)
 
-			return Styles.resetStyles(target, options)
+				for (const [property, value] of Object.entries(styles))
+					target.style.setProperty(`--${property}-${pseudoName}`, `${value}`)
+
+				return AnimationService.resetOnEnd(target, timeout)
+			}
 		}
 	}
 }

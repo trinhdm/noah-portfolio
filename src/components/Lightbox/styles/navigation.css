@@ -1,8 +1,8 @@
 
 .lightbox {
 	&:is([data-disabled="false"]) {
-		.lightbox__arrow,
-		.lightbox__button {
+		.lightbox__control,
+		.lightbox__icon {
 			& > span {
 				cursor: pointer;
 			}
@@ -10,37 +10,61 @@
 	}
 
 	&:is([data-disabled="true"]) {
-		.lightbox__pagination {
+		.lightbox__navigation {
 			pointer-events: none;
 			user-select: none;
 		}
 	}
 
+	/* &:not([data-state="change"]) {
+		.lightbox__control {
+			&:hover .lightbox__label {
+				opacity: .5;
+				transform: var(--dt-fade-base);
+				transition: var(--dt-transition-base);
+			}
+
+			&:has(> :is(button, span):hover) {
+				.lightbox__icon > span {
+					opacity: 1;
+					transform: scale(1.12);
+				}
+
+				.lightbox__label {
+					font-style: italic;
+				}
+			}
+		}
+	} */
+
 	&:is([data-state="change"]) {
-		.lightbox__arrow {
+		.lightbox__control {
 			&:hover {
-				&[data-direction="next"] > span {
+				&[data-direction="next"] .lightbox__label {
 					transform: var(--dt-fade-right);
 				}
 
-				&[data-direction="prev"] > span {
+				&[data-direction="prev"] .lightbox__label {
 					transform: var(--dt-fade-left);
 				}
 
-				& > span {
+				.lightbox__label {
+					font-style: normal;
 					opacity: 0;
 				}
 			}
 
-			&:has(> :is(button, span):hover) > span {
-				background-color: var(--siteBackgroundColor);
-				font-size: var(--dt-button-size);
-				opacity: .75;
+			&:has(> :is(button, span):hover) {
+				.lightbox__icon > span {
+					background-color: var(--siteBackgroundColor);
+					font-size: var(--dt-button-size);
+					opacity: .75;
+				}
 			}
 		}
 	}
 
-	.lightbox__pagination {
+	.lightbox__navigation {
 		--dt-button-size: 3rem;
 
 		display: flex;
@@ -49,15 +73,16 @@
 		padding-top: calc(.5 * var(--dt-gap));
 	}
 
-	.lightbox__arrow,
-	.lightbox__button {
+	.lightbox__control,
+	.lightbox__icon {
 		align-items: center;
 		display: flex;
 		padding: 0;
 		position: relative;
 		z-index: 5;
 
-		&[class*='next'] {
+		&[data-direction="next"],
+		&[data-icon*="next"] {
 			justify-content: flex-end;
 
 			&,
@@ -67,7 +92,8 @@
 			}
 		}
 
-		&[class*='prev'] {
+		&[data-direction="prev"],
+		&[data-icon*="prev"] {
 			justify-content: flex-start;
 
 			&,
@@ -91,7 +117,7 @@
 		}
 	}
 
-	.lightbox__arrow {
+	.lightbox__control {
 		--dt-transition-base: opacity .35s var(--ease-in-out-quad) .11s,
 					transform .25s var(--ease-in-out-quad) .055s;
 		--dt-transition-hover: opacity .25s var(--ease-in-out-quad) .055s,
@@ -107,7 +133,7 @@
 				margin-left: auto;
 			}
 
-			& > span {
+			.lightbox__label {
 				padding-right: var(--dt-cqw-base);
 				transform: var(--dt-fade-right);
 			}
@@ -118,51 +144,46 @@
 				margin-right: auto;
 			}
 
-			& > span {
+			.lightbox__label {
 				padding-left: var(--dt-cqw-base);
 				transform: var(--dt-fade-left);
 			}
 		}
 
-		& > span {
-			font-size: calc(.625 * var(--base-font-size));
-			letter-spacing: calc(1.5 * var(--dt-letter-spacing));
-			margin-top: .25rem;
-			opacity: 0;
-			overflow-x: visible;
-			text-transform: uppercase;
-			white-space: nowrap;
-		}
-
-		&:hover > span {
+		&:hover .lightbox__label {
 			opacity: .5;
 			transform: var(--dt-fade-base);
 		}
 
 		&:has(> :is(button, span):hover) {
-			& > .lightbox__button > span {
+			.lightbox__icon > span {
 				opacity: 1;
 				transform: scale(1.12);
 			}
 
-			& > span {
+			.lightbox__label {
 				font-style: italic;
 			}
 		}
 	}
 
-	.lightbox__button {
+	.lightbox__icon {
 		background: none;
 		border: none;
 		color: inherit;
 		max-width: fit-content;
 		opacity: 0;
 
-		&.lightbox__close-button {
+		&[data-icon*="close"] {
 			display: none;
 			position: absolute;
 			right: .875rem;
             top: .5rem;
+		}
+
+		&::before,
+		&::after {
+			content: none;
 		}
 
 		& > span {
@@ -170,5 +191,15 @@
 			font-size: var(--dt-button-size);
 			opacity: .75;
 		}
+	}
+
+	.lightbox__label {
+		font-size: calc(.625 * var(--base-font-size));
+		letter-spacing: calc(1.5 * var(--dt-letter-spacing));
+		margin-top: .25rem;
+		opacity: 0;
+		overflow-x: visible;
+		text-transform: uppercase;
+		white-space: nowrap;
 	}
 }

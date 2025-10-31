@@ -24,8 +24,8 @@ type LightboxElements = {
 	container: HTMLElement | undefined
 	content: HTMLDivElement | undefined
 	image?: HTMLImageElement | undefined
+	navigation: HTMLElement | undefined
 	overlay: HTMLElement | undefined
-	pagination: HTMLElement | undefined
 	root: HTMLDivElement
 	video?: HTMLIFrameElement | HTMLVideoElement | undefined
 }
@@ -39,26 +39,11 @@ type LightboxOptions = {
 
 type LightboxEventMap = {
 	close: void
-	open: void
 	navigate: ArrowDirections
+	open: void
 	ready: LightboxOptions
-	'swap:start': {
-		dir: ArrowDirections
-		index: number
-	}
-	'swap:finish': {
-		dir: ArrowDirections
-		directory: ArrowGroup
-	}
+	update: number
 }
-
-type LightboxEventNames =
-	| 'ready'
-	| 'open'
-	| 'close'
-	| 'navigate'
-	| 'swap:start'
-	| 'swap:finish'
 
 
 export type {
@@ -66,6 +51,5 @@ export type {
 	ArrowDirections,
 	LightboxElements,
 	LightboxEventMap,
-	LightboxEventNames,
 	LightboxOptions,
 }
