@@ -1,23 +1,13 @@
 
 .lightbox {
-	/* .fe-block {
-		&.lightbox__temp {
-			opacity: 0;
-		}
-	} */
-
 	&:is([data-state="change"]) .fe-block {
-		&.lightbox__html,
-		&.lightbox__video {
+		&,
+		.block--animated:is(::before, ::after) {
 			opacity: 1;
 		}
 
 		&.lightbox__html {
 			transform: var(--dt-fade-base);
-
-			&:nth-last-child(1) .sqs-block::after {
-				opacity: 1;
-			}
 		}
 
 		&.lightbox__image {
@@ -30,14 +20,13 @@
 	}
 
 	&:is([data-state="close"]) .fe-block {
-		opacity: 1;
+		&,
+		.block--animated:is(::before, ::after) {
+			opacity: 1;
+		}
 
 		&.lightbox__html {
 			transform: var(--dt-fade-base);
-
-			&:nth-last-child(1) .sqs-block::after {
-				opacity: 0;
-			}
 		}
 
 		&.lightbox__image {
@@ -46,12 +35,13 @@
 	}
 
 	&:is([data-state="open"]) .fe-block {
+		&,
+		.block--animated:is(::before, ::after) {
+			opacity: 0;
+		}
+
 		&.lightbox__html {
 			transform: var(--dt-fade-down);
-
-			&:nth-last-child(1) .sqs-block::after {
-				opacity: 0;
-			}
 		}
 
 		&.lightbox__image {
@@ -61,12 +51,17 @@
 }
 
 .lightbox:is(.lightbox--animated) {
-	.block--animated {
-		&::before,
+	.block--animated[style] {
+		&::before {
+			animation-delay: var(--animationDelay-before) !important;
+			animation-duration: var(--animationDuration-before) !important;
+			animation-play-state: var(--animationPlayState-before) !important;
+		}
+
 		&::after {
-			animation-delay: var(--animationDelay) !important;
-			animation-duration: var(--animationDuration) !important;
-			animation-play-state: var(--animationPlayState) !important;
+			animation-delay: var(--animationDelay-after) !important;
+			animation-duration: var(--animationDuration-after) !important;
+			animation-play-state: var(--animationPlayState-after) !important;
 		}
 	}
 
@@ -74,14 +69,14 @@
 		--dt-lb-bl-delay: calc(.5 * var(--dt-lb-duration));
 
 		&,
-		&.lightbox__html:nth-last-child(1) .sqs-block::after {
+		.block--animated:is(::before, ::after) {
 			animation-fill-mode: forwards;
 			animation-play-state: paused;
 		}
 
-		&.lightbox__html:nth-last-child(1) .sqs-block::after,
 		&.lightbox__image,
-		&.lightbox__video {
+		&.lightbox__video,
+		.block--animated:is(::before, ::after) {
 			animation-duration: var(--dt-lb-duration);
 			animation-name: fadeIn;
 		}
@@ -99,7 +94,7 @@
 	&:is([data-state="change"]) {
 		.fe-block {
 			&,
-			&.lightbox__html:nth-last-child(1) .sqs-block::after {
+			.block--animated:is(::before, ::after) {
 				animation-direction: reverse;
 				animation-timing-function: var(--ease-in-out-sine);
 			}
@@ -127,11 +122,11 @@
 	&:is([data-state="close"]) {
 		.fe-block {
 			&,
-			&.lightbox__html:nth-last-child(1) .sqs-block::after {
+			.block--animated:is(::before, ::after) {
 				animation-direction: reverse;
 			}
 
-			&.lightbox__html:nth-last-child(1) .sqs-block::after,
+			.block--animated:is(::before, ::after),
 			&.lightbox__html,
 			&.lightbox__video {
 				animation-timing-function: var(--ease-out-sine);
@@ -145,9 +140,9 @@
 
 	&:is([data-state="open"]) {
 		.fe-block {
-			&.lightbox__html:nth-last-child(1) .sqs-block::after,
 			&.lightbox__html,
-			&.lightbox__video {
+			&.lightbox__video,
+			.block--animated:is(::before, ::after) {
 				animation-timing-function: var(--ease-in-sine);
 			}
 

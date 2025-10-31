@@ -35,7 +35,7 @@ class LightboxDOM {
 	) { this.root = this.createRoot() }
 
 	async setContent(target: LightboxOptions['target']): Promise<void> {
-		const container = this.root.querySelector('.lightbox__content')
+		const container = this.root.querySelector(`.${LightboxClass.Root}__content`)
 		if (!container) return
 
 		const content = await this.content.render(target)
@@ -49,7 +49,7 @@ class LightboxDOM {
 
 		Array.from(content.children).forEach(child => {
 			const classList = Array.from(child.classList),
-				baseClass = classList.find(cl => cl.includes('lightbox')),
+				baseClass = classList.find(cl => cl.includes(LightboxClass.Root)),
 				replacement = newContent.querySelector(`.${baseClass}`)
 
 			if (replacement)
@@ -131,7 +131,7 @@ class LightboxAnimation {
 
 	private reflow(element: HTMLElement | undefined = this.dom.get('root')): void {
 		if (!element) return
-		const cls = 'lightbox--animated'
+		const cls = `${LightboxClass.Root}--animated`
 		element.classList.remove(cls)
 		void element.offsetHeight		// trigger reflow
 		element.classList.add(cls)
@@ -161,25 +161,27 @@ class LightboxAnimation {
 		const blocks = this.dom.get('blocks')
 		if (!blocks?.length) return
 
-		const blockList = [...blocks],
-			baseDelay = .3,
+		const baseDelay = .3,
 			stagger = baseDelay * .5
+		let delay = isActive ? 0 : baseDelay
 
-		let blockOrder = isActive ? blockList : blockList.slice().reverse(),
-			delay = isActive ? 0 : baseDelay
+		const blockArr = Array.from(blocks),
+			order = isActive ? blockArr : blockArr.slice().reverse(),
+			blockList = !!className
+				? order.filter(block => block.classList.contains(className))
+				: order
 
-		blockOrder.filter(block => block.classList.contains(className))
-			.forEach((htmlBlock, index) => {
-				// const htmlAnimChild = htmlBlock.querySelector('.sqs-html-content') as HTMLElement | undefined,
-				const firstChild = htmlBlock.querySelector(':first-child') as HTMLElement | undefined
+		blockList.forEach((htmlBlock, index) => {
+			// const htmlAnimChild = htmlBlock.querySelector('.sqs-html-content') as HTMLElement | undefined,
+			const firstChild = htmlBlock.querySelector(':first-child') as HTMLElement | undefined
 
-				if (firstChild?.classList.contains('block--animated')) {
-					delay = isActive ? baseDelay : baseDelay * 3
-					Animation.Pseudo.set(firstChild, { delay, index, stagger })
-				}
+			if (firstChild?.classList.contains('block--animated')) {
+				delay = isActive ? baseDelay : baseDelay * 3
+				Animation.Pseudo.set(firstChild, { delay, index, stagger })
+			}
 
-				Animation.set(htmlBlock, { delay, index, stagger })
-			})
+			Animation.set(htmlBlock, { delay, index, stagger })
+		})
 	}
 
 	async fadeMedia(isAsync: boolean = false) {
@@ -220,9 +222,9 @@ class LightboxAnimation {
 				targetBlock = Array.from(blocks).at(-2)
 
 			await Animation.waitForEnd(targetBlock)
-		} catch (err) {
-			console.error('animation failed: lightbox fadeIN', err)
-		} finally {
+		}
+		catch (err) { console.error('[LightboxAnimation] fadeRootIn() failed', err) }
+		finally {
 			this.fadeArrows(true)
 			await this.fadeMedia?.()
 		}
@@ -251,11 +253,9 @@ class LightboxAnimation {
 			Animation.set(this.dom.get('container'))
 
 			await this.fadeMedia?.()
-		} catch (err) {
-			console.error('animation failed: lightbox fadeOUT', err)
-		} finally {
-			Animation.set(this.dom.get('overlay'))
 		}
+		catch (err) { console.error('[LightboxAnimation] fadeRootOut() failed', err) }
+		finally { Animation.set(this.dom.get('overlay')) }
 	}
 }
 
@@ -293,45 +293,45 @@ class LightboxMedia {
 	private media: HTMLIFrameElement | HTMLVideoElement | undefined = undefined
 	private source: string = ''
 
-	constructor(private dom: LightboxDOM) {}
+	constructor(
+		private dom: LightboxDOM,
+		private hasVisibleControls: boolean = true
+	) {}
 
-	private init(media: HTMLIFrameElement | HTMLVideoElement): void {
-		const source = media.src ?? ''
+	private load(media: HTMLIFrameElement | HTMLVideoElement): void {
+		let source = media.src ?? ''
 
 		if (media instanceof HTMLVideoElement) {
+			media.setAttribute('controls', `${this.hasVisibleControls}`)
+
 			if (Hls.isSupported()) {
 				this.instance = new Hls()
-
 				this.instance.loadSource(source)
 				this.instance.attachMedia(media)
-				media.pause()
 				;(window as any).hls = this.instance
-
-				// this.instance.on(Hls.Events.MANIFEST_PARSED, () => {
-				// 	const player = new Plyr(embed, {})
-				// 	embed.play()
-				// })
 			} else {
 				new Plyr(media)
-				// const player = new Plyr(embed)
 			}
-		} else if (media instanceof HTMLIFrameElement) {}
+		} else if (media instanceof HTMLIFrameElement) {
+			if (this.hasVisibleControls)
+				source = `${source}&showinfo=0&controls=0`
+		}
 
 		this.media = media
 		this.source = source
 	}
 
 	configure(): void {
+		this.dispose()
+
 		const video = this.dom.get('video')
 		if (!video) return
-
-		this.dispose()
 
 		const native = video.querySelector('video'),
 			youtube = video.querySelector('iframe')
 
-		if (native) this.init(native as HTMLVideoElement)
-		else if (youtube) this.init(youtube as HTMLIFrameElement)
+		if (native) this.load(native as HTMLVideoElement)
+		else if (youtube) this.load(youtube as HTMLIFrameElement)
 	}
 
 	dispose(): void {
@@ -400,14 +400,8 @@ class LightboxMenu {
 			prev = index - 1 >= 0 ? index - 1 : max - 1
 
 		return {
-			next: {
-				index: next,
-				target: this.elements[next],
-			},
-			prev: {
-				index: prev,
-				target: this.elements[prev],
-			},
+			next: { index: next, target: this.elements[next] },
+			prev: { index: prev, target: this.elements[prev] },
 		} as ArrowGroup
 	}
 
@@ -441,7 +435,7 @@ class LightboxMenu {
 
 		for (const dir of directions) {
 			const arrow = [...arrows].find(({ dataset }) => dataset.direction === dir)
-			if (!arrow) return
+			if (!arrow) continue
 
 			const { index, title } = (directory as ArrowGroup)[dir]
 			arrow.setAttribute('data-position', `${index}`)
@@ -480,10 +474,10 @@ class LightboxNavigation {
 
 		try {
 			this.newContent = await this.content.render(target)
-			const newImage = this.newContent?.querySelector('.lightbox__image')
+			const newImage = this.newContent?.querySelector(`.${LightboxClass.Root}__image`)
 
 			if (newImage) {
-				newImage.classList.add('lightbox__temp')
+				newImage.classList.add(`${LightboxClass.Root}__temp`)
 				currentImage.replaceWith(newImage)
 			}
 		}
@@ -515,6 +509,11 @@ class LightboxNavigation {
 	}
 
 	private async performSwap() {
+		if (!this.newContent) {
+			console.warn('[LightboxNavigation] performSwap() aborted, missing: this.newContent')
+			return
+		}
+
 		this.dom.updateContent(this.newContent)
 		this.media.configure()
 
@@ -568,17 +567,20 @@ class LightboxNavigation {
 			return
 		}
 
+		let result: { directory: ArrowGroup; index: number } | undefined
+
 		try {
 			await this.prepareSwap(newTarget)
 			await this.preSwap()
 			await this.performSwap()
 			await this.postSwap(newIndex)
+
+			result = { directory: this.newDirectory, index: newIndex }
 		}
 		catch (err) { console.error('[LightboxNavigation] swapContent() failed on:', err) }
-		finally {
-			this.isSwapping = false
-			return { directory: this.newDirectory, index: newIndex }
-		}
+		finally { this.isSwapping = false }
+
+		return result
 	}
 }
 
@@ -635,9 +637,10 @@ export class LightboxController {
 
 		directions?.forEach(pointer => {
 			const { target } = directory[pointer]
-			adjacentTargets.push(target)
+			if (!!target) adjacentTargets.push(target)
 		})
 
+		 if (!adjacentTargets.length) return
 		await this.content.prefetcher(adjacentTargets).catch(() => {})
 	}
 
@@ -651,7 +654,7 @@ export class LightboxController {
 		if (!!this.elements?.length) {
 			this.menu.store(this.elements)
 			this.directory = await this.menu.generate(this.currentIndex)
-			this.prefetchFrom(this.directory)
+			await this.prefetchFrom(this.directory)
 		}
 	}
 
@@ -659,13 +662,11 @@ export class LightboxController {
 		if (!this.isActive || !Object.keys(this.directory).length) return
 
 		const results = await this.navigator.swapContent<typeof dir>(this.directory, dir)
+		if (!results) return
 
-		if (results) {
-			this.currentIndex = results.index
-			this.directory = results.directory
-		}
-
-		this.prefetchFrom(this.directory)
+		this.currentIndex = results.index
+		this.directory = results.directory
+		await this.prefetchFrom(this.directory)
 	}
 
 	private async handleOpen() {

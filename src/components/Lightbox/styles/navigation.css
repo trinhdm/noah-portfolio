@@ -92,8 +92,6 @@
 	}
 
 	.lightbox__arrow {
-		--dt-nav-arrow-space: calc(.8 * var(--dt-cqw-base));
-
 		--dt-transition-base: opacity .35s var(--ease-in-out-quad) .11s,
 					transform .25s var(--ease-in-out-quad) .055s;
 		--dt-transition-hover: opacity .25s var(--ease-in-out-quad) .055s,
@@ -110,7 +108,7 @@
 			}
 
 			& > span {
-				padding-right: var(--dt-nav-arrow-space);
+				padding-right: var(--dt-cqw-base);
 				transform: var(--dt-fade-right);
 			}
 		}
@@ -121,7 +119,7 @@
 			}
 
 			& > span {
-				padding-left: var(--dt-nav-arrow-space);
+				padding-left: var(--dt-cqw-base);
 				transform: var(--dt-fade-left);
 			}
 		}

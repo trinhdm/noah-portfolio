@@ -9,7 +9,6 @@
 		grid-column: 1 / span var(--dt-col-span);
 		letter-spacing: var(--dt-letter-spacing);
 		min-height: calc(var(--dt-lb-html-height) - 1rem);
-		opacity: 0;
 		z-index: 2;
 
 		&,
@@ -36,7 +35,6 @@
 					display: block;
 					height: 100%;
 					left: 0;
-					opacity: 0;
 					position: absolute;
 					top: 0;
 					width: 100%;
@@ -134,8 +132,17 @@
 	}
 
 	&.lightbox__video {
-		opacity: 0;
 		z-index: 10;
+
+		.sqs-block {
+			align-items: center;
+			display: flex;
+			justify-content: center;
+		}
+
+		.sqs-block-content {
+			flex: 1;
+		}
 
 		.lightbox__video-player {
 			height: 100%;
@@ -164,7 +171,6 @@
 	}
 
 	&.lightbox__temp {
-		opacity: 0;
 		z-index: 5;
 	}
 
