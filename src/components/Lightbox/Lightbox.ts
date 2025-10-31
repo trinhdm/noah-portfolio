@@ -13,7 +13,7 @@ import {
 	LightboxBlockSelector,
 	LightboxClass,
 	LightboxSelector,
-} from './lightbox.types'
+} from './data'
 
 import type {
 	ArrowDirections,
