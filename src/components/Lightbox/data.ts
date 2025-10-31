@@ -9,6 +9,7 @@ enum LightboxClass {
 	Navigation 	= `${Root}__navigation`,
 	Overlay 	= `${Root}__overlay`,
 
+	Icon		= `${Root}__icon`,
 	Label 		= `${Root}__label`,
 	Html 		= `${Root}__html`,
 	Image 		= `${Root}__image`,
@@ -26,8 +27,9 @@ enum LightboxSelector {
 	Navigation 	= `.${LightboxClass.Navigation}`,
 	Overlay 	= `.${LightboxClass.Overlay}`,
 
-	Html 		= `.${LightboxClass.Html}`,
+	Icon 		= `.${LightboxClass.Icon}`,
 	Label 		= `.${LightboxClass.Label}`,
+	Html 		= `.${LightboxClass.Html}`,
 	Image 		= `.${LightboxClass.Image}`,
 	Temp 		= `.${LightboxClass.Temp}`,
 	Video 		= `.${LightboxClass.Video}`,

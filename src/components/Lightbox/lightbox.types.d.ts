@@ -13,6 +13,8 @@ type LightboxElements = {
 	video?: HTMLIFrameElement | HTMLVideoElement | undefined
 }
 
+type LightboxElement = keyof LightboxElements
+
 type LightboxOptions = {
 	elements: HTMLElement[]
 	index: number
@@ -24,7 +26,7 @@ type LightboxEventMap = {
 	close: void
 	navigate: ArrowDirections
 	open: void
-	ready: LightboxOptions
+	ready: (() => void)
 	update: number
 }
 
@@ -49,8 +51,9 @@ type ArrowDirections = keyof ArrowGroup
 
 
 export type {
-	ArrowGroup,
 	ArrowDirections,
+	ArrowGroup,
+	LightboxElement,
 	LightboxElements,
 	LightboxEventMap,
 	LightboxOptions,
