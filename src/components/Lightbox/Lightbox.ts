@@ -9,21 +9,23 @@ import {
 	EventDispatcher,
 } from '../../services'
 
+import {
+	LightboxBlockSelector,
+	LightboxClass,
+	LightboxSelector,
+} from './lightbox.types'
+
 import type {
 	ArrowDirections,
 	ArrowGroup,
 	LightboxElements,
 	LightboxEventMap,
 	LightboxOptions,
+	LightboxStates,
 } from './lightbox.types'
 
 import template from './template.ts'
 
-
-enum LightboxClass {
-	Root = 'lightbox',
-	Temp = `${Root}__temp`,
-}
 
 
 class LightboxDOM {
@@ -36,7 +38,7 @@ class LightboxDOM {
 	) { this.root = this.createRoot() }
 
 	async setContent(target: LightboxOptions['target']): Promise<void> {
-		const wrapper = this.root.querySelector(`.${LightboxClass.Root}__content`)
+		const wrapper = this.root.querySelector(LightboxSelector.Content)
 		if (!wrapper) return
 
 		const content = await this.content.render(target)
@@ -84,31 +86,30 @@ class LightboxDOM {
 
 	remove(): void { this.root.remove() }
 
-	getState() { return this.root.dataset.state as 'open' | 'change' | 'close' }
+	getState() { return this.root.dataset.state as LightboxStates }
 
 	toggleDisable(): void { toggleDisableAttr(this.root) }
 
 	resetCache(): void { this.cache = {} }
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
-		const root = this.root,
-			base = `.${LightboxClass.Root}`
+		const root = this.root
 
 		if (this.cache[key])
 			return this.cache[key] as LightboxElements[K]
 
 		const map: Partial<Record<keyof LightboxElements, any>> = {
 			root,
-			arrows: root.querySelector(`${base}__navigation`)?.querySelectorAll('[data-direction]'),
-			blocks: root.querySelectorAll('.fe-block'),
-			body: root.querySelector(`${base}__body`),
-			closeBtn: root.querySelector(`${base}__close`),
-			container: root.querySelector(`${base}__container`),
-			content: root.querySelector(`${base}__content`),
-			image: root.querySelector(`${base}__image`),
-			navigation: root.querySelector(`${base}__navigation`),
-			overlay: root.querySelector(`${base}__overlay`),
-			video: root.querySelector(`${base}__video`),
+			arrows: root.querySelector(LightboxSelector.Navigation)?.querySelectorAll('[data-direction]'),
+			blocks: root.querySelectorAll(LightboxBlockSelector.Block),
+			body: root.querySelector(LightboxSelector.Body),
+			close: root.querySelector(LightboxSelector.Close),
+			container: root.querySelector(LightboxSelector.Container),
+			content: root.querySelector(LightboxSelector.Content),
+			image: root.querySelector(LightboxSelector.Image),
+			navigation: root.querySelector(LightboxSelector.Navigation),
+			overlay: root.querySelector(LightboxSelector.Overlay),
+			video: root.querySelector(LightboxSelector.Video),
 		}
 
 		this.cache[key] = (map[key] ?? null) as LightboxElements[K]
@@ -116,7 +117,7 @@ class LightboxDOM {
 		return this.cache[key] as LightboxElements[K]
 	}
 
-	setState(state: 'open' | 'change' | 'close'): void {
+	setState(state: LightboxStates): void {
 		this.root.dataset.state = state
 
 		const overflow = {
@@ -134,7 +135,7 @@ class LightboxAnimation {
 
 	private reflow(element: HTMLElement | undefined = this.dom.get('root')): void {
 		if (!element) return
-		const cls = `${LightboxClass.Root}--animated`
+		const cls = LightboxClass.Animation
 		element.classList.remove(cls)
 		void element.offsetHeight		// trigger reflow
 		element.classList.add(cls)
@@ -157,7 +158,7 @@ class LightboxAnimation {
 		})
 	}
 
-	fadeBlocks(className: `${LightboxClass.Root}__${string}` = `${LightboxClass.Root}__html`): void {
+	fadeBlocks(className: `${LightboxClass.Root}__${string}` = LightboxClass.Html): void {
 		let blocks = Array.from(this.dom.get('blocks') ?? [])
 		if (!blocks?.length) return
 
@@ -181,7 +182,7 @@ class LightboxAnimation {
 			const base = { index, stagger }
 			Animation.set(block, { ...base, delay: stateDelay })
 
-			const innerBlock = block.querySelector('.block--animated'),
+			const innerBlock = block.querySelector(LightboxBlockSelector.Animation),
 				innerDelay = isActive ? delay + stagger : stateDelay
 
 			if (innerBlock)
@@ -280,10 +281,10 @@ class LightboxEvents {
 	}
 
 	bind(): void {
-		const closeBtn = this.dom.get('closeBtn'),
+		const close = this.dom.get('close'),
 			overlay = this.dom.get('overlay')
 
-		if (closeBtn) this.handleClick(closeBtn)
+		if (close) this.handleClick(close)
 		if (overlay) this.handleClick(overlay)
 	}
 
@@ -445,7 +446,7 @@ class LightboxMenu {
 			const { index, title } = (directory as ArrowGroup)[dir]
 			arrow.setAttribute('data-position', `${index}`)
 
-			const arrowText = arrow.querySelector(`.${LightboxClass.Root}__label`)
+			const arrowText = arrow.querySelector(LightboxSelector.Label)
 			if (arrowText && title) {
 				const text = wrapContent(title, 'strong')?.innerText
 				arrowText.replaceChildren(text ?? '')
@@ -477,7 +478,7 @@ class LightboxNavigation {
 
 		try {
 			this.newContent = await this.content.render(target)
-			const newImage = this.newContent?.querySelector(`.${LightboxClass.Root}__image`)
+			const newImage = this.newContent?.querySelector(LightboxSelector.Image)
 
 			if (newImage) {
 				newImage.classList.add(LightboxClass.Temp)
@@ -486,7 +487,7 @@ class LightboxNavigation {
 
 			await Animation.wait()
 		}
-		catch (err) { console.warn('[LightboxNavigation] setupSwap() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] setupSwap() failed:', err) }
 		finally {
 			this.dom.resetCache()
 			await Animation.wait()
@@ -500,7 +501,7 @@ class LightboxNavigation {
 			this.events.unbind()
 			await Animation.wait('swap')
 		}
-		catch (err) { console.warn('[LightboxNavigation] beforeSwap() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] beforeSwap() failed:', err) }
 		finally { this.dom.setState('change') }
 	}
 
@@ -511,7 +512,7 @@ class LightboxNavigation {
 			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
 			await Animation.waitForEnd(targetBlock)
 		}
-		catch (err) { console.warn('[LightboxNavigation] preSwap() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] preSwap() failed:', err) }
 		finally { await this.animator.fadeMedia?.(true) }
 	}
 
@@ -523,7 +524,7 @@ class LightboxNavigation {
 			this.dom.updateContent(this.newContent)
 			this.media.configure()
 		}
-		catch (err) { console.warn('[LightboxNavigation] performSwap() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] performSwap() failed:', err) }
 		finally { this.dom.setState('open') }
 	}
 
@@ -534,7 +535,7 @@ class LightboxNavigation {
 			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
 			await Animation.waitForEnd(targetBlock)
 		}
-		catch (err) { console.warn('[LightboxNavigation] postSwap() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] postSwap() failed:', err) }
 		finally { await this.animator.fadeMedia?.() }
 	}
 
@@ -575,7 +576,7 @@ class LightboxNavigation {
 			await this.postSwap()
 			await this.afterSwap(index)
 		}
-		catch (err) { console.warn('[LightboxNavigation] swapContent() failed on:', err) }
+		catch (err) { console.warn('[LightboxNavigation] swapContent() failed:', err) }
 		finally { this.isSwapping = false }
 	}
 }
