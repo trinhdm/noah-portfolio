@@ -122,10 +122,11 @@ class LightboxDOM {
 		const content = this.cache.get('content')
 		if (!content || !newContent) return
 
-		Array.from(content.children).forEach(child => {
-			const classList = Array.from(child.classList),
-				baseClass = classList.find(cl => cl.includes(LightboxClass.Root)),
-				replacement = newContent.querySelector(`.${baseClass}`)
+		const selectors = Object.values(LightboxSelector)
+
+		Array.from(content.children ?? []).forEach(child => {
+			const target = selectors.find(cl => child.classList.contains(cl.slice(1))),
+				replacement = newContent.querySelector(target ?? '')
 
 			if (replacement) child.replaceWith(replacement)
 		})
@@ -221,34 +222,40 @@ class LightboxAnimation {
 		})
 	}
 
+	private async fadeMediaParallel({ image, video }: Pick<LightboxElements, 'image' | 'video'>) {
+		Animation.set(video)
+		Animation.set(image)
+
+		const imageDelay = parseFloat(image!.style.animationDelay),
+			videoDelay = parseFloat(video!.style.animationDelay),
+			slowerMedia = imageDelay >= videoDelay ? image : video
+
+		await Animation.waitForEnd(slowerMedia)
+	}
+
+	private async fadeMediaSequential({ image, video }: Pick<LightboxElements, 'image' | 'video'>) {
+		Animation.set(video)
+		await Animation.waitForEnd(video)
+
+		Animation.set(image)
+		await Animation.waitForEnd(image)
+	}
+
 	async fadeMedia(isAsync: boolean = false) {
 		const image = this.dom.get('image'),
 			video = this.dom.get('video')
 
 		if (!image || !video) return
+		const elements = { image, video }
 
-		if (isAsync) {
-			Animation.set(video)
-			Animation.set(image)
-
-			const imageDelay = parseFloat(image.style.animationDelay),
-				videoDelay = parseFloat(video.style.animationDelay),
-				slowerMedia = imageDelay >= videoDelay ? image : video
-
-			await Animation.waitForEnd(slowerMedia)
-		} else {
-			Animation.set(video)
-			await Animation.waitForEnd(video)
-
-			Animation.set(image)
-			await Animation.waitForEnd(image)
-		}
+		if (isAsync) await this.fadeMediaParallel(elements)
+		else await this.fadeMediaSequential(elements)
 	}
 
 	async fadeRootIn() {
 		this.dom.setState('open')
-
 		this.reflow()
+
 		await Animation.waitForEnd(this.dom.get('body'))
 		this.fadeBlocks()
 
@@ -265,10 +272,9 @@ class LightboxAnimation {
 	}
 
 	async fadeRootOut() {
-		this.dom.toggleDisable()
 		this.dom.setState('close')
-
 		this.reflow()
+
 		this.fadeArrows(false)
 
 		try {
@@ -307,6 +313,8 @@ class LightboxEvents {
 	}
 
 	bind(): void {
+		this.unbind()
+
 		const close = this.dom.get('close'),
 			overlay = this.dom.get('overlay')
 
@@ -321,8 +329,8 @@ class LightboxEvents {
 }
 
 class LightboxMedia {
-	private instance: any | undefined = undefined
-	private media: HTMLIFrameElement | HTMLVideoElement | undefined = undefined
+	private instance?: Hls | Plyr | null
+	private media?: HTMLIFrameElement | HTMLVideoElement
 	private source: string = ''
 
 	constructor(
@@ -578,16 +586,19 @@ class LightboxNavigation {
 		const { index, target } = directory[dir]
 		if (!target) return
 
-		try {
-			await this.setupSwap(target)
-			await this.preSwap()
-			await this.animateSwap(true)
-			await this.performSwap()
-			await this.animateSwap(false)
-			await this.postSwap(index)
-		}
-		catch (err) { console.warn('[LightboxNavigation] swapContent() failed:', err) }
-		finally { this.isSwapping = false }
+		const steps = [
+			() => this.setupSwap(target),
+			() => this.preSwap(),
+			() => this.animateSwap(true),
+			() => this.performSwap(),
+			() => this.animateSwap(false),
+			() => this.postSwap(index),
+		]
+
+		for (const step of steps)
+			await step().catch(err => console.warn('[LightboxNavigation] swapContent() failed:', err))
+
+		this.isSwapping = false
 	}
 }
 
@@ -693,13 +704,11 @@ export class LightboxController {
 		this.isActive = true
 
 		try {
-			this.dom.toggleDisable()
 			await Animation.wait()				// buffer for image.maxHeight
+			this.dom.toggleDisable()
 			await this.animator.fadeRootIn()
-			this.media.play()
 
-			const targetArrow = Array.from(this.dom.get('arrows') ?? []).at(-2)
-			await Animation.waitForEnd(targetArrow)
+			this.media.play()
 			this.events.bind()
 		}
 		catch (err) { console.warn('[LightboxController] handleOpen() failed:', err) }
@@ -713,6 +722,7 @@ export class LightboxController {
 
 		try {
 			this.media.pause()
+			this.dom.toggleDisable()
 			this.events.unbind()
 
 			await Animation.wait('pause')
