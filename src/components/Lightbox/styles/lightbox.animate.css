@@ -80,7 +80,6 @@
 			.lightbox__container,
 			.lightbox__overlay {
 				animation-direction: normal;
-				animation-play-state: running;
 				opacity: 0;
 			}
 

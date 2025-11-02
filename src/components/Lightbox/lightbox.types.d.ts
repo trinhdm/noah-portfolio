@@ -26,9 +26,12 @@ type LightboxOptions = {
 
 type LightboxEventMap = {
 	close: void
+	error: {
+		error: unknown
+		message?: string
+	}
 	navigate: ArrowDirections
 	open: void
-	ready: (() => void)
 	update: number
 }
 

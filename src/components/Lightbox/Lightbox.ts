@@ -606,6 +606,7 @@ class LightboxNavigation {
 
 		if (!this.newContent) return
 
+		const message = 'LightboxNavigation] swapContent() failed'
 		const timeline = [
 			() => this.preSwap(),
 			() => this.performSwap(),
@@ -613,7 +614,7 @@ class LightboxNavigation {
 		]
 
 		for (const step of timeline)
-			await step().catch(err => console.warn('[LightboxNavigation] swapContent() failed:', err))
+			await step().catch(error => this.dispatcher.emit('error', { error, message }))
 
 		this.isSwapping = false
 	}
@@ -774,6 +775,22 @@ export class LightboxController {
 		this.dispatcher.on('close', () => this.lifecycle.close())
 		this.dispatcher.on('navigate', dir => this.lifecycle.navigate(dir))
 		this.dispatcher.on('update', i => this.lifecycle.update(i))
+		this.dispatcher.on('error', err => this.handleError(err))
+	}
+
+	private handleError({
+		error,
+		message = 'Something went wrong with the lightbox.'
+	}: LightboxEventMap['error']) {
+		const container = document.createElement('div'),
+			wrapper = document.createElement('span')
+
+		wrapper.textContent = message
+		container.classList.add('lightbox__error')
+		container.appendChild(wrapper)
+
+		this.dom.get('footer')?.appendChild(container)
+		console.error(`[Lightbox Error]: ${message}\n`, error)
 	}
 
 	async open() { await this.dispatcher.emit('open') }
