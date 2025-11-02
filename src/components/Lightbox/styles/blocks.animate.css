@@ -116,11 +116,6 @@
 				animation-timing-function: var(--ease-in-out-sine);
 			}
 
-			&.lightbox__image,
-			&.lightbox__video {
-				animation-duration: calc(1.25 * var(--dt-lb-duration));
-			}
-
 			&.lightbox__html {
 				animation-duration: calc(.625 * var(--dt-lb-duration));
 			}
@@ -152,6 +147,10 @@
 
 			&.lightbox__html {
 				animation-name: fadeInUp;
+			}
+
+			&.lightbox__image {
+				animation-name: none;
 			}
 		}
 	}

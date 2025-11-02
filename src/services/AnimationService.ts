@@ -71,21 +71,26 @@ export class AnimationService {
 		timeout: 1500,
 	}
 
-	static wait(value: keyof typeof AnimationService.waitTimes | number = 'default') {
+	static async wait(value: keyof typeof this.waitTimes | number = 'default') {
 		const delayMs: number = typeof value === 'string'
-			? AnimationService.waitTimes[value]
+			? this.waitTimes[value]
 			: value as number
 
 		return new Promise<void>(resolve => setTimeout(resolve, delayMs))
 	}
 
 	static async waitForEnd(
-		target: HTMLElement | undefined,
-		timeoutMs = 50,
+		element: HTMLElement | undefined,
+		timeoutMs = this.waitTimes.default,
 		event = 'animationend'
 	): Promise<void> {
-		const animations = target?.getAnimations()
-		if (!target || !animations?.length) return
+		const animations = element?.getAnimations({ subtree: true })
+		if (!element || !animations?.length) return
+
+		const animated = (animations[0].effect as KeyframeEffect).target,
+			target = animated && element.className !== animated?.className
+			? animated
+			: element
 
 		await new Promise(requestAnimationFrame)
 
@@ -95,7 +100,7 @@ export class AnimationService {
 		} = Styles.deriveFromDOM(window.getComputedStyle(target))
 
 		const totalMs = (duration + delay) * 1000,
-			bufferTime = totalMs + timeoutMs
+			bufferTime = (duration * 1000) + timeoutMs
 
 		if (totalMs === 0) return
 		return Promise.race([
@@ -107,8 +112,9 @@ export class AnimationService {
 				}
 
 				target.addEventListener(event, handleEnd, { once: true })
+				console.log({ target, bufferTime })
 			}),
-			AnimationService.wait(bufferTime),
+			await this.wait(bufferTime),
 		])
 	}
 

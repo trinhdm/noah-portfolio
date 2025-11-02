@@ -168,10 +168,13 @@ class LightboxAnimation {
 
 	private reflow(element: HTMLElement | undefined = this.dom.get('root')): void {
 		if (!element) return
+
+		const { classList } = element
 		const cls = LightboxClass.Animation
-		element.classList.remove(cls)
+
+		if (classList.contains(cls)) classList.remove(cls)
 		void element.offsetHeight		// trigger reflow
-		element.classList.add(cls)
+		classList.add(cls)
 	}
 
 	fadeArrows(isActive: boolean): void {
@@ -260,37 +263,32 @@ class LightboxAnimation {
 		this.fadeBlocks()
 
 		try {
-			await Animation.wait()
-			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
+			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-1)
 			await Animation.waitForEnd(targetBlock)
+			this.fadeArrows(true)
 		}
 		catch (err) { console.warn('[LightboxAnimation] fadeRootIn() failed', err) }
-		finally {
-			this.fadeArrows(true)
-			await this.fadeMedia?.()
-		}
+		finally { await this.fadeMedia?.() }
 	}
 
 	async fadeRootOut() {
 		this.dom.setState('close')
 		this.reflow()
 
+		await Animation.wait('pause')
 		this.fadeArrows(false)
 
 		try {
-			await Animation.wait()
-
-			const [targetArrow] = Array.from(this.dom.get('arrows') ?? [])
+			const targetArrow = Array.from(this.dom.get('arrows') ?? []).at(-1)
 			await Animation.waitForEnd(targetArrow)
 			this.fadeBlocks()
 
-			const [firstBlock] = this.dom.get('blocks') ?? []
-			await Animation.waitForEnd(firstBlock)
-
-			Animation.set(this.dom.get('body'))
-			Animation.set(this.dom.get('container'))
-
+			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
+			await Animation.waitForEnd(targetBlock)
 			await this.fadeMedia?.()
+
+			Animation.set(this.dom.get('container'))
+			Animation.set(this.dom.get('body'))
 		}
 		catch (err) { console.warn('[LightboxAnimation] fadeRootOut() failed', err) }
 		finally { Animation.set(this.dom.get('overlay')) }
@@ -522,7 +520,10 @@ class LightboxNavigation {
 		finally { this.dom.rebuildCache() }
 	}
 
-	private async animateSwap(isMediaAsync: boolean) {
+	private async animateSwap() {
+		const isMediaAsync = this.dom.getState() === 'change',
+			index = isMediaAsync ? -1 : -2
+
 		this.animator.fadeBlocks()
 
 		try {
@@ -539,9 +540,10 @@ class LightboxNavigation {
 			this.dom.toggleDisable()
 			this.events.unbind()
 			await Animation.wait('swap')
+			this.dom.setState('change')
 		}
 		catch (err) { console.warn('[LightboxNavigation] preSwap() failed:', err) }
-		finally { this.dom.setState('change') }
+		finally { await this.animateSwap() }
 	}
 
 	private async performSwap() {
@@ -551,9 +553,10 @@ class LightboxNavigation {
 			await Animation.wait('pause')
 			this.dom.updateContent(this.newContent)
 			this.media.configure()
+			this.dom.setState('open')
 		}
 		catch (err) { console.warn('[LightboxNavigation] performSwap() failed:', err) }
-		finally { this.dom.setState('open') }
+		finally { await this.animateSwap() }
 	}
 
 	private async postSwap(index: number) {
@@ -580,22 +583,19 @@ class LightboxNavigation {
 		directory: ArrowGroup,
 		dir: T
 	) {
-		if (this.isSwapping) return
+		const { index, target } = directory[dir]
+
+		if (this.isSwapping || !target) return
 		this.isSwapping = true
 
-		const { index, target } = directory[dir]
-		if (!target) return
-
-		const steps = [
+		const timeline = [
 			() => this.setupSwap(target),
 			() => this.preSwap(),
-			() => this.animateSwap(true),
 			() => this.performSwap(),
-			() => this.animateSwap(false),
 			() => this.postSwap(index),
 		]
 
-		for (const step of steps)
+		for (const step of timeline)
 			await step().catch(err => console.warn('[LightboxNavigation] swapContent() failed:', err))
 
 		this.isSwapping = false
