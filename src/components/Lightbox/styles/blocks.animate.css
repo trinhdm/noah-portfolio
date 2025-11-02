@@ -2,6 +2,7 @@
 .lightbox {
 	&:is([data-disabled="false"]) .fe-block {
 		&.lightbox__image {
+			animation-name: none;
 			opacity: 0;
 		}
 	}

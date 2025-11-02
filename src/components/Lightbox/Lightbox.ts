@@ -175,15 +175,12 @@ class LightboxAnimation {
 	}
 
 	async swap() {
-		const isMediaAsync = this.dom.getState() === 'change'
-		this.fadeBlocks()
+		const isMediaAsync = this.dom.getState() === 'change',
+			targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
 
-		try {
-			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
-			await Animation.waitForEnd(targetBlock)
-		}
-		catch (err) { console.warn('[LightboxAnimation] swap() failed:', err) }
-		finally { await this.Media.fade?.(isMediaAsync) }
+		this.fadeBlocks()
+		await Animation.waitForEnd(targetBlock)
+		await this.Media.fade?.(isMediaAsync)
 	}
 
 	private fadeArrows(isActive: boolean): void {
@@ -284,8 +281,12 @@ class LightboxAnimation {
 			this.dom = this.animator.dom
 		}
 
-		private reflow(element: HTMLElement | undefined = this.dom.get('root')): void {
+		private reflow(
+			state: LightboxStates,
+			element: HTMLElement | undefined = this.dom.get('root')
+		): void {
 			if (!element) return
+			this.dom.setState(state)
 
 			const { classList } = element,
 				cls = LightboxClass.Animation
@@ -295,43 +296,43 @@ class LightboxAnimation {
 			classList.add(cls)
 		}
 
+		private async fade() {
+			Animation.set(this.dom.get('container'))
+			Animation.set(this.dom.get('body'))
+			Animation.set(this.dom.get('overlay'))
+			await Animation.wait('pause')
+		}
+
 		async fadeIn() {
-			this.dom.setState('open')
-			this.reflow()
+			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-1)
 
+			this.reflow('open')
+			await this.fade()
 			await Animation.waitForEnd(this.dom.get('body'))
-			this.animator.fadeBlocks()
 
-			try {
-				const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-1)
-				await Animation.waitForEnd(targetBlock)
-				this.animator.fadeArrows(true)
-			}
-			catch (err) { console.warn('[LightboxAnimation] fadeRootIn() failed', err) }
-			finally { await this.animator.Media.fade?.() }
+			this.animator.fadeBlocks()
+			await Animation.waitForEnd(targetBlock)
+
+			this.animator.fadeArrows(true)
+			await this.animator.Media.fade?.()
 		}
 
 		async fadeOut() {
-			this.dom.setState('close')
-			this.reflow()
+			const targetArrow = Array.from(this.dom.get('arrows') ?? []).at(-1),
+				targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
 
+			this.reflow('close')
 			await Animation.wait('pause')
+
 			this.animator.fadeArrows(false)
+			await Animation.waitForEnd(targetArrow)
 
-			try {
-				const targetArrow = Array.from(this.dom.get('arrows') ?? []).at(-1)
-				await Animation.waitForEnd(targetArrow)
-				this.animator.fadeBlocks()
+			this.animator.fadeBlocks()
+			await Animation.waitForEnd(targetBlock)
 
-				const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
-				await Animation.waitForEnd(targetBlock)
-				await this.animator.Media.fade?.()
-
-				Animation.set(this.dom.get('container'))
-				Animation.set(this.dom.get('body'))
-			}
-			catch (err) { console.warn('[LightboxAnimation] fadeRootOut() failed', err) }
-			finally { Animation.set(this.dom.get('overlay')) }
+			await this.animator.Media.fade?.()
+			await this.fade()
+			await Animation.waitForEnd(this.dom.get('overlay'))
 		}
 	}
 }
@@ -548,60 +549,48 @@ class LightboxNavigation {
 		this.newContent = await this.content.render(target)
 
 		if (!currentImage || !this.newContent) return
+		const newImage = this.newContent.querySelector(LightboxSelector.Image)
 
-		try {
-			const newImage = this.newContent.querySelector(LightboxSelector.Image)
-
-			if (newImage) {
-				newImage.classList.add(LightboxClass.Temp)
-				currentImage.replaceWith(newImage)
-			}
+		if (newImage) {
+			newImage.classList.add(LightboxClass.Temp)
+			currentImage.replaceWith(newImage)
+			this.dom.rebuildCache()
 		}
-		catch (err) { console.warn('[LightboxNavigation] setupSwap() failed:', err) }
-		finally { this.dom.rebuildCache() }
 	}
 
 	private async preSwap() {
-		try {
-			this.media.pause()
-			this.dom.toggleDisable()
-			this.events.unbind()
-			await Animation.wait('swap')
-			this.dom.setState('change')
-		}
-		catch (err) { console.warn('[LightboxNavigation] preSwap() failed:', err) }
-		finally { await this.animator.swap() }
+		this.media.pause()
+		this.dom.toggleDisable()
+		this.events.unbind()
+		await Animation.wait('swap')
+
+		this.dom.setState('change')
+		await this.animator.swap()
 	}
 
 	private async performSwap() {
-		try {
-			await Animation.wait('pause')
-			this.dom.updateContent(this.newContent)
-			this.media.configure()
-			this.dom.setState('open')
-		}
-		catch (err) { console.warn('[LightboxNavigation] performSwap() failed:', err) }
-		finally { await this.animator.swap() }
+		await Animation.wait('pause')
+		this.dom.updateContent(this.newContent)
+		this.media.configure()
+
+		this.dom.setState('open')
+		await this.animator.swap()
 	}
 
 	private async postSwap(index: number) {
-		try {
-			this.dispatcher.emit('update', index)
-			this.media.play()
-			this.events.bind()
+		const blocks = this.dom.get('blocks') ?? []
 
-			await Animation.wait('swap')
-			const blocks = this.dom.get('blocks') ?? []
+		this.dispatcher.emit('update', index)
+		this.media.play()
 
-			for (const block of blocks) {
-				if (block.classList.contains(LightboxClass.Temp)) {
-					block.style.animation = 'none'
-					block.classList.remove(LightboxClass.Temp)
-				}
-			}
+		await Animation.wait('swap')
+		this.events.bind()
+		this.dom.toggleDisable()
+
+		for (const block of blocks) {
+			if (block.classList.contains(LightboxClass.Temp))
+				block.classList.remove(LightboxClass.Temp)
 		}
-		catch (err) { console.warn('[LightboxNavigation] postSwap() failed:', err) }
-		finally { this.dom.toggleDisable() }
 	}
 
 	async swapContent<T extends ArrowDirections>(
@@ -690,32 +679,25 @@ class LightboxLifecycle {
 		if (this.isActive) return
 		this.isActive = true
 
-		try {
-			await this.isReady
-			this.dom.toggleDisable()
-			await this.animator.Root.fadeIn()
+		this.dom.toggleDisable()
+		await this.isReady
+		await this.animator.Root.fadeIn()
 
-			this.media.play()
-			this.events.bind()
-		}
-		catch (err) { console.warn('[LightboxLifecycle] open() failed:', err) }
-		finally { this.dom.toggleDisable() }
+		this.media.play()
+		this.events.bind()
+		this.dom.toggleDisable()
 	}
 
 	async close() {
 		if (!this.isActive) return
 		this.isActive = false
 
-		try {
-			this.media.pause()
-			this.dom.toggleDisable()
-			this.events.unbind()
+		this.media.pause()
+		this.dom.toggleDisable()
+		this.events.unbind()
 
-			await this.animator.Root.fadeOut()
-			await Animation.waitForEnd(this.dom.get('overlay'))
-		}
-		catch (err) { console.warn('[LightboxLifecycle] close() failed:', err) }
-		finally { this.destroy() }
+		await this.animator.Root.fadeOut()
+		this.destroy()
 	}
 
 	destroy(): void {

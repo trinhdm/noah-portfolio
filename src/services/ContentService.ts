@@ -39,14 +39,15 @@ export class ContentService {
 					el => !(isHeaderTag(el.firstElementChild!.tagName))
 				) as HTMLElement | null
 
-			content = html.innerHTML.trim()
 			titleEl = findChildBy(titleEl, { tagName })
 
 			if (titleEl) {
 				const newTitleEl = wrapContent(titleEl, tagName)
 				titleEl.replaceWith(newTitleEl ?? '')
-				title = titleEl.innerText
 			}
+
+			content = html.innerHTML.trim()
+			title = titleEl?.innerText
 		}
 
 		return { ...page, content, title }

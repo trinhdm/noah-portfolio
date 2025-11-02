@@ -1,5 +1,5 @@
-import { getBlockType, findChildBy, isHeaderTag } from '../utils'
-import type { BlockTypes } from '../types'
+import { getBlockType, findChildBy, isHeaderTag } from '../../utils'
+import type { BlockTypes } from '../../types'
 
 
 type BlockHandler = (block: HTMLElement) => HTMLElement | null
