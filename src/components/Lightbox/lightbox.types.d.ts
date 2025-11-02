@@ -1,21 +1,26 @@
+import type { HandlerFor } from '../../services'
+
 
 type LightboxElements = {
-	arrows: NodeListOf<HTMLElement> | undefined
-	blocks: NodeListOf<HTMLElement> | undefined
+	arrows: HTMLElement[]
+	blocks: HTMLElement[]
 	body: HTMLDivElement | undefined
 	close: HTMLElement | undefined
 	container: HTMLDivElement | undefined
 	content: HTMLDivElement | undefined
 	footer: HTMLDivElement | undefined
 	header: HTMLDivElement | undefined
-	image?: HTMLImageElement | undefined
+	image: HTMLDivElement | undefined
 	navigation: HTMLElement | undefined
-	overlay: HTMLElement | undefined
+	overlay: HTMLDivElement | undefined
+	player: HTMLIFrameElement | HTMLVideoElement | undefined
 	root: HTMLDivElement
-	video?: HTMLIFrameElement | HTMLVideoElement | undefined
+	video: HTMLDivElement | undefined
 }
 
 type LightboxElement = keyof LightboxElements
+
+type LightboxStates = 'open' | 'change' | 'close'
 
 type LightboxOptions = {
 	elements: HTMLElement[]
@@ -35,7 +40,12 @@ type LightboxEventMap = {
 	update: number
 }
 
-type LightboxStates = 'open' | 'change' | 'close'
+interface LightboxDispatcher<E = LightboxEventMap> {
+	on<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void
+	off<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void
+	emit<K extends keyof E>(event: K, payload?: E[K]): Promise<void>
+	clear<K extends keyof E>(event?: K): void
+}
 
 
 type NavigationItem = {
@@ -58,6 +68,7 @@ type ArrowDirections = keyof ArrowGroup
 export type {
 	ArrowDirections,
 	ArrowGroup,
+	LightboxDispatcher,
 	LightboxElement,
 	LightboxElements,
 	LightboxEventMap,

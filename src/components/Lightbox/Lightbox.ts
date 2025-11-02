@@ -7,6 +7,7 @@ import { LightboxContentService } from './LightboxContentService.ts'
 import {
 	AnimationService as Animation,
 	EventDispatcher,
+	type HandlerFor,
 } from '../../services'
 
 import {
@@ -18,11 +19,14 @@ import {
 import type {
 	ArrowDirections,
 	ArrowGroup,
+	LightboxDispatcher,
 	LightboxElements,
 	LightboxEventMap,
 	LightboxOptions,
 	LightboxStates,
 } from './lightbox.types'
+
+import type { Entries } from '../../types'
 
 import template from './template.ts'
 
@@ -44,9 +48,8 @@ class LightboxFactory {
 		if (properties) {
 			const ignore = ['innerHTML', 'innerText', 'outerHTML', 'textContent']
 
-			Object.entries(properties).forEach(([prop, value]) => {
-				if (!ignore.includes(prop)) root.setAttribute(prop, `${value}`)
-			})
+			for (const [prop, value] of Object.entries(properties))
+				if (!ignore.includes(prop)) root.setAttribute(prop, String(value))
 		}
 
 		return root
@@ -54,7 +57,7 @@ class LightboxFactory {
 }
 
 class LightboxCache {
-	private cache: Partial<Record<keyof LightboxElements, any>> = {}
+	private cache = new Map<keyof LightboxElements, any>()
 	private map: Partial<LightboxElements> = {}
 
 	constructor(private root: HTMLElement) {
@@ -63,10 +66,9 @@ class LightboxCache {
 
 	private build(): void {
 		const root = this.root
-		const map: Record<keyof LightboxElements, any> = {
+		let map = {
 			root,
-			arrows: root.querySelector(LightboxSelector.Navigation)?.querySelectorAll('[data-direction]'),
-			blocks: root.querySelectorAll(LightboxBlockSelector.Block),
+			blocks: Array.from(root.querySelectorAll(LightboxBlockSelector.Block) ?? []),
 			body: root.querySelector(LightboxSelector.Body),
 			close: root.querySelector(LightboxSelector.Close),
 			container: root.querySelector(LightboxSelector.Container),
@@ -77,9 +79,16 @@ class LightboxCache {
 			navigation: root.querySelector(LightboxSelector.Navigation),
 			overlay: root.querySelector(LightboxSelector.Overlay),
 			video: root.querySelector(LightboxSelector.Video),
-		}
+		} as Partial<LightboxElements>
+
+		map = {
+			...map,
+			arrows: Array.from(map.navigation?.querySelectorAll('[data-direction]') ?? []),
+			player: map.video?.querySelector('video') || map.video?.querySelector('iframe'),
+		} as Partial<LightboxElements>
 
 		this.map = map
+		this.reset()
 	}
 
 	rebuild(): void {
@@ -87,16 +96,16 @@ class LightboxCache {
 		this.reset()
 	}
 
-	reset(): void { this.cache = {} }
+	reset(): void { this.cache.clear() }
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
-		if (this.cache[key])
-			return this.cache[key] as LightboxElements[K]
+		if (this.cache.has(key))
+			return this.cache.get(key) as LightboxElements[K]
 
-		const element = (this.map[key] ?? null) as LightboxElements[K]
-		this.cache[key] = element
+		const value = (this.map[key] ?? null) as LightboxElements[K]
+		this.cache.set(key, value)
 
-		return element
+		return value
 	}
 }
 
@@ -111,24 +120,24 @@ class LightboxDOM {
 	}
 
 	async setContent(target: LightboxOptions['target']): Promise<void> {
-		const wrapper = this.root.querySelector(LightboxSelector.Content)
+		const wrapper = this.cache.get('content')
 		if (!wrapper) return
 
-		const rendered = await this.content.render(target)
+		const rendered = await this.content.render(target as HTMLElement)
 		if (rendered) wrapper.replaceChildren(...rendered.children)
 
 		this.rebuildCache()
 	}
 
-	updateContent(newContent: HTMLElement | undefined): void {
-		const content = this.cache.get('content')
-		if (!content || !newContent) return
+	updateContent(content: HTMLElement | undefined): void {
+		const wrapper = this.cache.get('content')
+		if (!wrapper || !content) return
 
 		const selectors = Object.values(LightboxSelector)
 
-		Array.from(content.children ?? []).forEach(child => {
+		Array.from(wrapper.children).forEach(child => {
 			const target = selectors.find(cl => child.classList.contains(cl.slice(1))),
-				replacement = newContent.querySelector(target ?? '')
+				replacement = content.querySelector(target ?? '')
 
 			if (replacement) child.replaceWith(replacement)
 		})
@@ -152,17 +161,7 @@ class LightboxDOM {
 
 	getState(): LightboxStates { return this.root.dataset.state as LightboxStates }
 
-	setState(state: LightboxStates): void {
-		this.root.dataset.state = state
-
-		const overflow = {
-			change: null,
-			close: 'auto',
-			open: 'hidden',
-		}[state]
-
-		if (!!overflow) document.body.style.overflow = overflow
-	}
+	setState(state: LightboxStates): void { this.root.dataset.state = state }
 }
 
 class LightboxAnimator {
@@ -176,7 +175,7 @@ class LightboxAnimator {
 
 	async swap() {
 		const isMediaAsync = this.dom.getState() === 'change',
-			targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
+			targetBlock = this.dom.get('blocks').at(-2)
 
 		this.fadeBlocks()
 		await Animation.waitForEnd(targetBlock)
@@ -184,7 +183,7 @@ class LightboxAnimator {
 	}
 
 	private fadeArrows(isActive: boolean): void {
-		const arrows = Array.from(this.dom.get('arrows') ?? [])
+		const arrows = this.dom.get('arrows')
 		if (!arrows?.length) return
 
 		const values = arrows.map(el => el.dataset.direction),
@@ -200,7 +199,7 @@ class LightboxAnimator {
 	}
 
 	private fadeBlocks(className: LightboxClass = LightboxClass.Html): void {
-		let blocks = Array.from(this.dom.get('blocks') ?? [])
+		let blocks = this.dom.get('blocks')
 		if (!blocks?.length) return
 
 		const delay = .3,
@@ -304,7 +303,7 @@ class LightboxAnimator {
 		}
 
 		async fadeIn() {
-			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-1)
+			const targetBlock = this.dom.get('blocks').at(-1)
 
 			this.reflow('open')
 			await this.fade()
@@ -318,8 +317,8 @@ class LightboxAnimator {
 		}
 
 		async fadeOut() {
-			const targetArrow = Array.from(this.dom.get('arrows') ?? []).at(-1),
-				targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
+			const targetArrow = this.dom.get('arrows').at(-1),
+				targetBlock = this.dom.get('blocks').at(-2)
 
 			this.reflow('close')
 			await Animation.wait('pause')
@@ -338,33 +337,45 @@ class LightboxAnimator {
 }
 
 class LightboxEvents {
-	private handlers: Array<() => void> = []
+	private handlers = new Map<HTMLElement, (evt: Event) => void>()
 
 	constructor(
 		private dom: LightboxDOM,
-		private dispatch: EventDispatcher<LightboxEventMap>
+		private dispatch: LightboxDispatcher
 	) {}
 
-	private handleClick(element: HTMLElement) {
-		if (!element) return
-		const handler = async () => await this.dispatch.emit('close')
+	private handleClick(
+		element: HTMLElement,
+		fn: () => void = (() => this.dispatch.emit('close'))
+	) {
+		const handler = () => void fn()
 		element.addEventListener('click', handler)
-		this.handlers.push(() => element.removeEventListener('click', handler))
+		this.handlers.set(element, handler)
 	}
 
 	bind(): void {
 		this.unbind()
 
-		const close = this.dom.get('close'),
+		const arrows = this.dom.get('arrows'),
+			close = this.dom.get('close'),
 			overlay = this.dom.get('overlay')
 
 		if (close) this.handleClick(close)
 		if (overlay) this.handleClick(overlay)
+
+		if (arrows.length) {
+			arrows.forEach(arrow => {
+				const dir = arrow.dataset.direction as ArrowDirections
+				this.handleClick(arrow, () => this.dispatch.emit('navigate', dir))
+			})
+		}
 	}
 
 	unbind(): void {
-		this.handlers.forEach(handler => handler())
-		this.handlers = []
+		for (const [element, handler] of this.handlers)
+			element.removeEventListener('click', handler)
+
+		this.handlers = new Map()
 	}
 }
 
@@ -375,51 +386,66 @@ class LightboxMedia {
 
 	constructor(
 		private dom: LightboxDOM,
-		private hasVisibleControls: boolean = true
+		private dispatch: LightboxDispatcher,
+		private hasControls: boolean = true
 	) {}
 
-	private load(media: HTMLIFrameElement | HTMLVideoElement): void {
-		let source = media.src ?? ''
+	private loadNative(element: HTMLVideoElement) {
+		let { src = '' } = element,
+			message = '[LightboxMedia] loadNative() failed on:'
 
-		if (media instanceof HTMLVideoElement) {
-			media.setAttribute('controls', `${this.hasVisibleControls}`)
+		element.setAttribute('controls', `${this.hasControls}`)
 
-			if (Hls.isSupported()) {
+		if (Hls.isSupported()) {
+			message = `${message} HLS`
+
+			try {
 				this.instance = new Hls()
-				this.instance.loadSource(source)
-				this.instance.attachMedia(media)
-				;(window as any).hls = this.instance
+				this.instance.loadSource(src)
+				this.instance.attachMedia(element)
 			}
-			else { new Plyr(media) }
-		} else if (media instanceof HTMLIFrameElement) {
-			if (this.hasVisibleControls)
-				source = `${source}&showinfo=0&controls=0`
-		}
+			catch (error) { this.dispatch.emit('error', { error, message }) }
+		} else {
+			message = `${message} Plyr`
 
-		this.media = media
-		this.source = source
+			try { this.instance = new Plyr(element) }
+			catch (error) { this.dispatch.emit('error', { error, message }) }
+		}
 	}
 
-	configure(): void {
+	private loadYoutube(element: HTMLIFrameElement) {
+		let { src = '' } = element
+
+		if (this.hasControls) {
+			const separator = src.includes('?') ? '&' : '?'
+			src = `${src}${separator}showinfo=0&controls=0`
+		}
+
+		element.src = src
+	}
+
+	load() {
 		this.dispose()
 
-		const video = this.dom.get('video')
-		if (!video) return
+		const player = this.dom.get('player')
+		if (!player) return
 
-		const native = video.querySelector('video'),
-			youtube = video.querySelector('iframe')
+		if (player instanceof HTMLVideoElement)
+			this.loadNative(player)
+		else if (player instanceof HTMLIFrameElement)
+			this.loadYoutube(player)
 
-		if (native) this.load(native as HTMLVideoElement)
-		else if (youtube) this.load(youtube as HTMLIFrameElement)
+		this.media = player
+		this.source = player.src
 	}
 
 	dispose(): void {
 		if (this.instance) {
 			try { this.instance.destroy() }
 			catch (err) {}
+			this.instance = null
 		}
 
-		this.instance = null
 		this.media = undefined
 		this.source = ''
 	}
@@ -445,34 +471,25 @@ class LightboxMedia {
 
 class LightboxMenu {
 	private elements: LightboxOptions['elements'] = []
-	private handlers = new Map<HTMLElement, (evt: Event) => void>()
 
 	constructor(
 		private dom: LightboxDOM,
-		private content: LightboxContentService,
-		private dispatch: EventDispatcher<LightboxEventMap>
+		private content: LightboxContentService
 	) {}
 
-	async generate(
+	async configure(
 		index: number,
 		elements?: LightboxOptions['elements']
 	) {
 		if (!!elements?.length) this.elements = elements
-		const directory = await this.create(index)
-		this.clear()
-		this.construct(directory)
+
+		const directory = await this.getDirectory(index)
+		this.setArrows(directory)
 
 		return directory
 	}
 
-	private clear(): void {
-		for (const [arrow, handler] of this.handlers)
-			arrow.removeEventListener('click', handler)
-
-		this.handlers = new Map()
-	}
-
-	private format(index: number): ArrowGroup {
+	private findAdjacent(index: number): ArrowGroup {
 		const max = this.elements.length,
 			next = index + 1 < max ? index + 1 : 0,
 			prev = index - 1 >= 0 ? index - 1 : max - 1
@@ -483,57 +500,44 @@ class LightboxMenu {
 		} as ArrowGroup
 	}
 
-	private async create(index: number): Promise<ArrowGroup> {
-		const pointers = this.format(index),
-			directions = Object.keys(pointers) as ArrowDirections[]
+	private async getDirectory(index: number): Promise<ArrowGroup> {
+		const adjacents = this.findAdjacent(index),
+			directory = {} as ArrowGroup,
+			dirs = Object.keys(adjacents) as ArrowDirections[]
 
-		const directory = Object.fromEntries(
-			await Promise.all(
-				directions.map(async dir => {
-					let details = {} as Partial<ArrowGroup[typeof dir]>,
-						props: ArrowGroup[typeof dir] = pointers[dir]
-
-					if (props.target)
-						details = await this.content.retrieve(props.target) ?? {}
-
-					props = Object.assign(props, details)
-
-					return [dir, props] as const
-				})
-			)
-		) as ArrowGroup
+		await Promise.all(
+			dirs.map(async dir => {
+				const adj = adjacents[dir],
+					details = adj.target ? await this.content.load(adj.target) : {}
+				directory[dir] = Object.assign({}, adj, details)
+			})
+		)
 
 		return directory
 	}
 
-	private construct(directory: ArrowGroup): void {
-		const arrows = this.dom.get('arrows') ?? []
-		const directions = Object.keys(directory)
-			.reverse() as ArrowDirections[]
+	private setArrows(directory: ArrowGroup): void {
+		const arrows = this.dom.get('arrows'),
+			dirs = Object.keys(directory).reverse() as ArrowDirections[]
 
-		for (const dir of directions) {
-			const arrow = [...arrows].find(({ dataset }) => dataset.direction === dir)
-			if (!arrow) continue
+		for (const dir of dirs) {
+			const arrow = arrows.find(({ dataset }) => dataset.direction === dir),
+				{ index, title } = (directory as ArrowGroup)[dir]
 
-			const { index, title } = (directory as ArrowGroup)[dir]
+			if (!arrow || !title) continue
+
+			const label = arrow.querySelector(LightboxSelector.Label),
+				text = wrapContent(title, 'strong')?.innerText
+
+			if (label) label.replaceChildren(text ?? '')
 			arrow.setAttribute('data-position', `${index}`)
-
-			const arrowText = arrow.querySelector(LightboxSelector.Label)
-			if (arrowText && title) {
-				const text = wrapContent(title, 'strong')?.innerText
-				arrowText.replaceChildren(text ?? '')
-			}
-
-			const handler = () => this.dispatch.emit('navigate', dir)
-			arrow.addEventListener('click', handler)
-			this.handlers.set(arrow, handler)
 		}
 	}
 }
 
 class LightboxNavigator {
 	private isSwapping = false
-	private newContent: HTMLElement | undefined = undefined
+	private pendingContent: HTMLElement | undefined = undefined
 
 	constructor(
 		private dom: LightboxDOM,
@@ -541,17 +545,17 @@ class LightboxNavigator {
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private content: LightboxContentService,
-		private dispatch: EventDispatcher<LightboxEventMap>
+		private dispatch: LightboxDispatcher
 	) {}
 
 	private async setupSwap<T extends ArrowDirections>(target: NonNullable<ArrowGroup[T]['target']>) {
-		const currentImage = this.dom.get('image')
-		this.newContent = await this.content.render(target)
+		this.pendingContent = await this.content.render(target)
+		if (!this.pendingContent) return
 
-		if (!currentImage || !this.newContent) return
-		const newImage = this.newContent.querySelector(LightboxSelector.Image)
+		const currentImage = this.dom.get('image'),
+			newImage = this.pendingContent.querySelector(LightboxSelector.Image)
 
-		if (newImage) {
+		if (currentImage && newImage) {
 			newImage.classList.add(LightboxClass.Temp)
 			currentImage.replaceWith(newImage)
 			this.dom.rebuildCache()
@@ -570,15 +574,15 @@ class LightboxNavigator {
 
 	private async performSwap() {
 		await Animation.wait('pause')
-		this.dom.updateContent(this.newContent)
-		this.media.configure()
+		this.dom.updateContent(this.pendingContent)
+		this.media.load()
 
 		this.dom.setState('open')
 		await this.animator.swap()
 	}
 
 	private async postSwap(index: number) {
-		const blocks = this.dom.get('blocks') ?? []
+		const blocks = this.dom.get('blocks')
 
 		this.dispatch.emit('update', index)
 		this.media.play()
@@ -603,7 +607,7 @@ class LightboxNavigator {
 		this.isSwapping = true
 		await this.setupSwap<T>(target)
 
-		if (!this.newContent) return
+		if (!this.pendingContent) return
 
 		const message = 'LightboxNavigator] swapContent() failed'
 		const timeline = [
@@ -633,50 +637,98 @@ class LightboxLifecycle {
 		private menu: LightboxMenu,
 		private navigator: LightboxNavigator,
 		private content: LightboxContentService,
-		private dispatch: EventDispatcher<LightboxEventMap>
+		private dispatch: LightboxDispatcher
 	) {}
 
+	handleError({
+		error,
+		message = 'Something went wrong with the lightbox.'
+	}: LightboxEventMap['error']): void {
+		const container = document.createElement('div'),
+			wrapper = document.createElement('span')
+
+		wrapper.textContent = message
+		container.classList.add('lightbox__error')
+		container.appendChild(wrapper)
+
+		this.dom.get('footer')?.appendChild(container)
+		console.error(`[Lightbox Error]: ${message}\n`, error)
+	}
+
 	private async prefetch(directory: ArrowGroup) {
+		if (!this.isActive || !Object.keys(this.directory).length) return
+
 		const adjacentTargets = [] as (HTMLElement | Node | null | undefined)[],
 			directions = Object.keys(directory) as ArrowDirections[]
 
-		directions.forEach(pointer => {
-			const { target } = directory[pointer]
+		directions.forEach(dir => {
+			const { target } = directory[dir]
 			if (!!target) adjacentTargets.push(target)
 		})
 
 		if (!adjacentTargets.length) return
-		await this.content.prefetcher(adjacentTargets).catch(() => {})
+		await this.content.prefetcher(adjacentTargets).catch(error => (
+			this.dispatch.emit('error', { error, message: '[Lifecycle] prefetch failed' })
+		))
 	}
 
-	async initialize(options: LightboxOptions) {
-		const { elements, index, target } = options
+	private async initialize({ elements, index, target }: LightboxOptions) {
+		if (this.isActive) return
 
-		this.isReady = (async () => await this.dom.setContent(target))()
-		this.media.configure()
+		this.isReady = (async () => {
+			await this.dom.setContent(target)
+			this.media.load()
+		})()
 
-		if (!!elements?.length) await this.update(index, elements)
+		if (!!elements?.length) await this.handleUpdate(index, elements)
 	}
 
-	async navigate(dir: ArrowDirections) {
+	private registerHandlers(): void {
+		const events: Record<keyof LightboxEventMap, keyof LightboxLifecycle> = {
+			close: 'handleClose',
+			error: 'handleError',
+			navigate: 'handleNavigate',
+			open: 'handleOpen',
+			update: 'handleUpdate',
+		} as const
+
+		const eventsList = Object.entries(events) as Entries<typeof events>
+		for (const [event, method] of eventsList) {
+			const handler = this[method].bind(this) as HandlerFor<LightboxEventMap, typeof event>
+
+			this.dispatch.on(event, handler)
+		}
+	}
+
+	async handleNavigate(dir: ArrowDirections) {
 		if (!this.isActive || !Object.keys(this.directory).length) return
 		await this.navigator.swapContent<typeof dir>(this.directory, dir)
 	}
 
-	async update(
+	async handleUpdate(
 		index: number,
 		elements?: LightboxOptions['elements']
 	) {
 		this.currentIndex = index ?? 0
-		const directory = await this.menu.generate(this.currentIndex, elements)
+		await Animation.wait()
 
+		const directory = await this.menu.configure(this.currentIndex, elements)
 		this.directory = directory
+
+		await Animation.wait()
 		await this.prefetch(this.directory)
 	}
 
-	async open() {
+	async handleMount(options: LightboxOptions) {
+		this.dom.append()
+		this.registerHandlers()
+		await this.initialize(options)
+	}
+
+	async handleOpen() {
 		if (this.isActive) return
 		this.isActive = true
+		document.body.style.overflow = 'hidden'
 
 		this.dom.toggleDisable()
 		await this.isReady
@@ -687,35 +739,36 @@ class LightboxLifecycle {
 		this.dom.toggleDisable()
 	}
 
-	async close() {
+	async handleClose() {
 		if (!this.isActive) return
 		this.isActive = false
 
-		this.media.pause()
 		this.dom.toggleDisable()
+		this.media.pause()
 		this.events.unbind()
 
 		await this.animator.Root.fadeOut()
-		this.destroy()
+		document.body.style.overflow = 'auto'
+		this.handleDestroy()
 	}
 
-	destroy(): void {
+	handleDestroy(): void {
 		this.currentIndex = 0
 		this.directory = {} as ArrowGroup
 		this.isActive = false
 		this.isReady = null
 
+		this.dispatch.clear()
 		this.media.dispose()
 		this.dom.remove()
-		this.dispatch.clear()
 	}
 }
 
 export class LightboxController {
 	private readonly content: LightboxContentService
-	private readonly dispatch: EventDispatcher<LightboxEventMap>
+	private readonly dispatch: LightboxDispatcher
 
-	private readonly factory: LightboxFactory
+	private readonly root: HTMLDivElement
 	private readonly dom: LightboxDOM
 	private readonly media: LightboxMedia
 	private readonly menu: LightboxMenu
@@ -727,18 +780,15 @@ export class LightboxController {
 
 	constructor(private options: LightboxOptions) {
 		if (LightboxController.instance)
-			void LightboxController.instance.refresh(options)
+			LightboxController.instance.destroy()
 
 		this.content = new LightboxContentService()
 		this.dispatch = new EventDispatcher()
-		this.factory = new LightboxFactory(this.options)
+		this.root = new LightboxFactory(this.options).createRoot()
 
-		const root = this.factory.createRoot()
-		this.dom = new LightboxDOM(root, this.content)
-		this.dom.append()
-
-		this.media = new LightboxMedia(this.dom)
-		this.menu = new LightboxMenu(this.dom, this.content, this.dispatch)
+		this.dom = new LightboxDOM(this.root, this.content)
+		this.media = new LightboxMedia(this.dom, this.dispatch)
+		this.menu = new LightboxMenu(this.dom, this.content)
 		this.events = new LightboxEvents(this.dom, this.dispatch)
 
 		this.animator = new LightboxAnimator(this.dom)
@@ -762,52 +812,16 @@ export class LightboxController {
 			this.dispatch
 		)
 
-		this.registerHandlers()
-		void this.lifecycle.initialize(this.options)
 		LightboxController.instance = this
-	}
-
-	private registerHandlers(): void {
-		this.dispatch.on('open', () => this.lifecycle.open())
-		this.dispatch.on('close', () => this.lifecycle.close())
-		this.dispatch.on('navigate', dir => this.lifecycle.navigate(dir))
-		this.dispatch.on('update', i => this.lifecycle.update(i))
-		this.dispatch.on('error', err => this.handleError(err))
-	}
-
-	private handleError({
-		error,
-		message = 'Something went wrong with the lightbox.'
-	}: LightboxEventMap['error']) {
-		const container = document.createElement('div'),
-			wrapper = document.createElement('span')
-
-		wrapper.textContent = message
-		container.classList.add('lightbox__error')
-		container.appendChild(wrapper)
-
-		this.dom.get('footer')?.appendChild(container)
-		console.error(`[Lightbox Error]: ${message}\n`, error)
+		void this.lifecycle.handleMount(this.options)
 	}
 
 	async open() { await this.dispatch.emit('open') }
 
 	async close() { await this.dispatch.emit('close') }
 
-	async toggle() { await (this.dom.getState() === 'close' ? this.open() : this.close()) }
-
-	private async refresh(options: LightboxOptions) {
-		try {
-			this.options = options
-			await this.lifecycle.initialize(this.options)
-			await this.dispatch.emit('open')
-		}
-		catch (error) { this.dispatch.emit('error', { error }) }
-	}
-
-	destroy() {
-		this.lifecycle.destroy()
-		if (LightboxController.instance === this) LightboxController.instance = null
-		console.warn('[LightboxController] already exists in DOM')
+	destroy(): void {
+		this.lifecycle.handleDestroy()
+		LightboxController.instance = null
 	}
 }
