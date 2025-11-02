@@ -1,3 +1,5 @@
+import type { Properties } from '../types'
+
 
 export const findChildBy = (
 	element: Element | null,
@@ -58,7 +60,7 @@ export const getDeepestChild = (parent: Element): Element[] => (
 
 const setProperties = <T extends HTMLElement>(
 	target: T,
-	properties: Record<keyof T, T[keyof T]> | {}
+	properties: Properties<T>
 ) => Object.entries(properties)
 	.forEach(([prop, value]) => target.setAttribute(prop, `${value}`))
 

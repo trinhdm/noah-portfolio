@@ -2,6 +2,7 @@ import type { BaseAnimationOptions } from '../services/AnimationService'
 
 
 export type Entries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>
+export type Properties<T extends HTMLElement = HTMLElement> = Record<keyof T, T[keyof T]> | {}
 
 
 export interface BlockOptions {

@@ -1,5 +1,26 @@
-import type { HandlerFor } from '../../services'
+import type { Properties } from '../../types'
+import type { HandlerFor, PageDetails } from '../../services'
 
+
+type NavigationItem = PageDetails & {
+	index: number
+	target: HTMLElement | null
+}
+
+type ArrowGroup = {
+	next: NavigationItem
+	prev: NavigationItem
+}
+
+type ArrowDirections = keyof ArrowGroup
+
+
+type LightboxStates = 'open' | 'change' | 'close'
+
+type LightboxOptions = Pick<NavigationItem, 'index' | 'target'> & {
+	elements: HTMLElement[]
+	properties?: Properties<HTMLDivElement>
+}
 
 type LightboxElements = {
 	arrows: HTMLElement[]
@@ -20,15 +41,6 @@ type LightboxElements = {
 
 type LightboxElement = keyof LightboxElements
 
-type LightboxStates = 'open' | 'change' | 'close'
-
-type LightboxOptions = {
-	elements: HTMLElement[]
-	index: number
-	properties?: LightboxProperties
-	target: Node
-}
-
 type LightboxEventMap = {
 	close: void
 	error: {
@@ -46,23 +58,6 @@ interface LightboxDispatcher<E = LightboxEventMap> {
 	emit<K extends keyof E>(event: K, payload?: E[K]): Promise<void>
 	clear<K extends keyof E>(event?: K): void
 }
-
-
-type NavigationItem = {
-	content?: string
-	id?: string
-	index: number
-	target: HTMLElement | null
-	title?: string
-	url?: string
-}
-
-type ArrowGroup = {
-	next: NavigationItem
-	prev: NavigationItem
-}
-
-type ArrowDirections = keyof ArrowGroup
 
 
 export type {

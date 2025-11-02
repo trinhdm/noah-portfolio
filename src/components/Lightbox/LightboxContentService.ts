@@ -1,17 +1,13 @@
-import { findElement, getBlockType } from '../../utils'
+import { getBlockType } from '../../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
-import { ContentService } from '../../services'
+import { ContentService, HTMLTarget } from '../../services'
 
 
 export class LightboxContentService extends ContentService {
 	private async construct(
-		element: HTMLElement,
+		target: HTMLElement,
 		hasImage: boolean = true
 	): Promise<HTMLDivElement | undefined> {
-		const target = element.classList.contains(this.selector)
-			? element
-			: findElement(element, this.selector) ?? element
-
 		const { content } = await this.load(target)
 		if (!content) return
 
@@ -28,24 +24,22 @@ export class LightboxContentService extends ContentService {
 		return container
 	}
 
-	private sanitize(image: HTMLElement | undefined) {
-		if (!image) return
-
-		const attributes = Array.from(image.attributes)
+	private sanitize(fragment: HTMLElement) {
+		const attributes = Array.from(fragment.attributes)
 
 		attributes.forEach(({ name, value }) => {
 			if (name === 'class') {
 				const classes = value.split(' ')
 					.filter(cl => ['fe-block', 'lightbox'].some(c => cl.includes(c)))
 					.join(' ')
-				image.setAttribute(name, classes)
+				fragment.setAttribute(name, classes)
 			} else {
-				image.removeAttribute(name)
+				fragment.removeAttribute(name)
 			}
 		})
 	}
 
-	private process(fragment: HTMLElement | undefined) {
+	private process(fragment: HTMLTarget) {
 		if (!fragment) return undefined
 
 		const container = document.createElement('div'),
@@ -62,10 +56,11 @@ export class LightboxContentService extends ContentService {
 
 			const type = getBlockType(formatted)
 			if (type === 'image') this.sanitize(formatted)
-			// if (type === 'image' || type === 'video')
-			// 	mediaEls[type] = formatted
 
 			container.appendChild(formatted)
+
+			// if (type === 'image' || type === 'video')
+			// 	mediaEls[type] = formatted
 		}
 
 		// if (mediaEls.image && mediaEls.video) {
@@ -76,12 +71,11 @@ export class LightboxContentService extends ContentService {
 		// 	})
 		// }
 
-		return container.childNodes.length ? container : undefined
+		return !!container.childNodes.length ? container : undefined
 	}
 
-	async render(target: HTMLElement | undefined): Promise<HTMLElement | undefined> {
+	async render(target: HTMLTarget): Promise<HTMLTarget> {
 		if (!target) return
-
 		const fragment = await this.construct(target)
 		return this.process(fragment)
 	}

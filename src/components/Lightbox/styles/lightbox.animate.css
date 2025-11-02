@@ -39,6 +39,10 @@
 			animation-name: fadeInUp;
 		}
 
+		.lightbox__body {
+			animation-delay: var(--dt-lb-delay-start);
+		}
+
 		.lightbox__overlay {
 			animation-delay: 0s;
 			animation-name: fadeIn;
@@ -62,7 +66,6 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-in-quad);
 			}
 
@@ -89,7 +92,6 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-in-quart);
 			}
 

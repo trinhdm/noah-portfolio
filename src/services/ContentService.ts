@@ -1,9 +1,4 @@
-import {
-	findChildBy,
-	findElement,
-	isHeaderTag,
-	wrapContent,
-} from '../utils'
+import { findChildBy, isHeaderTag, wrapContent } from '../utils'
 
 
 type PageGroup = {
@@ -11,10 +6,12 @@ type PageGroup = {
 	url: string
 }
 
-type PageDetails = PageGroup & {
+export type PageDetails = PageGroup & {
 	content: string | undefined
-	title: string | undefined
+	title: HTMLElement | null
 }
+
+export type HTMLTarget = HTMLElement | null | undefined
 
 
 export class ContentService {
@@ -25,7 +22,7 @@ export class ContentService {
 		this.selector = selector
 	}
 
-	private parse(target: HTMLElement): PageGroup {
+	private parse(target: HTMLTarget): PageGroup {
 		const anchor = target ? findChildBy(target, { tagName: 'a' }) : null
 		let id = '', url = ''
 
@@ -43,9 +40,9 @@ export class ContentService {
 
 	private extract(doc: Document, id: string): HTMLElement {
 		const anchor = doc.getElementById(id),
-			container = anchor?.closest('.content')?.querySelector('.fluid-engine')
+			parent = anchor?.closest('.content')?.querySelector('.fluid-engine')
 
-		return container as HTMLElement || undefined
+		return parent as HTMLElement || undefined
 	}
 
 	private async fetch(page: PageGroup): Promise<HTMLElement | undefined> {
@@ -65,65 +62,59 @@ export class ContentService {
 		}
 	}
 
-	private async retrieve(element: HTMLElement): Promise<PageGroup & {
-		content: string | undefined
-		title: string | undefined
-	}> {
-		let content, title
-		const target = element.classList.contains(this.selector)
-			? element
-			: findElement(element, this.selector) ?? element
-
+	private async retrieve(target: HTMLTarget, tag: string = 'strong'): Promise<PageDetails> {
 		const page = this.parse(target),
-			html = await this.fetch(page)
+			parent = await this.fetch(page)
 
-		if (html) {
-			const textEls = html.querySelectorAll('[data-sqsp-text-block-content]'),
-				tagName = 'strong'
-			let titleEl = [...textEls].find(
-					el => !(isHeaderTag(el.firstElementChild!.tagName))
+		let content: string | undefined,
+			title: HTMLElement | null = null
+
+		if (parent) {
+			const textEls = parent.querySelectorAll('[data-sqsp-text-block-content]')
+			let titleEl = Array.from(textEls).find(
+					el => !(isHeaderTag(el.firstElementChild!.tagName ?? ''))
 				) as HTMLElement | null
 
-			titleEl = findChildBy(titleEl, { tagName })
+			titleEl = findChildBy(titleEl, { tagName: 'strong' })
 
 			if (titleEl) {
-				const newTitleEl = wrapContent(titleEl, tagName)
+				const newTitleEl = wrapContent(titleEl, tag)
 				titleEl.replaceWith(newTitleEl ?? '')
 			}
 
-			content = html.innerHTML.trim()
-			title = titleEl?.innerText
+			content = parent.innerHTML.trim()
+			title = titleEl
 		}
 
 		return { ...page, content, title }
 	}
 
-	async load(t: HTMLElement | Node): Promise<PageDetails> {
+	async load(t: HTMLTarget, tag?: string): Promise<PageDetails> {
 		const base = { content: undefined } as PageDetails,
 			target = t as HTMLElement,
 			id = target.dataset.id || target.id
 
 		if (this.cache.has(id)) return this.cache.get(id) ?? base
 
-		const fragment = await this.retrieve(target)
+		const fragment = await this.retrieve(target, tag)
 		if (fragment) this.cache.set(id, fragment)
 
 		return fragment ?? base
 	}
 
-	async prefetch(t: HTMLElement | Node): Promise<void> {
+	async prefetch(t: HTMLTarget, tag?: string): Promise<void> {
 		const target = t as HTMLElement,
 			id = target.dataset.id || target.id
 
 		if (this.cache.has(id)) return
 
 		try {
-			const fragment = await this.retrieve(target)
+			const fragment = await this.retrieve(target, tag)
 			if (fragment) this.cache.set(id, fragment)
 		} catch (err) { console.warn(`[ContentService] prefetch() failed for:`, id, err) }
 	}
 
-	async prefetcher(targets: (HTMLElement | Node | null | undefined)[]) {
+	async prefetcher(targets: HTMLTarget[], tag?: string) {
 		const data = new WeakSet<HTMLElement>()
 
 		for (const t of targets) {
@@ -132,7 +123,7 @@ export class ContentService {
 			if (!target || data.has(target)) continue
 			data.add(target)
 
-			try { await this.prefetch(target) }
+			try { await this.prefetch(target, tag) }
 			catch (err) { console.warn(`[ContentService] prefetcher() failed on:`, target, err) }
 			finally { data.delete(target) }
 		}
