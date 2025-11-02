@@ -1,6 +1,6 @@
 
 export const findChildBy = (
-	element: HTMLElement | null,
+	element: Element | null,
 	criteria: Record<string, number | string> = {}
 ): HTMLElement | null => {
 	if (!element) return null
@@ -24,7 +24,7 @@ export const findChildBy = (
 	// 	condition = !!values?.length && values?.includes(`${value}`)
 	// }
 
-	if (matches) return element
+	if (matches) return element as HTMLElement
 
 	for (let child of Array.from(element.children)) {
 		const match = findChildBy(child as HTMLElement, criteria)

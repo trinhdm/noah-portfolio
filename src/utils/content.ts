@@ -1,4 +1,5 @@
 import { findChildBy } from './dom'
+import type { BlockTypes } from '../types'
 
 
 export const getBackground = (selector: string = '.section-background') => {
@@ -18,6 +19,13 @@ export const getBackground = (selector: string = '.section-background') => {
 	document.querySelector('.content-wrapper')?.prepend(background)
 }
 
+export const getBlockType = (block: HTMLElement): BlockTypes | null => {
+	const className = block.firstElementChild?.classList[1],
+		matchClass = className?.match(/([a-z0-9-]+)-block/i)
+	return (matchClass?.[1] ?? null) as BlockTypes | null
+}
+
+export const isHeaderTag = (tag: string) => /^H[1-4]$/.test(tag)
 
 export const wrapContent = (
 	input: HTMLElement | string | null | undefined,

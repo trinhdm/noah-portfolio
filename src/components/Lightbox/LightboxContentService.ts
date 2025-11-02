@@ -1,3 +1,4 @@
+import { getBlockType } from '../../utils'
 import { BlockDispatcher, ContentService } from '../../services'
 
 
@@ -34,7 +35,7 @@ export class LightboxContentService extends ContentService {
 			if (el === [...elements].at(-1))
 				formatted.querySelector(':first-child')?.classList.add('block--animated')
 
-			const type = BlockDispatcher.getType(formatted)
+			const type = getBlockType(formatted)
 			if (type === 'image') this.sanitize(formatted)
 			// if (type === 'image' || type === 'video')
 			// 	mediaEls[type] = formatted

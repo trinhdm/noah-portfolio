@@ -1,7 +1,7 @@
-import { findChildBy } from "../utils/dom"
+import { getBlockType, findChildBy, isHeaderTag } from '../utils'
+import type { BlockTypes } from '../types'
 
-const BLOCK_TYPES = ['html', 'image', 'video'] as const
-type BlockTypes = typeof BLOCK_TYPES[number]
+
 type BlockHandler = (block: HTMLElement) => HTMLElement | null
 
 
@@ -17,7 +17,7 @@ export class BlockDispatcher {
 	}
 
 	static format(block: HTMLElement): HTMLElement | null {
-		const type = BlockDispatcher.getType(block)
+		const type = getBlockType(block)
 		if (!type) return null
 
 		const handler = BlockDispatcher.handlers[type]
@@ -26,15 +26,9 @@ export class BlockDispatcher {
 		return handler(block)
 	}
 
-	static getType(block: HTMLElement): BlockTypes | null {
-		const className = block.firstElementChild?.classList[1],
-			matchClass = className?.match(/([a-z0-9-]+)-block/i)
-		return (matchClass?.[1] ?? null) as BlockTypes | null
-	}
-
 	private static cloneBlock(block: HTMLElement): HTMLElement {
 		const cloned = block.cloneNode(true) as HTMLElement,
-			type = BlockDispatcher.getType(block)
+			type = getBlockType(block)
 
 		cloned.classList.add(`lightbox__${type}`)
 
@@ -50,10 +44,8 @@ export class BlockDispatcher {
 	}
 
 	private static handleHtmlBlock(block: HTMLElement): HTMLElement | null {
-		const isHeaderTag = (tag: string) => /^H[1-4]$/.test(tag)
-
 		return BlockDispatcher.processBlock(block, clonedBlock => {
-			const container = block.querySelector('.sqs-html-content') as HTMLElement | null
+			const container = block.querySelector('.sqs-html-content')
 			if (!container) return null
 
 			const children = Array.from(container.children)
@@ -65,7 +57,7 @@ export class BlockDispatcher {
 
 	private static handleImageBlock(block: HTMLElement): HTMLElement | null {
 		return BlockDispatcher.processBlock(block, clonedBlock => {
-			const container = block.querySelector('[data-animation-role]') as HTMLElement | null
+			const container = block.querySelector('[data-animation-role]')
 
 			const img = container ? findChildBy(container, { tagName: 'img' }) : null
 			if (!img) return null

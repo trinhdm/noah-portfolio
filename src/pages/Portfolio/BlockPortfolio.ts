@@ -1,10 +1,5 @@
-import {
-	AnimationService,
-	BlockDispatcher,
-	ContentService,
-} from '../../services'
-
-import { findElement, wrapContent } from '../../utils'
+import { findElement, getBlockType, wrapContent } from '../../utils'
+import { AnimationService, ContentService } from '../../services'
 import type { BlockOptions } from '../../types'
 
 
@@ -53,7 +48,8 @@ export class BlockPortfolio {
 	private configureBlock(): void {
 		if (!this.block) return
 
-		const type = BlockDispatcher.getType(this.block) ?? 'base'
+		const type = getBlockType(this.block) ?? 'base'
+		console.log(type)
 
 		this.block.classList.add(
 			this.className,

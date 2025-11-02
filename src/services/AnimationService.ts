@@ -112,7 +112,6 @@ export class AnimationService {
 				}
 
 				target.addEventListener(event, handleEnd, { once: true })
-				console.log({ target, bufferTime })
 			}),
 			await this.wait(bufferTime),
 		])

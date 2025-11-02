@@ -8,5 +8,11 @@ interface BlockOptions {
 	target: HTMLElement
 }
 
+const BLOCK_TYPES = ['html', 'image', 'video'] as const
+type BlockTypes = typeof BLOCK_TYPES[number]
 
-export type { BlockOptions }
+
+export type {
+	BlockOptions,
+	BlockTypes,
+}

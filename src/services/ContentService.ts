@@ -1,5 +1,9 @@
-import { findChildBy, findElement, wrapContent } from '../utils'
-import { BlockDispatcher } from './BlockDispatcher.ts'
+import {
+	findChildBy,
+	findElement,
+	isHeaderTag,
+	wrapContent,
+} from '../utils'
 
 
 type PageGroup = {
@@ -32,18 +36,17 @@ export class ContentService {
 			const textEls = html.querySelectorAll('[data-sqsp-text-block-content]'),
 				tagName = 'strong'
 			let titleEl = [...textEls].find(
-					el => !(/^H[1-4]$/.test(el.firstElementChild!.tagName))
+					el => !(isHeaderTag(el.firstElementChild!.tagName))
 				) as HTMLElement | null
 
+			content = html.innerHTML.trim()
 			titleEl = findChildBy(titleEl, { tagName })
 
 			if (titleEl) {
 				const newTitleEl = wrapContent(titleEl, tagName)
 				titleEl.replaceWith(newTitleEl ?? '')
+				title = titleEl.innerText
 			}
-
-			content = html.innerHTML.trim()
-			title = titleEl?.innerText
 		}
 
 		return { ...page, content, title }
