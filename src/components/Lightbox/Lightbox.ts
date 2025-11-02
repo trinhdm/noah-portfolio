@@ -342,12 +342,12 @@ class LightboxEvents {
 
 	constructor(
 		private dom: LightboxDOM,
-		private dispatcher: EventDispatcher<LightboxEventMap>
+		private dispatch: EventDispatcher<LightboxEventMap>
 	) {}
 
 	private handleClick(element: HTMLElement) {
 		if (!element) return
-		const handler = async () => await this.dispatcher.emit('close')
+		const handler = async () => await this.dispatch.emit('close')
 		element.addEventListener('click', handler)
 		this.handlers.push(() => element.removeEventListener('click', handler))
 	}
@@ -450,7 +450,7 @@ class LightboxMenu {
 	constructor(
 		private dom: LightboxDOM,
 		private content: LightboxContentService,
-		private dispatcher: EventDispatcher<LightboxEventMap>
+		private dispatch: EventDispatcher<LightboxEventMap>
 	) {}
 
 	async generate(
@@ -524,7 +524,7 @@ class LightboxMenu {
 				arrowText.replaceChildren(text ?? '')
 			}
 
-			const handler = () => this.dispatcher.emit('navigate', dir)
+			const handler = () => this.dispatch.emit('navigate', dir)
 			arrow.addEventListener('click', handler)
 			this.handlers.set(arrow, handler)
 		}
@@ -541,7 +541,7 @@ class LightboxNavigator {
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private content: LightboxContentService,
-		private dispatcher: EventDispatcher<LightboxEventMap>
+		private dispatch: EventDispatcher<LightboxEventMap>
 	) {}
 
 	private async setupSwap<T extends ArrowDirections>(target: NonNullable<ArrowGroup[T]['target']>) {
@@ -580,7 +580,7 @@ class LightboxNavigator {
 	private async postSwap(index: number) {
 		const blocks = this.dom.get('blocks') ?? []
 
-		this.dispatcher.emit('update', index)
+		this.dispatch.emit('update', index)
 		this.media.play()
 
 		await Animation.wait('swap')
@@ -598,7 +598,6 @@ class LightboxNavigator {
 		dir: T
 	) {
 		const { index, target } = directory[dir]
-
 		if (this.isSwapping || !target) return
 
 		this.isSwapping = true
@@ -614,7 +613,7 @@ class LightboxNavigator {
 		]
 
 		for (const step of timeline)
-			await step().catch(error => this.dispatcher.emit('error', { error, message }))
+			await step().catch(error => this.dispatch.emit('error', { error, message }))
 
 		this.isSwapping = false
 	}
@@ -634,7 +633,7 @@ class LightboxLifecycle {
 		private menu: LightboxMenu,
 		private navigator: LightboxNavigator,
 		private content: LightboxContentService,
-		private dispatcher: EventDispatcher<LightboxEventMap>
+		private dispatch: EventDispatcher<LightboxEventMap>
 	) {}
 
 	private async prefetch(directory: ArrowGroup) {
@@ -708,13 +707,13 @@ class LightboxLifecycle {
 
 		this.media.dispose()
 		this.dom.remove()
-		this.dispatcher.clear()
+		this.dispatch.clear()
 	}
 }
 
 export class LightboxController {
 	private readonly content: LightboxContentService
-	private readonly dispatcher: EventDispatcher<LightboxEventMap>
+	private readonly dispatch: EventDispatcher<LightboxEventMap>
 
 	private readonly factory: LightboxFactory
 	private readonly dom: LightboxDOM
@@ -731,7 +730,7 @@ export class LightboxController {
 			void LightboxController.instance.refresh(options)
 
 		this.content = new LightboxContentService()
-		this.dispatcher = new EventDispatcher()
+		this.dispatch = new EventDispatcher()
 		this.factory = new LightboxFactory(this.options)
 
 		const root = this.factory.createRoot()
@@ -739,8 +738,8 @@ export class LightboxController {
 		this.dom.append()
 
 		this.media = new LightboxMedia(this.dom)
-		this.menu = new LightboxMenu(this.dom, this.content, this.dispatcher)
-		this.events = new LightboxEvents(this.dom, this.dispatcher)
+		this.menu = new LightboxMenu(this.dom, this.content, this.dispatch)
+		this.events = new LightboxEvents(this.dom, this.dispatch)
 
 		this.animator = new LightboxAnimator(this.dom)
 		this.navigator = new LightboxNavigator(
@@ -749,7 +748,7 @@ export class LightboxController {
 			this.events,
 			this.media,
 			this.content,
-			this.dispatcher
+			this.dispatch
 		)
 
 		this.lifecycle = new LightboxLifecycle(
@@ -760,7 +759,7 @@ export class LightboxController {
 			this.menu,
 			this.navigator,
 			this.content,
-			this.dispatcher
+			this.dispatch
 		)
 
 		this.registerHandlers()
@@ -769,11 +768,11 @@ export class LightboxController {
 	}
 
 	private registerHandlers(): void {
-		this.dispatcher.on('open', () => this.lifecycle.open())
-		this.dispatcher.on('close', () => this.lifecycle.close())
-		this.dispatcher.on('navigate', dir => this.lifecycle.navigate(dir))
-		this.dispatcher.on('update', i => this.lifecycle.update(i))
-		this.dispatcher.on('error', err => this.handleError(err))
+		this.dispatch.on('open', () => this.lifecycle.open())
+		this.dispatch.on('close', () => this.lifecycle.close())
+		this.dispatch.on('navigate', dir => this.lifecycle.navigate(dir))
+		this.dispatch.on('update', i => this.lifecycle.update(i))
+		this.dispatch.on('error', err => this.handleError(err))
 	}
 
 	private handleError({
@@ -791,20 +790,19 @@ export class LightboxController {
 		console.error(`[Lightbox Error]: ${message}\n`, error)
 	}
 
-	async open() { await this.dispatcher.emit('open') }
+	async open() { await this.dispatch.emit('open') }
 
-	async close() { await this.dispatcher.emit('close') }
+	async close() { await this.dispatch.emit('close') }
 
 	async toggle() { await (this.dom.getState() === 'close' ? this.open() : this.close()) }
 
 	private async refresh(options: LightboxOptions) {
 		try {
 			this.options = options
-
 			await this.lifecycle.initialize(this.options)
-			await this.dispatcher.emit('open')
+			await this.dispatch.emit('open')
 		}
-		catch (error) { this.dispatcher.emit('error', { error }) }
+		catch (error) { this.dispatch.emit('error', { error }) }
 	}
 
 	destroy() {
