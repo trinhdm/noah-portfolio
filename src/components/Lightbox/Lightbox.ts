@@ -602,6 +602,100 @@ class LightboxNavigation {
 	}
 }
 
+class LightboxLifecycle {
+	private currentIndex: number = 0
+	private directory: ArrowGroup = {} as ArrowGroup
+	private isActive: boolean = false
+
+	constructor(
+		private dom: LightboxDOM,
+		private animator: LightboxAnimation,
+		private events: LightboxEvents,
+		private media: LightboxMedia,
+		private menu: LightboxMenu,
+		private navigator: LightboxNavigation,
+		private content: ContentService,
+		private dispatcher: EventDispatcher<LightboxEventMap>
+	) {}
+
+	private async prefetchFrom(directory: ArrowGroup) {
+		const adjacentTargets = [] as (HTMLElement | Node | null | undefined)[],
+			directions = Object.keys(directory) as ArrowDirections[]
+
+		directions.forEach(pointer => {
+			const { target } = directory[pointer]
+			if (!!target) adjacentTargets.push(target)
+		})
+
+		if (!adjacentTargets.length) return
+		await this.content.prefetcher(adjacentTargets).catch(() => {})
+	}
+
+	async initialize({ elements, index, target }: LightboxOptions) {
+		try {
+			await this.dom.setContent(target)
+			this.media.configure()
+
+			if (!!elements?.length) {
+				this.menu.store(elements)
+				await this.dispatcher.emit('update', index)
+			}
+		} catch (err) { console.error('[LightboxLifecycle] initialize() failed:', err) }
+	}
+
+	async navigate(dir: ArrowDirections) {
+		if (!this.isActive || !Object.keys(this.directory).length) return
+		await this.navigator.swapContent<typeof dir>(this.directory, dir)
+	}
+
+	async update(index: number) {
+		this.currentIndex = index ?? 0
+		const directory = await this.menu.generate(this.currentIndex)
+
+		this.directory = directory
+		await this.prefetchFrom(this.directory)
+	}
+
+	async open() {
+		if (this.isActive) return
+		this.isActive = true
+
+		try {
+			this.dom.toggleDisable()
+			await this.animator.fadeRootIn()
+
+			this.media.play()
+			this.events.bind()
+		}
+		catch (err) { console.warn('[LightboxLifecycle] open() failed:', err) }
+		finally { this.dom.toggleDisable() }
+	}
+
+	async close() {
+		if (!this.isActive) return
+		this.isActive = false
+
+		try {
+			this.media.pause()
+			this.dom.toggleDisable()
+			this.events.unbind()
+
+			await this.animator.fadeRootOut()
+			await Animation.waitForEnd(this.dom.get('overlay'))
+		}
+		catch (err) { console.warn('[LightboxLifecycle] close() failed:', err) }
+		finally { this.destroy() }
+	}
+
+	destroy(): void {
+		this.isActive = false
+		this.menu.clear()
+		this.media.dispose()
+		this.dom.remove()
+		this.dispatcher.clear()
+	}
+}
+
 export class LightboxController {
 	private readonly content: ContentService
 	private readonly dispatcher: EventDispatcher<LightboxEventMap>
@@ -613,10 +707,8 @@ export class LightboxController {
 	private readonly events: LightboxEvents
 	private readonly media: LightboxMedia
 	private readonly navigator: LightboxNavigation
+	private readonly lifecycle: LightboxLifecycle
 
-	private currentIndex: number = 0
-	private directory: ArrowGroup = {} as ArrowGroup
-	private isActive: boolean = false
 	readonly ready: Promise<void>
 
 	constructor(private options: LightboxOptions) {
@@ -626,6 +718,7 @@ export class LightboxController {
 
 		const root = this.factory.createRoot()
 		this.dom = new LightboxDOM(root, this.content)
+		this.dom.append()
 
 		this.media = new LightboxMedia(this.dom)
 		this.menu = new LightboxMenu(this.dom, this.content, this.dispatcher)
@@ -641,7 +734,17 @@ export class LightboxController {
 			this.dispatcher
 		)
 
-		this.dom.append()
+		this.lifecycle = new LightboxLifecycle(
+			this.dom,
+			this.animator,
+			this.events,
+			this.media,
+			this.menu,
+			this.navigator,
+			this.content,
+			this.dispatcher
+		)
+
 		this.registerDefaultHandlers()
 
 		let resolveReady!: () => void
@@ -650,99 +753,24 @@ export class LightboxController {
 	}
 
 	private registerDefaultHandlers(): void {
-		this.dispatcher.on('ready', this.handleReady.bind(this))
-		this.dispatcher.on('open', this.handleOpen.bind(this))
-		this.dispatcher.on('close', this.handleClose.bind(this))
-		this.dispatcher.on('navigate', this.handleNavigate.bind(this))
-		this.dispatcher.on('update', this.handleUpdate.bind(this))
-	}
-
-	private async prefetchFrom(directory: ArrowGroup) {
-		const adjacentTargets = [] as (HTMLElement | Node | null | undefined)[],
-			directions = Object.keys(directory) as ArrowDirections[]
-
-		directions?.forEach(pointer => {
-			const { target } = directory[pointer]
-			if (!!target) adjacentTargets.push(target)
+		this.dispatcher.on('ready', (resolve: () => void) => {
+			this.lifecycle.initialize(this.options).finally(resolve)
 		})
-
-		if (!adjacentTargets.length) return
-		await this.content.prefetcher(adjacentTargets).catch(() => {})
+		this.dispatcher.on('open', () => this.lifecycle.open())
+		this.dispatcher.on('close', () => this.lifecycle.close())
+		this.dispatcher.on('navigate', dir => this.lifecycle.navigate(dir))
+		this.dispatcher.on('update', i => this.lifecycle.update(i))
 	}
 
-	private async handleReady(resolveReady: () => void) {
-		const { elements, index, target } = this.options
-
-		try {
-			await this.dom.setContent(target)
-			this.media.configure()
-
-			if (!!elements?.length) {
-				this.menu.store(elements)
-				await this.dispatcher.emit('update', index)
-			}
-		}
-		catch (err) { console.error('[LightboxController] Initialization failed:', err) } finally { resolveReady() }
-	}
-
-	private async handleNavigate(dir: ArrowDirections) {
-		if (!this.isActive || !Object.keys(this.directory).length) return
-		await this.navigator.swapContent<typeof dir>(this.directory, dir)
-	}
-
-	private async handleUpdate(index: number) {
-		this.currentIndex = index ?? 0
-		const directory = await this.menu.generate(this.currentIndex)
-
-		this.directory = directory
-		await this.prefetchFrom(this.directory)
-	}
-
-	private async handleOpen() {
+	async open() {
 		await this.ready
-		if (this.isActive) return
-		this.isActive = true
-
-		try {
-			await Animation.wait()				// buffer for image.maxHeight
-			this.dom.toggleDisable()
-			await this.animator.fadeRootIn()
-
-			this.media.play()
-			this.events.bind()
-		}
-		catch (err) { console.warn('[LightboxController] handleOpen() failed:', err) }
-		finally { this.dom.toggleDisable() }
+		await this.dispatcher.emit('open')
 	}
 
-	private async handleClose() {
+	async close() {
 		await this.ready
-		if (!this.isActive) return
-		this.isActive = false
-
-		try {
-			this.media.pause()
-			this.dom.toggleDisable()
-			this.events.unbind()
-
-			await Animation.wait('pause')
-			await this.animator.fadeRootOut()
-			await Animation.waitForEnd(this.dom.get('overlay'))
-		}
-		catch (err) { console.warn('[LightboxController] handleClose() failed:', err) }
-		finally { this.destroy() }
+		await this.dispatcher.emit('close')
 	}
 
-	async open() { await this.dispatcher.emit('open') }
-
-	async close() { await this.dispatcher.emit('close') }
-
-	async toggle() { await (this.isActive ? this.close() : this.open()) }
-
-	destroy(): void {
-		this.menu.clear()
-		this.media.dispose()
-		this.dom.remove()
-		this.dispatcher.clear()
-	}
+	async toggle() { await (this.dom.getState() === 'close' ? this.open() : this.close()) }
 }
