@@ -1,7 +1,10 @@
 import type { BaseAnimationOptions } from '../services/AnimationService'
 
 
-interface BlockOptions {
+export type Entries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>
+
+
+export interface BlockOptions {
 	animation?: BaseAnimationOptions
 	className: string
     index: number
@@ -9,10 +12,4 @@ interface BlockOptions {
 }
 
 const BLOCK_TYPES = ['html', 'image', 'video'] as const
-type BlockTypes = typeof BLOCK_TYPES[number]
-
-
-export type {
-	BlockOptions,
-	BlockTypes,
-}
+export type BlockTypes = typeof BLOCK_TYPES[number]

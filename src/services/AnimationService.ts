@@ -191,8 +191,8 @@ export class AnimationService {
 				const pseudoName = pseudo.replaceAll(':', ''),
 					{ styles, timeout } = AnimationService.get([target, pseudo], options)
 
-				for (const [property, value] of Object.entries(styles))
-					target.style.setProperty(`--${property}-${pseudoName}`, `${value}`)
+				for (const [prop, value] of Object.entries(styles))
+					target.style.setProperty(`--${prop}-${pseudoName}`, `${value}`)
 
 				return AnimationService.resetOnEnd(target, timeout)
 			}

@@ -1,5 +1,5 @@
 
-type HandlerFor<E, K extends keyof E> =
+export type HandlerFor<E, K extends keyof E> =
 	E[K] extends void
 		? () => void | Promise<void>
 		: (payload: E[K]) => void | Promise<void>
@@ -12,13 +12,13 @@ type EventHandler<E extends Record<string, any>> = {
 export class EventDispatcher<E extends Record<string, any>> {
 	private listeners = new Map<keyof E, Set<(payload: E[keyof E]) => void>>()
 
-	on<K extends keyof E>(event: K, handler: HandlerFor<E, K>) {
+	on<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void {
 		const set = this.listeners.get(event) ?? new Set<EventHandler<E>>()
 		set.add(handler as EventHandler<E>)
 		this.listeners.set(event, set)
 	}
 
-	off<K extends keyof E>(event: K, handler: HandlerFor<E, K>) {
+	off<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void {
 		this.listeners.get(event)?.delete(handler as EventHandler<E>)
 	}
 
@@ -36,7 +36,7 @@ export class EventDispatcher<E extends Record<string, any>> {
 		}
 	}
 
-	clear<K extends keyof E>(event?: K) {
+	clear<K extends keyof E>(event?: K): void {
 		if (event) this.listeners.delete(event)
 		else this.listeners.clear()
 	}

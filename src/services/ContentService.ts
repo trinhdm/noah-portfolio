@@ -11,46 +11,18 @@ type PageGroup = {
 	url: string
 }
 
+type PageDetails = PageGroup & {
+	content: string | undefined
+	title: string | undefined
+}
+
 
 export class ContentService {
-	private cache = new Map<string, HTMLElement>()
+	private cache = new Map<string, PageDetails>()
 	selector: string
 
 	constructor(selector: string = '.fe-block') {
 		this.selector = selector
-	}
-
-	async retrieve(element: HTMLElement): Promise<PageGroup & {
-		content: string | undefined
-		title: string | undefined
-	}> {
-		let content, title
-		const target = element.classList.contains(this.selector)
-			? element
-			: findElement(element, this.selector) ?? element
-
-		const page = this.parse(target),
-			html = await this.fetch(page)
-
-		if (html) {
-			const textEls = html.querySelectorAll('[data-sqsp-text-block-content]'),
-				tagName = 'strong'
-			let titleEl = [...textEls].find(
-					el => !(isHeaderTag(el.firstElementChild!.tagName))
-				) as HTMLElement | null
-
-			titleEl = findChildBy(titleEl, { tagName })
-
-			if (titleEl) {
-				const newTitleEl = wrapContent(titleEl, tagName)
-				titleEl.replaceWith(newTitleEl ?? '')
-			}
-
-			content = html.innerHTML.trim()
-			title = titleEl?.innerText
-		}
-
-		return { ...page, content, title }
 	}
 
 	private parse(target: HTMLElement): PageGroup {
@@ -93,37 +65,50 @@ export class ContentService {
 		}
 	}
 
-	private async construct(element: HTMLElement, hasImage: boolean = true): Promise<HTMLDivElement | undefined> {
+	private async retrieve(element: HTMLElement): Promise<PageGroup & {
+		content: string | undefined
+		title: string | undefined
+	}> {
+		let content, title
 		const target = element.classList.contains(this.selector)
 			? element
 			: findElement(element, this.selector) ?? element
 
-		const { content } = await this.retrieve(target)
-		if (!content) return
+		const page = this.parse(target),
+			html = await this.fetch(page)
 
-		const container = document.createElement('div')
-		container.insertAdjacentHTML('beforeend', content)
+		if (html) {
+			const textEls = html.querySelectorAll('[data-sqsp-text-block-content]'),
+				tagName = 'strong'
+			let titleEl = [...textEls].find(
+					el => !(isHeaderTag(el.firstElementChild!.tagName))
+				) as HTMLElement | null
 
-		if (hasImage) {
-			const imgSelector = '[data-sqsp-image-block-image-container]',
-				image = target?.querySelector(imgSelector)?.closest(this.selector)
+			titleEl = findChildBy(titleEl, { tagName })
 
-			if (image) container.prepend(image.cloneNode(true) as HTMLElement)
+			if (titleEl) {
+				const newTitleEl = wrapContent(titleEl, tagName)
+				titleEl.replaceWith(newTitleEl ?? '')
+			}
+
+			content = html.innerHTML.trim()
+			title = titleEl?.innerText
 		}
 
-		return container
+		return { ...page, content, title }
 	}
 
-	async load(t: HTMLElement | Node): Promise<HTMLElement | undefined> {
-		const target = t as HTMLElement,
+	async load(t: HTMLElement | Node): Promise<PageDetails> {
+		const base = { content: undefined } as PageDetails,
+			target = t as HTMLElement,
 			id = target.dataset.id || target.id
 
-		if (this.cache.has(id)) return this.cache.get(id)
+		if (this.cache.has(id)) return this.cache.get(id) ?? base
 
-		const fragment = await this.construct(target)
+		const fragment = await this.retrieve(target)
 		if (fragment) this.cache.set(id, fragment)
 
-		return fragment ?? undefined
+		return fragment ?? base
 	}
 
 	async prefetch(t: HTMLElement | Node): Promise<void> {
@@ -133,7 +118,7 @@ export class ContentService {
 		if (this.cache.has(id)) return
 
 		try {
-			const fragment = await this.construct(target)
+			const fragment = await this.retrieve(target)
 			if (fragment) this.cache.set(id, fragment)
 		} catch (err) { console.warn(`[ContentService] prefetch() failed for:`, id, err) }
 	}

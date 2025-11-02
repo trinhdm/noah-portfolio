@@ -1,9 +1,33 @@
-import { getBlockType } from '../../utils'
+import { findElement, getBlockType } from '../../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
 import { ContentService } from '../../services'
 
 
 export class LightboxContentService extends ContentService {
+	private async construct(
+		element: HTMLElement,
+		hasImage: boolean = true
+	): Promise<HTMLDivElement | undefined> {
+		const target = element.classList.contains(this.selector)
+			? element
+			: findElement(element, this.selector) ?? element
+
+		const { content } = await this.load(target)
+		if (!content) return
+
+		const container = document.createElement('div')
+		container.insertAdjacentHTML('beforeend', content)
+
+		if (hasImage) {
+			const imgSelector = '[data-sqsp-image-block-image-container]',
+				image = target?.querySelector(imgSelector)?.closest(this.selector)
+
+			if (image) container.prepend(image.cloneNode(true) as HTMLElement)
+		}
+
+		return container
+	}
+
 	private sanitize(image: HTMLElement | undefined) {
 		if (!image) return
 
@@ -55,8 +79,10 @@ export class LightboxContentService extends ContentService {
 		return container.childNodes.length ? container : undefined
 	}
 
-	async render(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
-		const fragment = await this.load(target)
+	async render(target: HTMLElement | undefined): Promise<HTMLElement | undefined> {
+		if (!target) return
+
+		const fragment = await this.construct(target)
 		return this.process(fragment)
 	}
 }

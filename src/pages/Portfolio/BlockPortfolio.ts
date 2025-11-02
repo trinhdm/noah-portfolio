@@ -37,7 +37,7 @@ export class BlockPortfolio {
 	private async generate(): Promise<void> {
 		if (!this.block) return
 
-		const { id, title } = await this.contentService.retrieve(this.block)
+		const { id, title } = await this.contentService.load(this.block)
 		this.id = id
 
 		this.configureBlock()
@@ -47,9 +47,7 @@ export class BlockPortfolio {
 
 	private configureBlock(): void {
 		if (!this.block) return
-
 		const type = getBlockType(this.block) ?? 'base'
-		console.log(type)
 
 		this.block.classList.add(
 			this.className,
