@@ -1,39 +1,91 @@
+import { findElement } from '../../utils/dom.ts'
 import { stylePageHeaderBlock } from '../../components/Block/helpers'
 import { BlockPortfolio } from './BlockPortfolio.ts'
-import { LightboxController } from '../../components/Lightbox'
+import { ContentService } from '../../services'
+import { LightboxManager } from '../../components/Lightbox'
 import './portfolio.css'
 
 
-const Portfolio = {
-	init: async () => {
-		const blocks = Array.from(document.querySelectorAll<HTMLElement>('.fluid-image-container')),
-			className = 'portfolio-block'
+class Portfolio {
+	private static readonly className = 'portfolio-block'
+	private static readonly selector = '.fluid-image-container'
 
-		try {
-			const instances = await Promise.all(
-				blocks.map((block, index) =>
-					BlockPortfolio.init({ className, index, target: block })
-				)
-			)
+	private static blocks: HTMLElement[] = []
+	private static instances: BlockPortfolio[] = []
+	private static lightbox: LightboxManager | null = null
 
-			document.body.addEventListener('click', (event: MouseEvent) => {
-				const target = (event.target as HTMLElement).closest(`.${className}`),
-					block = instances.find(b => b['block'] === target)
+	private static content: ContentService
+	private static handler?: (event: MouseEvent) => void
 
-				if (!block) return
-				event.preventDefault()
+	static async init() {
+		this.blocks = this.findBlocks(document.querySelectorAll(this.selector))
+		this.instances = await this.createInstances(this.blocks)
 
-				const lightbox = new LightboxController({
-					...block.toLightboxOptions(),
-					elements: blocks,
-					properties: { id: `lightbox-${block?.id}` }
-				})
 
-				lightbox.open()
-			})
+		this.blocks.forEach(async block => {
+			await BlockPortfolio.watch(block)
+		})
 
-			stylePageHeaderBlock({ className })
-		} catch (err) { console.error(err) }
+		this.bindEvents()
+		stylePageHeaderBlock(this.className)
+	}
+
+	static async destroy() {
+		if (this.lightbox) this.resetLightbox()
+		this.resetEvents()
+
+		this.blocks = []
+		this.instances = []
+	}
+
+	private static findBlocks(elements: NodeListOf<HTMLElement>) {
+		return Array.from(elements).map(el => findElement(el)).filter(el => !!el)
+	}
+
+	private static async createInstances(blocks: HTMLElement[]) {
+		this.content = new ContentService()
+		return Promise.all(blocks.map((block, index) =>
+			BlockPortfolio.init({
+				className: this.className,
+				index,
+				target: block,
+			}, this.content)
+		))
+	}
+
+	private static async handleClick(event: MouseEvent) {
+		const target = findElement(event.target as HTMLElement)
+		if (!target || !target.className.includes(this.className)) return
+
+		const element = this.instances.find(({ block }) => block === target)
+		if (!element) return
+
+		event.preventDefault()
+		if (this.lightbox) this.resetLightbox()
+
+		this.lightbox = new LightboxManager({
+			...element.toLightboxOptions(),
+			elements: this.blocks,
+			properties: { id: `lightbox-${element?.id}` }
+		})
+
+		await this.lightbox.open()
+	}
+
+	private static bindEvents() {
+		this.handler = (event: MouseEvent) => this.handleClick(event)
+		document.body.addEventListener('click', this.handler)
+	}
+
+	private static resetEvents() {
+		if (!this.handler) return
+		document.body.removeEventListener('click', this.handler)
+		this.handler = undefined
+	}
+
+	private static async resetLightbox() {
+		await this.lightbox?.close()
+		this.lightbox = null
 	}
 }
 

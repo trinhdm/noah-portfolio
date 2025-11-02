@@ -1,43 +1,54 @@
-import { findElement, getBlockType, wrapContent } from '../../utils'
-import { AnimationService, ContentService } from '../../services'
+import { getBlockType, toggleDisableAttr } from '../../utils'
+import { AnimationService as Animation, ContentService } from '../../services'
 import type { BlockOptions } from '../../types'
 
 
 export class BlockPortfolio {
 	private readonly className: string
-	private contentService: ContentService
+	private readonly content: ContentService
+	readonly index: number
 
-	block: HTMLElement | null
-	id: string
-	index: number
-	target: Node
+	block: HTMLElement
+	id: string = ''
 
-	constructor({
-		className,
-		index,
-		target,
-	}: BlockOptions) {
+	constructor(
+		options: BlockOptions,
+		contentService: ContentService
+	) {
+		const { className, index, target } = options
+
+		this.block = target
 		this.className = className
-		this.id = ''
+		this.content = contentService
 		this.index = index
-
-		const element = findElement(target)
-		this.block = element
-		this.target = element!.cloneNode(true)
-
-		this.contentService = new ContentService()
 	}
 
-	static async init(options: BlockOptions): Promise<BlockPortfolio> {
-		const instance = new BlockPortfolio(options)
+	toLightboxOptions() {
+		return {
+			id: this.id,
+			index: this.index,
+			target: this.block,
+		}
+	}
+
+	static async init(
+		options: BlockOptions,
+		contentService: ContentService
+	): Promise<BlockPortfolio> {
+		const instance = new BlockPortfolio(options, contentService)
 		await instance.generate()
 		return instance
 	}
 
-	private async generate(): Promise<void> {
-		if (!this.block) return
+	static async watch(target: BlockOptions['target']) {
+		await Animation.waitForEnd(target)
+		toggleDisableAttr(target)
+	}
 
-		const { id, title } = await this.contentService.load(this.block)
+	private async generate(): Promise<void> {
+		toggleDisableAttr(this.block)
+
+		const { id, title } = await this.content.load(this.block, 'span')
 		this.id = id
 
 		this.configureBlock()
@@ -46,7 +57,6 @@ export class BlockPortfolio {
 	}
 
 	private configureBlock(): void {
-		if (!this.block) return
 		const type = getBlockType(this.block) ?? 'base'
 
 		this.block.classList.add(
@@ -56,38 +66,25 @@ export class BlockPortfolio {
 
 		Object.assign(this.block.dataset, {
 			id: `block-${this.id}`,
-			position: String(this.index),
+			position: (this.index).toString(),
 		})
 	}
 
-	private applyStyle(): void {
-		if (!this.block) return
-
-		AnimationService.set(this.block, {
+	private applyStyle() {
+		Animation.set(this.block, {
 			index: this.index,
 			stagger: .12,
 			timeout: 500,
 		})
 	}
 
-	private renderDetails(title?: string): void {
-		if (!this.block) return
+	private renderDetails(title: HTMLElement | null): void {
+		if (!title) return
 
-		const details = document.createElement('div'),
-			newTitle = wrapContent(title, 'span')
-
-		if (newTitle)
-			details.appendChild(newTitle)
-
+		const details = document.createElement('div')
 		details.classList.add(`${this.className}__details`)
-		this.block.appendChild(details)
-	}
 
-	toLightboxOptions() {
-		return {
-			id: this.id,
-			index: this.index,
-			target: this.target,
-		}
+		details.appendChild(title)
+		this.block.appendChild(details)
 	}
 }
