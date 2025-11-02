@@ -1,5 +1,6 @@
 import { getBlockType } from '../../utils'
-import { BlockDispatcher, ContentService } from '../../services'
+import { BlockDispatcher } from './BlockDispatcher.ts'
+import { ContentService } from '../../services'
 
 
 export class LightboxContentService extends ContentService {
@@ -20,7 +21,7 @@ export class LightboxContentService extends ContentService {
 		})
 	}
 
-	private format(fragment: HTMLElement | undefined) {
+	private process(fragment: HTMLElement | undefined) {
 		if (!fragment) return undefined
 
 		const container = document.createElement('div'),
@@ -56,6 +57,6 @@ export class LightboxContentService extends ContentService {
 
 	async render(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
 		const fragment = await this.load(target)
-		return this.format(fragment)
+		return this.process(fragment)
 	}
 }
