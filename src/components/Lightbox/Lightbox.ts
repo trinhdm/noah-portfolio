@@ -2,10 +2,10 @@ import Hls from 'hls.js'
 import Plyr from 'plyr'
 
 import { toggleDisableAttr, wrapContent } from '../../utils'
+import { LightboxContentService } from './LightboxContentService.ts'
 
 import {
 	AnimationService as Animation,
-	ContentService,
 	EventDispatcher,
 } from '../../services'
 
@@ -63,7 +63,7 @@ class LightboxCache {
 
 	private build(): void {
 		const root = this.root
-		const map: Partial<Record<keyof LightboxElements, any>> = {
+		const map: Record<keyof LightboxElements, any> = {
 			root,
 			arrows: root.querySelector(LightboxSelector.Navigation)?.querySelectorAll('[data-direction]'),
 			blocks: root.querySelectorAll(LightboxBlockSelector.Block),
@@ -71,6 +71,8 @@ class LightboxCache {
 			close: root.querySelector(LightboxSelector.Close),
 			container: root.querySelector(LightboxSelector.Container),
 			content: root.querySelector(LightboxSelector.Content),
+			footer: root.querySelector(LightboxSelector.Footer),
+			header: root.querySelector(LightboxSelector.Header),
 			image: root.querySelector(LightboxSelector.Image),
 			navigation: root.querySelector(LightboxSelector.Navigation),
 			overlay: root.querySelector(LightboxSelector.Overlay),
@@ -103,7 +105,7 @@ class LightboxDOM {
 
 	constructor(
 		private root: HTMLDivElement,
-		private content: ContentService
+		private content: LightboxContentService
 	) {
 		this.cache = new LightboxCache(this.root)
 	}
@@ -204,11 +206,9 @@ class LightboxAnimation {
 		let blocks = Array.from(this.dom.get('blocks') ?? [])
 		if (!blocks?.length) return
 
-		const state = this.dom.getState(),
-			isActive = state === 'open'
-
 		const delay = .3,
-			stagger = .15
+			stagger = .15,
+			state = this.dom.getState()
 
 		const stateDelay = {
 			change: delay * 3,
@@ -216,16 +216,21 @@ class LightboxAnimation {
 			open: 0,
 		}[state]
 
+		const innerDelay = {
+			change: stateDelay,
+			close: 0,
+			open: delay + stagger,
+		}[state]
+
 		if (!!className)
 			blocks = blocks.filter(({ classList }) => classList.contains(className))
-		const blockList = isActive ? blocks : blocks.slice().reverse()
+		const blockList = state === 'open' ? blocks : blocks.slice().reverse()
 
 		blockList.forEach((block, index) => {
-			const base = { index, stagger }
-			Animation.set(block, { ...base, delay: stateDelay })
+			const base = { index, stagger },
+				innerBlock = block.querySelector(LightboxBlockSelector.Animation)
 
-			const innerBlock = block.querySelector(LightboxBlockSelector.Animation),
-				innerDelay = isActive ? delay + stagger : stateDelay
+			Animation.set(block, { ...base, delay: stateDelay })
 
 			if (innerBlock)
 				Animation.Pseudo.set(innerBlock, { ...base, delay: innerDelay })
@@ -282,8 +287,8 @@ class LightboxAnimation {
 		private reflow(element: HTMLElement | undefined = this.dom.get('root')): void {
 			if (!element) return
 
-			const { classList } = element
-			const cls = LightboxClass.Animation
+			const { classList } = element,
+				cls = LightboxClass.Animation
 
 			if (classList.contains(cls)) classList.remove(cls)
 			void element.offsetHeight		// trigger reflow
@@ -443,7 +448,7 @@ class LightboxMenu {
 
 	constructor(
 		private dom: LightboxDOM,
-		private content: ContentService,
+		private content: LightboxContentService,
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
@@ -534,7 +539,7 @@ class LightboxNavigation {
 		private animator: LightboxAnimation,
 		private events: LightboxEvents,
 		private media: LightboxMedia,
-		private content: ContentService,
+		private content: LightboxContentService,
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
@@ -638,7 +643,7 @@ class LightboxLifecycle {
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
 		private navigator: LightboxNavigation,
-		private content: ContentService,
+		private content: LightboxContentService,
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
@@ -726,20 +731,24 @@ class LightboxLifecycle {
 }
 
 export class LightboxController {
-	private readonly content: ContentService
+	private readonly content: LightboxContentService
 	private readonly dispatcher: EventDispatcher<LightboxEventMap>
 
 	private readonly factory: LightboxFactory
 	private readonly dom: LightboxDOM
-	private readonly menu: LightboxMenu
-	private readonly animator: LightboxAnimation
-	private readonly events: LightboxEvents
 	private readonly media: LightboxMedia
+	private readonly menu: LightboxMenu
+	private readonly events: LightboxEvents
+	private readonly animator: LightboxAnimation
 	private readonly navigator: LightboxNavigation
 	private readonly lifecycle: LightboxLifecycle
+	private static instance: LightboxController | null = null
 
 	constructor(private options: LightboxOptions) {
-		this.content = new ContentService()
+		if (LightboxController.instance)
+			void LightboxController.instance.refresh(options)
+
+		this.content = new LightboxContentService()
 		this.dispatcher = new EventDispatcher()
 		this.factory = new LightboxFactory(this.options)
 
@@ -773,7 +782,9 @@ export class LightboxController {
 		)
 
 		this.registerHandlers()
+
 		void this.lifecycle.initialize(this.options)
+		LightboxController.instance = this
 	}
 
 	private registerHandlers(): void {
@@ -788,4 +799,20 @@ export class LightboxController {
 	async close() { await this.dispatcher.emit('close') }
 
 	async toggle() { await (this.dom.getState() === 'close' ? this.open() : this.close()) }
+
+	private async refresh(options: LightboxOptions) {
+		try {
+			this.options = options
+
+			await this.lifecycle.initialize(this.options)
+			await this.dispatcher.emit('open')
+		}
+		catch (error) { this.dispatcher.emit('error', { error }) }
+	}
+
+	destroy() {
+		this.lifecycle.destroy()
+		if (LightboxController.instance === this) LightboxController.instance = null
+		console.warn('[LightboxController] already exists in DOM')
+	}
 }

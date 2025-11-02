@@ -10,8 +10,11 @@ type PageGroup = {
 
 export class ContentService {
 	private cache = new Map<string, HTMLElement>()
+	selector: string
 
-	constructor(private selector: string = '.fe-block') {}
+	constructor(selector: string = '.fe-block') {
+		this.selector = selector
+	}
 
 	async retrieve(element: HTMLElement): Promise<PageGroup & {
 		content: string | undefined
@@ -101,8 +104,7 @@ export class ContentService {
 			const imgSelector = '[data-sqsp-image-block-image-container]',
 				image = target?.querySelector(imgSelector)?.closest(this.selector)
 
-			if (image)
-				container.prepend(image.cloneNode(true) as HTMLElement)
+			if (image) container.prepend(image.cloneNode(true) as HTMLElement)
 		}
 
 		return container
@@ -145,63 +147,5 @@ export class ContentService {
 			catch (err) { console.warn(`[ContentService] prefetcher() failed on:`, target, err) }
 			finally { data.delete(target) }
 		}
-	}
-
-	private sanitize(image: HTMLElement | undefined) {
-		if (!image) return
-
-		const attributes = Array.from(image.attributes)
-
-		attributes.forEach(({ name, value }) => {
-			if (name === 'class') {
-				const classes = value.split(' ')
-					.filter(cl => ['fe-block', 'lightbox'].some(c => cl.includes(c)))
-					.join(' ')
-				image.setAttribute(name, classes)
-			} else {
-				image.removeAttribute(name)
-			}
-		})
-	}
-
-	private format(fragment: HTMLElement | undefined) {
-		if (!fragment) return undefined
-
-		const container = document.createElement('div'),
-			elements = fragment.querySelectorAll(this.selector)
-
-		const mediaEls: Partial<Record<'image' | 'video', HTMLElement>> = {}
-
-		for (const el of elements) {
-			const formatted = BlockDispatcher.format(el as HTMLElement)
-			if (!formatted) continue
-
-			if (el === [...elements].at(-1))
-				formatted.querySelector(':first-child')?.classList.add('block--animated')
-
-			const type = BlockDispatcher.getType(formatted)
-
-			if (type === 'image' || type === 'video')
-				mediaEls[type] = formatted
-			if (type === 'image')
-				this.sanitize(formatted)
-
-			container.appendChild(formatted)
-		}
-
-		if (mediaEls.image && mediaEls.video) {
-			requestAnimationFrame(() => {
-				const videoHeight = mediaEls.video!.offsetHeight
-				if (videoHeight > 0)
-					mediaEls.image!.style.maxHeight = `${videoHeight}px`
-			})
-		}
-
-		return container.childNodes.length ? container : undefined
-	}
-
-	async render(target: HTMLElement | Node): Promise<HTMLElement | undefined> {
-		const fragment = await this.load(target)
-		return this.format(fragment)
 	}
 }

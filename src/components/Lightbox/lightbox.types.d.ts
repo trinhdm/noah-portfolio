@@ -2,10 +2,12 @@
 type LightboxElements = {
 	arrows: NodeListOf<HTMLElement> | undefined
 	blocks: NodeListOf<HTMLElement> | undefined
-	body: HTMLElement | undefined
+	body: HTMLDivElement | undefined
 	close: HTMLElement | undefined
-	container: HTMLElement | undefined
+	container: HTMLDivElement | undefined
 	content: HTMLDivElement | undefined
+	footer: HTMLDivElement | undefined
+	header: HTMLDivElement | undefined
 	image?: HTMLImageElement | undefined
 	navigation: HTMLElement | undefined
 	overlay: HTMLElement | undefined
