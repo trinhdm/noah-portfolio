@@ -13,7 +13,7 @@ import {
 	LightboxBlockSelector,
 	LightboxClass,
 	LightboxSelector,
-} from './data'
+} from './constants.ts'
 
 import type {
 	ArrowDirections,
@@ -165,13 +165,13 @@ class LightboxDOM {
 	}
 }
 
-class LightboxAnimation {
-	Media: InstanceType<typeof LightboxAnimation.Media>
-	Root: InstanceType<typeof LightboxAnimation.Root>
+class LightboxAnimator {
+	Media: InstanceType<typeof LightboxAnimator.Media>
+	Root: InstanceType<typeof LightboxAnimator.Root>
 
 	constructor(private dom: LightboxDOM) {
-		this.Media = new LightboxAnimation.Media(this)
-		this.Root = new LightboxAnimation.Root(this)
+		this.Media = new LightboxAnimator.Media(this)
+		this.Root = new LightboxAnimator.Root(this)
 	}
 
 	async swap() {
@@ -237,7 +237,7 @@ class LightboxAnimation {
 	static Media = class {
 		private dom: LightboxDOM
 
-		constructor(private animator: LightboxAnimation) {
+		constructor(private animator: LightboxAnimator) {
 			this.animator = animator
 			this.dom = this.animator.dom
 		}
@@ -276,7 +276,7 @@ class LightboxAnimation {
 	static Root = class {
 		private dom: LightboxDOM
 
-		constructor(private animator: LightboxAnimation) {
+		constructor(private animator: LightboxAnimator) {
 			this.animator = animator
 			this.dom = this.animator.dom
 		}
@@ -531,13 +531,13 @@ class LightboxMenu {
 	}
 }
 
-class LightboxNavigation {
+class LightboxNavigator {
 	private isSwapping = false
 	private newContent: HTMLElement | undefined = undefined
 
 	constructor(
 		private dom: LightboxDOM,
-		private animator: LightboxAnimation,
+		private animator: LightboxAnimator,
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private content: LightboxContentService,
@@ -606,7 +606,7 @@ class LightboxNavigation {
 
 		if (!this.newContent) return
 
-		const message = 'LightboxNavigation] swapContent() failed'
+		const message = 'LightboxNavigator] swapContent() failed'
 		const timeline = [
 			() => this.preSwap(),
 			() => this.performSwap(),
@@ -628,16 +628,16 @@ class LightboxLifecycle {
 
 	constructor(
 		private dom: LightboxDOM,
-		private animator: LightboxAnimation,
+		private animator: LightboxAnimator,
 		private events: LightboxEvents,
 		private media: LightboxMedia,
 		private menu: LightboxMenu,
-		private navigator: LightboxNavigation,
+		private navigator: LightboxNavigator,
 		private content: LightboxContentService,
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
-	private async prefetchFrom(directory: ArrowGroup) {
+	private async prefetch(directory: ArrowGroup) {
 		const adjacentTargets = [] as (HTMLElement | Node | null | undefined)[],
 			directions = Object.keys(directory) as ArrowDirections[]
 
@@ -656,8 +656,7 @@ class LightboxLifecycle {
 		this.isReady = (async () => await this.dom.setContent(target))()
 		this.media.configure()
 
-		if (!!elements?.length)
-			await this.update(index, elements)
+		if (!!elements?.length) await this.update(index, elements)
 	}
 
 	async navigate(dir: ArrowDirections) {
@@ -673,7 +672,7 @@ class LightboxLifecycle {
 		const directory = await this.menu.generate(this.currentIndex, elements)
 
 		this.directory = directory
-		await this.prefetchFrom(this.directory)
+		await this.prefetch(this.directory)
 	}
 
 	async open() {
@@ -722,8 +721,8 @@ export class LightboxController {
 	private readonly media: LightboxMedia
 	private readonly menu: LightboxMenu
 	private readonly events: LightboxEvents
-	private readonly animator: LightboxAnimation
-	private readonly navigator: LightboxNavigation
+	private readonly animator: LightboxAnimator
+	private readonly navigator: LightboxNavigator
 	private readonly lifecycle: LightboxLifecycle
 	private static instance: LightboxController | null = null
 
@@ -743,8 +742,8 @@ export class LightboxController {
 		this.menu = new LightboxMenu(this.dom, this.content, this.dispatcher)
 		this.events = new LightboxEvents(this.dom, this.dispatcher)
 
-		this.animator = new LightboxAnimation(this.dom)
-		this.navigator = new LightboxNavigation(
+		this.animator = new LightboxAnimator(this.dom)
+		this.navigator = new LightboxNavigator(
 			this.dom,
 			this.animator,
 			this.events,
@@ -765,7 +764,6 @@ export class LightboxController {
 		)
 
 		this.registerHandlers()
-
 		void this.lifecycle.initialize(this.options)
 		LightboxController.instance = this
 	}
