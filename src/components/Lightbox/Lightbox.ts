@@ -447,9 +447,11 @@ class LightboxMenu {
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
-	async store(elements: LightboxOptions['elements']) { this.elements = elements }
-
-	async generate(index: number) {
+	async generate(
+		index: number,
+		elements?: LightboxOptions['elements']
+	) {
+		if (!!elements?.length) this.elements = elements
 		const directory = await this.create(index)
 		this.clear()
 		this.construct(directory)
@@ -457,7 +459,7 @@ class LightboxMenu {
 		return directory
 	}
 
-	clear(): void {
+	private clear(): void {
 		for (const [arrow, handler] of this.handlers)
 			arrow.removeEventListener('click', handler)
 
@@ -536,37 +538,22 @@ class LightboxNavigation {
 		private dispatcher: EventDispatcher<LightboxEventMap>
 	) {}
 
-	private async setupSwap(target: NonNullable<ArrowGroup['next']['target']>) {
+	private async setupSwap<T extends ArrowDirections>(target: NonNullable<ArrowGroup[T]['target']>) {
 		const currentImage = this.dom.get('image')
-		if (!currentImage) return
+		this.newContent = await this.content.render(target)
+
+		if (!currentImage || !this.newContent) return
 
 		try {
-			this.newContent = await this.content.render(target)
-			const newImage = this.newContent?.querySelector(LightboxSelector.Image)
+			const newImage = this.newContent.querySelector(LightboxSelector.Image)
 
 			if (newImage) {
 				newImage.classList.add(LightboxClass.Temp)
 				currentImage.replaceWith(newImage)
 			}
-
-			await Animation.wait()
 		}
 		catch (err) { console.warn('[LightboxNavigation] setupSwap() failed:', err) }
 		finally { this.dom.rebuildCache() }
-	}
-
-	private async animateSwap() {
-		const isMediaAsync = this.dom.getState() === 'change',
-			index = isMediaAsync ? -1 : -2
-
-		this.animator.fadeBlocks()
-
-		try {
-			const targetBlock = Array.from(this.dom.get('blocks') ?? []).at(-2)
-			await Animation.waitForEnd(targetBlock)
-		}
-		catch (err) { console.warn('[LightboxNavigation] animateSwap() failed:', err) }
-		finally { await this.animator.fadeMedia?.(isMediaAsync) }
 	}
 
 	private async preSwap() {
@@ -642,6 +629,7 @@ class LightboxLifecycle {
 	private currentIndex: number = 0
 	private directory: ArrowGroup = {} as ArrowGroup
 	private isActive: boolean = false
+	private isReady: Promise<void> | null = null
 
 	constructor(
 		private dom: LightboxDOM,
@@ -667,16 +655,14 @@ class LightboxLifecycle {
 		await this.content.prefetcher(adjacentTargets).catch(() => {})
 	}
 
-	async initialize({ elements, index, target }: LightboxOptions) {
-		try {
-			await this.dom.setContent(target)
+	async initialize(options: LightboxOptions) {
+		const { elements, index, target } = options
+
+		this.isReady = (async () => await this.dom.setContent(target))()
 		this.media.configure()
 
-			if (!!elements?.length) {
-				this.menu.store(elements)
-				await this.dispatcher.emit('update', index)
-			}
-		} catch (err) { console.error('[LightboxLifecycle] initialize() failed:', err) }
+		if (!!elements?.length)
+			await this.update(index, elements)
 	}
 
 	async navigate(dir: ArrowDirections) {
@@ -684,9 +670,12 @@ class LightboxLifecycle {
 		await this.navigator.swapContent<typeof dir>(this.directory, dir)
 	}
 
-	async update(index: number) {
+	async update(
+		index: number,
+		elements?: LightboxOptions['elements']
+	) {
 		this.currentIndex = index ?? 0
-		const directory = await this.menu.generate(this.currentIndex)
+		const directory = await this.menu.generate(this.currentIndex, elements)
 
 		this.directory = directory
 		await this.prefetchFrom(this.directory)
@@ -725,8 +714,11 @@ class LightboxLifecycle {
 	}
 
 	destroy(): void {
+		this.currentIndex = 0
+		this.directory = {} as ArrowGroup
 		this.isActive = false
-		this.menu.clear()
+		this.isReady = null
+
 		this.media.dispose()
 		this.dom.remove()
 		this.dispatcher.clear()
@@ -745,8 +737,6 @@ export class LightboxController {
 	private readonly media: LightboxMedia
 	private readonly navigator: LightboxNavigation
 	private readonly lifecycle: LightboxLifecycle
-
-	readonly ready: Promise<void>
 
 	constructor(private options: LightboxOptions) {
 		this.content = new ContentService()
@@ -782,32 +772,20 @@ export class LightboxController {
 			this.dispatcher
 		)
 
-		this.registerDefaultHandlers()
-
-		let resolveReady!: () => void
-	    this.ready = new Promise<void>(resolve => (resolveReady = resolve))
-		void this.dispatcher.emit('ready', resolveReady)
+		this.registerHandlers()
+		void this.lifecycle.initialize(this.options)
 	}
 
-	private registerDefaultHandlers(): void {
-		this.dispatcher.on('ready', (resolve: () => void) => {
-			this.lifecycle.initialize(this.options).finally(resolve)
-		})
+	private registerHandlers(): void {
 		this.dispatcher.on('open', () => this.lifecycle.open())
 		this.dispatcher.on('close', () => this.lifecycle.close())
 		this.dispatcher.on('navigate', dir => this.lifecycle.navigate(dir))
 		this.dispatcher.on('update', i => this.lifecycle.update(i))
 	}
 
-	async open() {
-		await this.ready
-		await this.dispatcher.emit('open')
-	}
+	async open() { await this.dispatcher.emit('open') }
 
-	async close() {
-		await this.ready
-		await this.dispatcher.emit('close')
-	}
+	async close() { await this.dispatcher.emit('close') }
 
 	async toggle() { await (this.dom.getState() === 'close' ? this.open() : this.close()) }
 }
