@@ -40,20 +40,39 @@ enum LightboxSelector {
 }
 
 enum LightboxBlockClass {
-	Root		= 'block',
-	Block		= 'fe-block',
-	Animation 	= `${Root}--animated`,
+	Root		= 'fe-block',
+	Animation 	= 'block--animated',
 }
 
 enum LightboxBlockSelector {
 	Root 		= `.${LightboxBlockClass.Root}`,
-	Block		= `.${LightboxBlockClass.Block}`,
 	Animation 	= `.${LightboxBlockClass.Animation}`,
 }
 
+enum LightboxAttributes {
+	Image		= `[data-sqsp-image-block-image-container]`
+}
+
+const LightboxSelectors = {
+	Attr: LightboxAttributes,
+	Class: {
+		Name: {
+			Block: LightboxBlockClass,
+			Element: LightboxClass,
+		},
+		Selector: {
+			Block: LightboxBlockSelector,
+			Element: LightboxSelector,
+		},
+	},
+}
+
+
 
 export {
+	LightboxBlockClass,
 	LightboxBlockSelector,
 	LightboxClass,
 	LightboxSelector,
+	LightboxSelectors,
 }

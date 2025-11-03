@@ -1,3 +1,3 @@
 import './styles'
 
-export { LightboxController } from './Lightbox.ts'
+export { LightboxManager } from './Lightbox.ts'

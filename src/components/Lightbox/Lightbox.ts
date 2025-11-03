@@ -63,7 +63,7 @@ class LightboxCache {
 		const root = this.root
 		let map = {
 			root,
-			blocks: Array.from(root.querySelectorAll(LightboxBlockSelector.Block) ?? []),
+			blocks: Array.from(root.querySelectorAll(LightboxBlockSelector.Root) ?? []),
 			body: root.querySelector(LightboxSelector.Body),
 			close: root.querySelector(LightboxSelector.Close),
 			container: root.querySelector(LightboxSelector.Container),

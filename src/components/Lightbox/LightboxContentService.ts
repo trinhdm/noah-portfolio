@@ -1,36 +1,33 @@
-import { getBlockType } from '../../utils'
+import { findElement, getBlockType } from '../../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
-import { ContentService, HTMLTarget } from '../../services'
+import { ContentService, type HTMLTarget } from '../../services'
+import { LightboxBlockClass, LightboxClass } from './constants.ts'
 
 
 export class LightboxContentService extends ContentService {
-	private async construct(
-		target: HTMLElement,
-		hasImage: boolean = true
-	): Promise<HTMLDivElement | undefined> {
+	private readonly classPrefixes = [LightboxClass.Root, LightboxBlockClass.Root]
+
+	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const { content } = await this.load(target)
 		if (!content) return
 
 		const container = document.createElement('div')
 		container.insertAdjacentHTML('beforeend', content)
 
-		if (hasImage) {
-			const imgSelector = '[data-sqsp-image-block-image-container]',
-				image = target?.querySelector(imgSelector)?.closest(this.selector)
-
-			if (image) container.prepend(image.cloneNode(true) as HTMLElement)
-		}
+		const imgSelector = '[data-sqsp-image-block-image-container]',
+			imgBlock = findElement(target.querySelector(imgSelector))
+		if (imgBlock) container.prepend(imgBlock.cloneNode(true))
 
 		return container
 	}
 
-	private sanitize(fragment: HTMLElement) {
+	private sanitize(fragment: HTMLElement): void {
 		const attributes = Array.from(fragment.attributes)
 
 		attributes.forEach(({ name, value }) => {
 			if (name === 'class') {
 				const classes = value.split(' ')
-					.filter(cl => ['fe-block', 'lightbox'].some(c => cl.includes(c)))
+					.filter(cl => this.classPrefixes.some(c => cl.includes(c)))
 					.join(' ')
 				fragment.setAttribute(name, classes)
 			} else {
@@ -39,42 +36,29 @@ export class LightboxContentService extends ContentService {
 		})
 	}
 
-	private process(fragment: HTMLTarget) {
+	private process(fragment: HTMLTarget): HTMLDivElement | undefined {
 		if (!fragment) return undefined
 
 		const container = document.createElement('div'),
 			elements = fragment.querySelectorAll(this.selector)
 
-		// const mediaEls: Partial<Record<'image' | 'video', HTMLElement>> = {}
-
 		for (const el of elements) {
-			const formatted = BlockDispatcher.format(el as HTMLElement)
-			if (!formatted) continue
+			const block = BlockDispatcher.format(el as HTMLElement)
+			if (!block) continue
 
-			if (el === [...elements].at(-1))
-				formatted.querySelector(':first-child')?.classList.add('block--animated')
+			if (el === Array.from(elements).at(-1))
+				block.firstElementChild?.classList.add(LightboxBlockClass.Animation)
 
-			const type = getBlockType(formatted)
-			if (type === 'image') this.sanitize(formatted)
+			const type = getBlockType(block)
+			if (type === 'image') this.sanitize(block)
 
-			container.appendChild(formatted)
-
-			// if (type === 'image' || type === 'video')
-			// 	mediaEls[type] = formatted
+			container.appendChild(block)
 		}
-
-		// if (mediaEls.image && mediaEls.video) {
-		// 	requestAnimationFrame(() => {
-		// 		const videoHeight = mediaEls.video!.offsetHeight
-		// 		if (videoHeight > 0)
-		// 			mediaEls.image!.style.maxHeight = `${videoHeight}px`
-		// 	})
-		// }
 
 		return !!container.childNodes.length ? container : undefined
 	}
 
-	async render(target: HTMLTarget): Promise<HTMLTarget> {
+	async render(target: HTMLTarget): Promise<HTMLDivElement | undefined> {
 		if (!target) return
 		const fragment = await this.construct(target)
 		return this.process(fragment)
