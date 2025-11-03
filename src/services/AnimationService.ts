@@ -1,16 +1,19 @@
-import type * as CSS from 'csstype'
+// import type * as CSS from 'csstype'
 
 
-export type BaseAnimationOptions = {
+type BaseAnimationOptions = {
 	delay?: number
 	duration?: number
 	index?: number
 	stagger?: number
 }
 
-type AnimationOptions<T extends keyof CSS.Properties = keyof CSS.Properties> = BaseAnimationOptions & Partial<Record<T, CSS.Properties[T]>> & {
+type AnimationStyles = {
+	styles: Partial<CSSStyleDeclaration>
 	timeout?: number
 }
+
+export type AnimationOptions = BaseAnimationOptions & Pick<AnimationStyles, 'timeout'>
 
 const PSEUDO_ELEMENTS = ['::before', '::after'] as const
 type PseudoElement = typeof PSEUDO_ELEMENTS[number]
@@ -122,23 +125,67 @@ export class AnimationService {
 		options: AnimationOptions | {} = {}
 	) {
 		if (!element) return
+
+		// if (!document.body.contains(element)) {
+		// 	requestAnimationFrame(() => this.set(element, options))
+		// 	return
+		// }
+
 		const target = element as HTMLElement
 
-		const { styles, timeout } = this.get([target], options)
+		const { styles, timeout } = this.get(target, options)
 		Object.assign(target.style, styles)
+		console.log({ target, styles })
 
 		return this.resetOnEnd(target, timeout)
 	}
 
-	private static get(
-		targets: [HTMLElement] | [HTMLElement, string],
-		options: AnimationOptions
-	) {
-		let styles = {}, timeout: AnimationOptions['timeout'] = undefined
-		const [target] = targets,
-			animations = target.getAnimations({ subtree: targets.length > 1 })
+	// private deriveFromDOM(
+	// 	target: HTMLElement,
+	// 	cssAnimations: CSSAnimation
+	// ) {
+	// 	let domStyles = {} as Partial<CSSStyleDeclaration>,
+	// 		targets = [target] as (Element | string | undefined)[]
 
-		if (animations?.length) {
+	// 	const {
+	// 		animationName,
+	// 		effect: keyframeEffect
+	// 	} = cssAnimations
+
+	// 	if (keyframeEffect instanceof KeyframeEffect) {
+	// 		const { pseudoElement } = keyframeEffect
+
+	// 		const timing = keyframeEffect.getTiming(),
+	// 			computedTiming = keyframeEffect.getComputedTiming()
+
+	// 		if (!!pseudoElement) targets = [target, pseudoElement]
+	// 		// const test = { animationName, delay, duration, easing, fill }
+	// 	}
+
+	// 	domStyles = window.getComputedStyle(...targets as [Element, string | undefined])
+	// }
+
+	private static get(
+		target: HTMLElement,
+		options: AnimationOptions
+	): AnimationStyles {
+		let styles = {} as Partial<CSSStyleDeclaration>,
+			timeout: AnimationOptions['timeout'] = undefined
+
+		const animations = target.getAnimations({ subtree: true }),
+			[cssAnimations] = animations.filter(anim => anim instanceof CSSAnimation)
+			if (target.tagName === 'SPAN') console.log({ target, animations })
+
+		if (cssAnimations) {
+			const keyframeEffect = cssAnimations.effect
+			let targets = [target] as (Element | string | undefined)[]
+
+			if (keyframeEffect instanceof KeyframeEffect) {
+				const { pseudoElement } = keyframeEffect
+
+				if (!!pseudoElement) targets = [target, pseudoElement]
+			}
+
 			const domStyles = window.getComputedStyle(...targets as [Element, string | undefined]),
 				merged = Styles.merge({ ...Styles.deriveFromDOM(domStyles), ...options }),
 				computed = Styles.compute(merged)
@@ -189,7 +236,7 @@ export class AnimationService {
 
 			for (const pseudo of pseudoEls) {
 				const pseudoName = pseudo.replaceAll(':', ''),
-					{ styles, timeout } = AnimationService.get([target, pseudo], options)
+					{ styles, timeout } = AnimationService.get(target, options)
 
 				for (const [prop, value] of Object.entries(styles))
 					target.style.setProperty(`--${prop}-${pseudoName}`, `${value}`)

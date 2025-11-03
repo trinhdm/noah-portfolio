@@ -5,22 +5,29 @@ import type { BlockOptions } from '../../types'
 
 export class BlockPortfolio {
 	private readonly className: string
-	private readonly content: ContentService
-	readonly index: number
+	private readonly baseAnimation: BlockOptions['animation'] = {
+		stagger: .125,
+		timeout: 250,
+	}
 
+	readonly index: number
 	block: HTMLElement
 	id: string = ''
 
 	constructor(
-		options: BlockOptions,
-		contentService: ContentService
+		private options: BlockOptions,
+		private contentService: ContentService
 	) {
-		const { className, index, target } = options
-
+		const { className, index, target } = this.options
 		this.block = target
 		this.className = className
-		this.content = contentService
+		this.contentService = contentService
 		this.index = index
+
+		this.baseAnimation = {
+			...this.baseAnimation,
+			index: this.index,
+		}
 	}
 
 	toLightboxOptions() {
@@ -36,7 +43,7 @@ export class BlockPortfolio {
 		contentService: ContentService
 	): Promise<BlockPortfolio> {
 		const instance = new BlockPortfolio(options, contentService)
-		await instance.generate()
+		await instance.update()
 		return instance
 	}
 
@@ -45,10 +52,10 @@ export class BlockPortfolio {
 		toggleDisableAttr(target)
 	}
 
-	private async generate(): Promise<void> {
+	private async update(): Promise<void> {
 		toggleDisableAttr(this.block)
 
-		const { id, title } = await this.content.load(this.block, 'span')
+		const { id, title } = await this.contentService.load(this.block, 'span')
 		this.id = id
 
 		this.configureBlock()
@@ -58,11 +65,7 @@ export class BlockPortfolio {
 
 	private configureBlock(): void {
 		const type = getBlockType(this.block) ?? 'base'
-
-		this.block.classList.add(
-			this.className,
-			`${this.className}__${type}`
-		)
+		this.block.classList.add(this.className, `${this.className}__${type}`)
 
 		Object.assign(this.block.dataset, {
 			id: `block-${this.id}`,
@@ -71,11 +74,13 @@ export class BlockPortfolio {
 	}
 
 	private applyStyle() {
-		Animation.set(this.block, {
-			index: this.index,
-			stagger: .12,
-			timeout: 500,
-		})
+		const { animation } = this.options
+		const animOptions = animation
+			? Object.assign({}, this.baseAnimation, animation)
+			: this.baseAnimation
+		console.log(animOptions)
+
+		Animation.set(this.block, animOptions)
 	}
 
 	private renderDetails(title: HTMLElement | null): void {

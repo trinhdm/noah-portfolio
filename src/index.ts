@@ -10,9 +10,9 @@ import {
 
 import './assets/styles'
 
-document.addEventListener('DOMContentLoaded', () => {
-	getBackground()
+document.addEventListener('DOMContentLoaded', async () => {
 	handleHeader()
+	getBackground()
 
 	const url = window.location.href
 
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		return About.init()
 
 	else if (url.includes('portfolio'))
-		return Portfolio.init()
+		return await Portfolio.init()
 
 	else if (url.includes('contact'))
 		return Contact.init()

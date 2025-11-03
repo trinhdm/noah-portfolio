@@ -18,28 +18,25 @@ class Portfolio {
 	private static handler?: (event: MouseEvent) => void
 
 	static async init() {
-		this.blocks = this.findBlocks(document.querySelectorAll(this.selector))
+		stylePageHeaderBlock(this.selector, this.className)
+
+		this.blocks = this.getBlocks(document.querySelectorAll(this.selector))
 		this.instances = await this.createInstances(this.blocks)
-
-
-		this.blocks.forEach(async block => {
-			await BlockPortfolio.watch(block)
-		})
-
 		this.bindEvents()
-		stylePageHeaderBlock(this.className)
+
+		Promise.all(this.blocks.map(block => BlockPortfolio.watch(block)))
 	}
 
 	static async destroy() {
 		if (this.lightbox) this.resetLightbox()
-		this.resetEvents()
+		this.unbindEvents()
 
 		this.blocks = []
 		this.instances = []
 	}
 
-	private static findBlocks(elements: NodeListOf<HTMLElement>) {
-		return Array.from(elements).map(el => findElement(el)).filter(el => !!el)
+	private static getBlocks(elements: NodeListOf<HTMLElement>) {
+		return Array.from(elements).map(el => findElement(el)).filter(Boolean) as HTMLElement[]
 	}
 
 	private static async createInstances(blocks: HTMLElement[]) {
@@ -77,7 +74,7 @@ class Portfolio {
 		document.body.addEventListener('click', this.handler)
 	}
 
-	private static resetEvents() {
+	private static unbindEvents() {
 		if (!this.handler) return
 		document.body.removeEventListener('click', this.handler)
 		this.handler = undefined
