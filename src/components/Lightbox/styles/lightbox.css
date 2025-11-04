@@ -1,5 +1,7 @@
 
 .lightbox {
+	--dt-lb-background-color: var(--siteBackgroundColor);
+
 	opacity: 0;
 	overflow-x: clip;
 	z-index: 9999;
@@ -55,7 +57,7 @@
 	}
 
 	.lightbox__container {
-		background-color: var(--siteBackgroundColor);
+		background-color: var(--dt-lb-background-color);
 		border-radius: var(--dt-border-radius);
 		box-shadow: var(--dt-box-shadow);
 		overflow: hidden;
@@ -94,5 +96,5 @@
 		font-style: italic;
 		letter-spacing: calc(1.25 * var(--dt-letter-spacing));
 		text-align: center;
-	}
+    }
 }

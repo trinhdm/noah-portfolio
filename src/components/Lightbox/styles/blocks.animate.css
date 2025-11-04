@@ -4,6 +4,8 @@
 		&.lightbox__image {
 			animation-name: none;
 			opacity: 0;
+			pointer-events: none;
+			user-select: none;
 		}
 	}
 

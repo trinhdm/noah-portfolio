@@ -2,8 +2,9 @@
 enum LightboxClass {
 	Root 		= 'lightbox',
 	Animation 	= `${Root}--animated`,
+	Error 		= `${Root}__error`,
+
 	Body 		= `${Root}__body`,
-	Close 		= `${Root}__close`,
 	Container 	= `${Root}__container`,
 	Content 	= `${Root}__content`,
 	Footer 		= `${Root}__footer`,
@@ -11,6 +12,8 @@ enum LightboxClass {
 	Navigation 	= `${Root}__navigation`,
 	Overlay 	= `${Root}__overlay`,
 
+	NavItem		= `${Root}__navitem`,
+	Control		= `${Root}__control`,
 	Icon		= `${Root}__icon`,
 	Label 		= `${Root}__label`,
 	Html 		= `${Root}__html`,
@@ -22,8 +25,9 @@ enum LightboxClass {
 enum LightboxSelector {
 	Root 		= `.${LightboxClass.Root}`,
 	Animation 	= `.${LightboxClass.Animation}`,
+	Error 		= `.${LightboxClass.Error}`,
+
 	Body 		= `.${LightboxClass.Body}`,
-	Close 		= `.${LightboxClass.Close}`,
 	Container 	= `.${LightboxClass.Container}`,
 	Content 	= `.${LightboxClass.Content}`,
 	Footer 		= `.${LightboxClass.Footer}`,
@@ -31,6 +35,8 @@ enum LightboxSelector {
 	Navigation 	= `.${LightboxClass.Navigation}`,
 	Overlay 	= `.${LightboxClass.Overlay}`,
 
+	NavItem		= `.${LightboxClass.NavItem}`,
+	Control		= `.${LightboxClass.Control}`,
 	Icon 		= `.${LightboxClass.Icon}`,
 	Label 		= `.${LightboxClass.Label}`,
 	Html 		= `.${LightboxClass.Html}`,
@@ -47,6 +53,10 @@ enum LightboxBlockClass {
 enum LightboxBlockSelector {
 	Root 		= `.${LightboxBlockClass.Root}`,
 	Animation 	= `.${LightboxBlockClass.Animation}`,
+}
+
+enum LightboxArias {
+	labelledby	= 'lightbox-title',
 }
 
 enum LightboxAttributes {
@@ -70,6 +80,7 @@ const LightboxSelectors = {
 
 
 export {
+	LightboxArias,
 	LightboxBlockClass,
 	LightboxBlockSelector,
 	LightboxClass,

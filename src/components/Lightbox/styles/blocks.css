@@ -1,11 +1,12 @@
 
 .lightbox .fe-block {
+	--dt-lb-html-height: 6.5rem;
+	--dt-lb-media-height: 28rem;
+
 	place-content: center;
 	position: relative;
 
 	&.lightbox__html {
-		--dt-lb-html-height: 6.5rem;
-
 		grid-column: 1 / span var(--dt-col-span);
 		letter-spacing: var(--dt-letter-spacing);
 		min-height: calc(var(--dt-lb-html-height) - 1rem);
@@ -105,19 +106,20 @@
 			grid-area: 1 / 1 / var(--dt-col-span) / calc(1 + var(--dt-col-span));
 		}
 
+		&,
+		.sqs-block {
+			height: 100%;
+			max-height: var(--dt-lb-media-height);
+			overflow: hidden;
+		}
+
 		:is([data-disabled="true"]) & {
 			pointer-events: none;
 			user-select: none;
 		}
-
-		.sqs-block {
-			height: 100%;
-			max-height: 28rem;
-		}
 	}
 
 	&.lightbox__image {
-		height: 100%;
 		z-index: 15;
 
 		&:has(+ .lightbox__video) {
@@ -144,25 +146,13 @@
 			flex: 1;
 		}
 
-		.lightbox__video-player {
-			height: 100%;
-			overflow: hidden;
-			padding-top: 56.25%;
-		}
-
 		.lightbox__video-wrapper {
+			background-color: var(--dt-lb-background-color);
 			min-width: auto;
 			overflow: hidden;
 
-			&,
-			& > * {
-				inset: 0;
-				margin: auto;
-				overflow: hidden;
-				position: absolute;
-			}
-
-			& > * {
+			iframe,
+			video {
 				border-radius: inherit;
 				height: 100%;
 				width: 100%;

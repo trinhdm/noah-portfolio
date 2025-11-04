@@ -1,28 +1,40 @@
+import { LightboxArias, LightboxClass } from './constants'
+
+
 const template = `
-	<div class="lightbox__overlay"></div>
-	<div class="lightbox__container">
-		<div class="lightbox__header">
-			<button class="lightbox__icon" data-icon="close">
+	<div class="${LightboxClass.Overlay}"></div>
+	<div
+		aria-labelledby="${LightboxArias.labelledby}"
+		aria-modal="true"
+		class="${LightboxClass.Container}"
+		role="dialog"
+	>
+		<div class="${LightboxClass.Header}">
+			<button
+				aria-label="Close"
+				class="${LightboxClass.Icon}"
+				data-icon="close"
+			>
 				<span>&times;</span>
 			</button>
 		</div>
-		<div class="lightbox__body">
-			<div class="lightbox__content"></div>
+		<div class="${LightboxClass.Body}">
+			<div class="${LightboxClass.Content}"></div>
 		</div>
-		<div class="lightbox__footer">
-			<div class="lightbox__navigation">
-				<div class="lightbox__navitem" data-direction="prev">
-					<div class="lightbox__control">
-						<button class="lightbox__icon" data-icon="arrow-prev">
+		<div class="${LightboxClass.Footer}">
+			<div class="${LightboxClass.Navigation}">
+				<div class="${LightboxClass.NavItem}" data-direction="prev">
+					<div class="${LightboxClass.Control}">
+						<button class="${LightboxClass.Icon}" data-icon="arrow-prev">
 							<span>&lsaquo;</span>
 						</button>
-						<span class="lightbox__label"></span>
+						<span class="${LightboxClass.Label}"></span>
 					</div>
 				</div>
-				<div class="lightbox__navitem" data-direction="next">
-					<div class="lightbox__control">
-						<span class="lightbox__label"></span>
-						<button class="lightbox__icon" data-icon="arrow-next">
+				<div class="${LightboxClass.NavItem}" data-direction="next">
+					<div class="${LightboxClass.Control}">
+						<span class="${LightboxClass.Label}"></span>
+						<button class="${LightboxClass.Icon}" data-icon="arrow-next">
 							<span>&rsaquo;</span>
 						</button>
 					</div>
@@ -31,5 +43,6 @@ const template = `
 		</div>
 	</div>
 `.trim()
+
 
 export default template

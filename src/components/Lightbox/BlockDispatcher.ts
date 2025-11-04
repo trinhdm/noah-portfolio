@@ -1,4 +1,5 @@
 import { getBlockType, findChildBy, isHeaderTag } from '../../utils'
+import { LightboxArias, LightboxClass } from './constants'
 import type { BlockTypes } from '../../types'
 
 
@@ -31,64 +32,83 @@ export class BlockDispatcher {
 			type = getBlockType(block)
 
 		cloned.classList.add(`lightbox__${type}`)
-
 		return cloned
 	}
 
-	private static processBlock(
+	private static handleBlock(
 		block: HTMLElement,
-		handler: (clonedBlock: HTMLElement, original: HTMLElement) => HTMLElement | null
+		selector: string,
+		handler: (clonedBlock: HTMLElement, container: HTMLElement) => HTMLElement | null
 	) {
-		const cloned = BlockDispatcher.cloneBlock(block)
-		return handler(cloned, block)
+		const clonedBlock = BlockDispatcher.cloneBlock(block),
+			container = clonedBlock.querySelector(selector) as HTMLElement | null
+
+		if (!container) return null
+		return handler(clonedBlock, container)
 	}
 
 	private static handleHtmlBlock(block: HTMLElement): HTMLElement | null {
-		return BlockDispatcher.processBlock(block, clonedBlock => {
-			const container = block.querySelector('.sqs-html-content')
-			if (!container) return null
+		return BlockDispatcher.handleBlock(block, '[data-sqsp-text-block-content]',
+			(clonedBlock, container) => {
+				const children = Array.from(container.children)
+				if (children.length === 1 && isHeaderTag(children[0].tagName)) return null
 
-			const children = Array.from(container.children)
-			if (children.length === 1 && isHeaderTag(children[0].tagName)) return null
+				const title = container.querySelector('[data-title]')
+				if (title) title.id = LightboxArias.labelledby
 
-			return clonedBlock
-		})
+				return clonedBlock
+			}
+		)
 	}
 
 	private static handleImageBlock(block: HTMLElement): HTMLElement | null {
-		return BlockDispatcher.processBlock(block, clonedBlock => {
-			const container = block.querySelector('[data-animation-role]')
+		return BlockDispatcher.handleBlock(block, '[data-animation-role]',
+			(clonedBlock, container) => {
+				const img = container ? findChildBy(container, { tagName: 'img' }) : null
+				if (!img) return null
 
-			const img = container ? findChildBy(container, { tagName: 'img' }) : null
-			if (!img) return null
+				const link = container.querySelector('a')
+				if (link) link.setAttribute('disabled', '')
 
-			return clonedBlock
-		})
+				return clonedBlock
+			}
+		)
 	}
 
 	private static handleVideoBlock(block: HTMLElement): HTMLElement | null {
 		const IFrame = {
-			create(json?: string): HTMLIFrameElement | null {
-				if (!json?.length) return null
+			parse(config?: string) {
+				if (!config?.length) return null
 
 				try {
-					const { html } = JSON.parse(json)
+					const html = config.startsWith('{') ? JSON.parse(config) : config
 					if (typeof html !== 'string') return null
 
-					const fragment = document.createDocumentFragment(),
-						parsed = new DOMParser().parseFromString(html, 'text/html')
-
-					Array.from(parsed.body.childNodes).forEach(node => fragment.appendChild(node.cloneNode(true)))
-
-					const iframe = parsed.body.childNodes[0] as HTMLIFrameElement
-
-					return iframe
+					const parsed = new DOMParser().parseFromString(html, 'text/html')
+					return parsed
 				} catch { return null }
+			},
+
+			create(json?: string): HTMLIFrameElement | null {
+				const parsed = IFrame.parse(json)
+				if (!parsed) return null
+
+				const html = parsed.body,
+					nodes = Array.from(html.childNodes ?? [])
+				let iframe = html as HTMLIFrameElement
+
+				if (!!nodes.length) {
+					const fragment = document.createDocumentFragment()
+					nodes.forEach(node => fragment.appendChild(node.cloneNode(true)))
+					iframe = nodes[0] as HTMLIFrameElement
+				}
+
+				return iframe
 			}
 		}
 
 		const Video = {
-			parseConfig(json: string | undefined) {
+			parse(json?: string) {
 				if (!json?.length) return null
 
 				try {
@@ -105,7 +125,7 @@ export class BlockDispatcher {
 			},
 
 			create(json?: string): HTMLVideoElement | null {
-				const config = Video.parseConfig(json)
+				const config = Video.parse(json)
 				if (!config) return null
 
 				const video: HTMLVideoElement = document.createElement('video')
@@ -119,38 +139,33 @@ export class BlockDispatcher {
 				})
 
 				return video
-			}
+			},
 		}
 
-		return BlockDispatcher.processBlock(block, clonedBlock => {
-			const nativeVideo = block.querySelector('[data-config-video]'),
-				youtubeVideo = block.querySelector('[data-html]')
+		return BlockDispatcher.handleBlock(block, '.embed-block-wrapper',
+			(clonedBlock, container) => {
+				let element: HTMLIFrameElement | HTMLVideoElement | null = null
+				const nativeVideo = block.querySelector('[data-config-video]'),
+					iframeVideo = block.querySelector('[data-html]')
 
-			let container: Element | null = null,
-				element: HTMLIFrameElement | HTMLVideoElement | null = null
+				if (nativeVideo) {
+					const json = (nativeVideo as HTMLElement).dataset?.configVideo
+					element = Video.create(json)
+				} else if (iframeVideo) {
+					const json = (iframeVideo as HTMLElement).dataset?.html
+					element = IFrame.create(json)
+				}
 
-			if (nativeVideo) {
-				const json = (nativeVideo as HTMLElement).dataset?.configVideo
+				if (!element) return null
 
-				element = Video.create(json)
-				container = clonedBlock.querySelector('.native-video-player')
-				container?.classList.add('lightbox__video-player')
-			} else if (youtubeVideo) {
-				const jsonEl = youtubeVideo.closest('[data-block-json]') as HTMLElement | null,
-					json = jsonEl?.dataset?.blockJson
+				const wrapper = document.createElement('div')
+				wrapper.classList.add(`${LightboxClass.Video}-wrapper`)
+				wrapper.appendChild(element)
 
-				element = IFrame.create(json)
-				container = clonedBlock.querySelector('.embed-block-wrapper')
+				container.replaceChildren(wrapper)
+
+				return clonedBlock
 			}
-
-			if (!container || !element) return null
-
-			const wrapper = document.createElement('div')
-			wrapper.classList.add('lightbox__video-wrapper')
-			wrapper.appendChild(element)
-			container.replaceChildren(wrapper)
-
-			return clonedBlock
-		})
+		)
 	}
 }
