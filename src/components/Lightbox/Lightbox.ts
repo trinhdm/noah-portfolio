@@ -67,7 +67,6 @@ class LightboxCache {
 			container: root.querySelector(LightboxSelector.Container),
 			content: root.querySelector(LightboxSelector.Content),
 			footer: root.querySelector(LightboxSelector.Footer),
-			header: root.querySelector(LightboxSelector.Header),
 			icons: Array.from(root.querySelectorAll(LightboxSelector.Icon) ?? []),
 			image: root.querySelector(LightboxSelector.Image),
 			navigation: root.querySelector(LightboxSelector.Navigation),
@@ -78,7 +77,7 @@ class LightboxCache {
 		map = {
 			...map,
 			arrows: Array.from(map.navigation?.querySelectorAll('[data-direction]') ?? []),
-			closeBtn: map.icons?.find(ic => ic.dataset.icon === 'close'),
+			exit: map.icons?.find(ic => ic.dataset.icon === 'close'),
 			player: map.video?.querySelector('video') || map.video?.querySelector('iframe'),
 		} as Partial<LightboxElements>
 
@@ -153,14 +152,21 @@ class LightboxDOM {
 
 		const selectors = Object.values(LightboxSelector)
 
-		Array.from(wrapper.children).forEach(child => {
+		for (const child of wrapper.children) {
 			const target = selectors.find(cl => child.classList.contains(cl.slice(1))),
 				replacement = content.querySelector(target ?? '')
 
 			if (replacement) child.replaceWith(replacement)
-		})
+		}
 
 		this.rebuildCache()
+	}
+
+	toggleDisable(): void {
+		toggleDisableAttr(this.root)
+
+		const icons = this.cache.get('icons')
+		icons.forEach(icon => icon.disabled = this.root.dataset.disabled === 'true')
 	}
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
@@ -170,8 +176,6 @@ class LightboxDOM {
 	rebuildCache(): void { this.cache.rebuild() }
 
 	resetCache(): void { this.cache.reset() }
-
-	toggleDisable(): void { toggleDisableAttr(this.root) }
 
 	append(): void { document.body.appendChild(this.root) }
 
@@ -310,12 +314,12 @@ class LightboxAnimator {
 			this.dom.setState(state)
 			this.dom.setDocument()
 
-			const { classList } = element,
-				cls = LightboxClass.Animation
+			// const { classList } = element,
+			// 	cls = LightboxClass.Animation
 
-			if (classList.contains(cls)) classList.remove(cls)
+			// if (classList.contains(cls)) classList.remove(cls)
 			void element.offsetHeight		// trigger reflow
-			classList.add(cls)
+			// classList.add(cls)
 		}
 
 		private async fadeMain() {
@@ -337,7 +341,7 @@ class LightboxAnimator {
 
 			this.animator.fadeArrows(true)
 			await this.animator.Media.fadeAll?.()
-			this.animator.fade('closeBtn')
+			this.animator.fade('exit')
 		}
 
 		async fadeOut() {
@@ -345,7 +349,7 @@ class LightboxAnimator {
 				targetBlock = this.dom.get('blocks').at(-2)
 
 			this.reflow('close')
-			this.animator.fade('closeBtn')
+			this.animator.fade('exit')
 			await Animation.wait('pause')
 
 			this.animator.fadeArrows(false)
@@ -390,17 +394,17 @@ class LightboxEvents {
 
 	private bindClicks() {
 		const arrows = this.dom.get('arrows'),
-			closeBtn = this.dom.get('closeBtn'),
+			exit = this.dom.get('exit'),
 			overlay = this.dom.get('overlay')
 
-		if (closeBtn) this.handleClick(closeBtn)
+		if (exit) this.handleClick(exit)
 		if (overlay) this.handleClick(overlay)
 
 		if (arrows.length) {
-			arrows.forEach(arrow => {
-				const dir = arrow.dataset.direction as ArrowDirections
-				this.handleClick(arrow, () => this.dispatch.emit('navigate', dir))
-			})
+			for (const arrow of arrows) {
+				const { direction } = arrow.dataset as { direction: ArrowDirections }
+				this.handleClick(arrow, () => this.dispatch.emit('navigate', direction))
+			}
 		}
 	}
 
@@ -766,10 +770,10 @@ class LightboxLifecycle {
 		const adjacentTargets = [] as (HTMLElement | undefined)[],
 			directions = Object.keys(directory) as ArrowDirections[]
 
-		directions.forEach(dir => {
+		for (const dir of directions) {
 			const { target } = directory[dir]
 			if (!!target) adjacentTargets.push(target)
-		})
+		}
 
 		if (!adjacentTargets.length) return
 		await this.content.prefetcher(adjacentTargets).catch(error => (

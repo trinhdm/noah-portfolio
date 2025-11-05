@@ -8,9 +8,10 @@ export class LightboxContentService extends ContentService {
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const data = await this.fetch(target)
 		if (!data) return
-		const { content } = data
 
-		const container = document.createElement('div')
+		const container = document.createElement('div'),
+			{ content } = data
+
 		container.insertAdjacentHTML('beforeend', content)
 
 		const imgSelector = '[data-sqsp-image-block-image-container]',
@@ -25,19 +26,24 @@ export class LightboxContentService extends ContentService {
 		if (!fragment) return undefined
 
 		const container = document.createElement('div'),
-			elements = fragment.querySelectorAll(this.selector)
+			elements = fragment.querySelectorAll(this.selector) as NodeListOf<HTMLElement>
 
-		for (const el of elements) {
-			const block = BlockDispatcher.format(el as HTMLElement)
+		for (let i = 0; i < elements.length; i++) {
+			const el = elements[i],
+				block = BlockDispatcher.format(el)
+
 			if (!block) continue
 
-			if (el === Array.from(elements).at(-1) && !!block.firstElementChild)
-				block.firstElementChild.classList.add(LightboxBlockClass.Animation)
+			const { firstElementChild } = block,
+				lastIndex = elements.length - 1
+
+			if (i === lastIndex && !!firstElementChild)
+				firstElementChild.classList.add(LightboxBlockClass.Animation)
 
 			container.appendChild(block)
 		}
 
-		return container.children.length ? container : undefined
+		return container.childElementCount ? container : undefined
 	}
 
 	async render(target: HTMLElement | undefined): Promise<HTMLDivElement | undefined> {

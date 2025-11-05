@@ -31,12 +31,11 @@ interface LightboxElements {
 	arrows: HTMLElement[]
 	blocks: HTMLElement[]
 	body: HTMLDivElement | undefined
-	closeBtn: HTMLElement | undefined
 	container: HTMLDivElement | undefined
 	content: HTMLDivElement | undefined
+	exit: HTMLElement | undefined
 	footer: HTMLDivElement | undefined
-	header: HTMLDivElement | undefined
-	icons: HTMLElement[]
+	icons: HTMLButtonElement[]
 	image: HTMLDivElement | undefined
 	navigation: HTMLElement | undefined
 	overlay: HTMLDivElement | undefined

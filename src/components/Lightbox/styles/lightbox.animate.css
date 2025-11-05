@@ -1,5 +1,5 @@
 
-.lightbox:is(.lightbox--animated) {
+.lightbox:is([data-state]) {
 	--dt-lb-duration: .6s;
 	--dt-lb-delay: .075s;
 	--dt-lb-stagger: calc(1.375 * var(--dt-lb-delay));
@@ -15,7 +15,7 @@
 		opacity: 1;
 	}
 
-	&:not(.lightbox--animated) {
+	&:not([data-state]) {
 		.lightbox__body,
 		.lightbox__container {
 			transform: var(--dt-fade-base);
@@ -25,7 +25,7 @@
 	/*	shared fade styles
 		-----------------	*/
 
-	&:is(.lightbox--animated) {
+	&:is([data-state]) {
 		.lightbox__body,
 		.lightbox__container,
 		.lightbox__overlay {
@@ -105,8 +105,12 @@
 
 
 .lightbox {
-	&:not(.lightbox--animated) {
+	&:not([data-state]) {
 		.lightbox__icon {
+			&[data-icon="close"] {
+				transform: var(--dt-fade-up);
+			}
+
 			&[data-icon*="next"] {
 				transform: var(--dt-fade-left);
 			}
@@ -117,7 +121,7 @@
 		}
 	}
 
-	&:is(.lightbox--animated) {
+	&:is([data-state]) {
 		.lightbox__icon {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
@@ -125,7 +129,7 @@
 			animation-timing-function: var(--ease-in-out-sine);
 
 			&[data-icon="close"] {
-				animation-name: fadeIn;
+				animation-name: fadeInUp;
 			}
 
 			&[data-icon*="next"] {
@@ -145,7 +149,9 @@
 				animation-direction: reverse;
 				opacity: 1;
 
-				&[data-direction] {
+				&[data-icon="close"],
+				&[data-icon*="next"],
+				&[data-icon*="prev"] {
 					transform: var(--dt-fade-base);
 				}
 			}
@@ -158,6 +164,10 @@
 			.lightbox__icon {
 				animation-direction: normal;
 				opacity: 0;
+
+				&[data-icon="close"] {
+					transform: var(--dt-fade-up);
+				}
 
 				&[data-icon*="next"] {
 					transform: var(--dt-fade-left);

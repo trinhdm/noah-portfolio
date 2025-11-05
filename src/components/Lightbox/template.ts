@@ -9,15 +9,7 @@ const template = `
 		class="${LightboxClass.Container}"
 		role="dialog"
 	>
-		<div class="${LightboxClass.Header}">
-			<button
-				aria-label="Close"
-				class="${LightboxClass.Icon}"
-				data-icon="close"
-			>
-				<span>&times;</span>
-			</button>
-		</div>
+		<div class="${LightboxClass.Header}"></div>
 		<div class="${LightboxClass.Body}">
 			<div class="${LightboxClass.Content}"></div>
 		</div>
@@ -41,6 +33,15 @@ const template = `
 				</div>
 			</div>
 		</div>
+	</div>
+	<div class="lightbox__exit">
+		<button
+			aria-label="Close"
+			class="${LightboxClass.Icon}"
+			data-icon="close"
+		>
+			<span>&times;</span>
+		</button>
 	</div>
 `.trim()
 

@@ -52,7 +52,7 @@
 	}
 }
 
-.lightbox:is(.lightbox--animated) {
+.lightbox:is([data-state]) {
 	&[data-disabled="true"] {
 		.fe-block {
 			&,
