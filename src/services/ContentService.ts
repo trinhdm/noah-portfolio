@@ -10,6 +10,30 @@ export class ContentService {
 		this.selector = selector
 	}
 
+	async fetch(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
+		const id = this.getID(target)
+
+		if (this.cache.has(id)) return this.cache.get(id)
+
+		const fragment = await this.retrieve(target)
+		if (fragment) this.cache.set(id, fragment)
+
+		return fragment ?? undefined
+	}
+
+	async prefetch(target: HTMLElement | undefined): Promise<void> {
+		const id = this.getID(target)
+		if (!id || this.cache.has(id)) return
+		await this.fetch(target)
+	}
+
+	async prefetcher(targets: (HTMLElement | undefined)[]) {
+		if (!targets.length) return
+
+		const unique = new Set<HTMLElement>(targets.filter(Boolean) as HTMLElement[])
+		await Promise.all([...unique].map(target => this.prefetch(target)))
+	}
+
 	private getID(target?: HTMLElement): string {
 		return (target?.dataset.id || target?.id || '').toString()
 	}
@@ -39,8 +63,8 @@ export class ContentService {
 		return parent as HTMLElement || undefined
 	}
 
-	private async load(target: HTMLElement | undefined): Promise<PageGroup & { parent: HTMLElement } | undefined> {
-		const { id, url } = this.buildURL(target)
+	private async load(page: PageGroup): Promise<HTMLElement | undefined> {
+		const { id, url } = page
 
 		try {
 			const response = await fetch(url)
@@ -50,7 +74,7 @@ export class ContentService {
 				parent = this.parseHTML(html, id)
 
 			if (!parent) throw new Error('element not found')
-			return { id, url, parent }
+			return parent
 		} catch (err) {
 			console.error(`[ContentService] fetch() failed for ${url}`, err)
 			return undefined
@@ -58,12 +82,12 @@ export class ContentService {
 	}
 
 	private async retrieve(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
-		const data = await this.load(target)
-		if (!data) return
+		const page = this.buildURL(target),
+			content = await this.load(page)
 
-		const { parent, ...page } = data
+		if (!content) return
 
-		const wrappers = parent.querySelectorAll('[data-sqsp-text-block-content]'),
+		const wrappers = content.querySelectorAll('[data-sqsp-text-block-content]'),
 			textWrapper = (Array.from(wrappers) as HTMLElement[]).find(el =>
 				isHeaderTag(el.firstElementChild!.tagName ?? '') === false)
 
@@ -79,40 +103,8 @@ export class ContentService {
 
 		return {
 			...page,
-			content: parent.innerHTML.trim(),
+			content: content.innerHTML.trim(),
 			title,
 		} as PageDetails
-	}
-
-	async fetch(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
-		const id = this.getID(target)
-
-		if (this.cache.has(id)) return this.cache.get(id)
-
-		const fragment = await this.retrieve(target)
-		if (fragment) this.cache.set(id, fragment)
-
-		return fragment ?? undefined
-	}
-
-	async prefetch(target: HTMLElement | undefined): Promise<void> {
-		const id = this.getID(target)
-		if (!id || this.cache.has(id)) return
-		await this.fetch(target)
-	}
-
-	async prefetcher(targets: (HTMLElement | undefined)[]) {
-		if (!targets.length) return
-		const pfCache = new WeakSet<HTMLElement>()
-
-		await Promise.allSettled(
-			targets.map(async target => {
-				if (!target || pfCache.has(target)) return
-				pfCache.add(target)
-
-				await this.prefetch(target)
-				pfCache.delete(target)
-			})
-		)
 	}
 }
