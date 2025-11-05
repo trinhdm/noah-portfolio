@@ -13,7 +13,7 @@ export type PageGroup = {
 }
 
 export type PageDetails = PageGroup & {
-	content: string | undefined
+	content: string
 	title: HTMLTarget
 }
 

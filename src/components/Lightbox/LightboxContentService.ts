@@ -2,7 +2,6 @@ import { findElement } from '../../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
 import { ContentService } from '../../services'
 import { LightboxBlockClass } from './constants.ts'
-import type { HTMLTarget } from '../../types'
 
 
 export class LightboxContentService extends ContentService {
@@ -21,7 +20,7 @@ export class LightboxContentService extends ContentService {
 		return container
 	}
 
-	private process(fragment: HTMLTarget): HTMLDivElement | undefined {
+	private process(fragment: HTMLDivElement | undefined): HTMLDivElement | undefined {
 		if (!fragment) return undefined
 
 		const container = document.createElement('div'),
@@ -37,10 +36,10 @@ export class LightboxContentService extends ContentService {
 			container.appendChild(block)
 		}
 
-		return !!container.children.length ? container : undefined
+		return container.children.length ? container : undefined
 	}
 
-	async render(target: HTMLTarget): Promise<HTMLDivElement | undefined> {
+	async render(target: HTMLElement | undefined): Promise<HTMLDivElement | undefined> {
 		if (!target) return
 		const fragment = await this.construct(target)
 		return this.process(fragment)

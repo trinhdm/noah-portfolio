@@ -26,14 +26,18 @@ export class ContentService {
 		return { id, url }
 	}
 
-	private extract(doc: Document, id: string): HTMLElement {
-		const anchor = doc.getElementById(id),
-			parent = anchor?.closest('.content')?.querySelector('.fluid-engine')
+	private extract(html: string, id: string): HTMLTarget {
+		const doc = new DOMParser().parseFromString(html, 'text/html'),
+			anchor = doc.getElementById(id)
+
+		if (!anchor) return
+		const parent = anchor.closest('.content')?.querySelector('.fluid-engine')
 
 		return parent as HTMLElement || undefined
 	}
 
-	private async fetch(page: PageGroup): Promise<HTMLElement | undefined> {
+	private async fetch(target: HTMLTarget): Promise<{ page: PageGroup, parent: HTMLElement } | undefined> {
+		const page = this.parse(target)
 		const { id, url } = page
 
 		try {
@@ -41,9 +45,10 @@ export class ContentService {
 			if (!response.ok) throw new Error('content not found')
 
 			const html = await response.text(),
-				doc = new DOMParser().parseFromString(html, 'text/html')
+				parent = this.extract(html, id)
 
-			return this.extract(doc, id)
+			if (!parent) throw new Error('element not found')
+			return { page, parent }
 		} catch (err) {
 			console.error(`[ContentService] fetch() failed for ${url}`, err)
 			return undefined
@@ -51,10 +56,10 @@ export class ContentService {
 	}
 
 	private async retrieve(target: HTMLTarget): Promise<PageDetails | undefined> {
-		const page = this.parse(target),
-			parent = await this.fetch(page)
+		const data = await this.fetch(target)
+		if (!data) return
 
-		if (!parent) return
+		const { page, parent } = data
 
 		const wrappers = parent.querySelectorAll('[data-sqsp-text-block-content]'),
 			textWrapper = (Array.from(wrappers) as HTMLElement[]).find(el =>
@@ -93,25 +98,22 @@ export class ContentService {
 		const id = target?.dataset.id || target?.id || ''
 		if (this.cache.has(id)) return
 
-		try {
-			const fragment = await this.retrieve(target, tag)
+		const fragment = await this.load(target)
 		if (fragment) this.cache.set(id, fragment)
-		} catch (err) { console.warn(`[ContentService] prefetch() failed for:`, id, err) }
 	}
 
 	async prefetcher(targets: HTMLTarget[]) {
 		if (!targets.length) return
-		const data = new WeakSet<HTMLElement>()
+		const pfCache = new WeakSet<HTMLElement>()
 
-		for (const t of targets) {
-			const target = t as HTMLElement
+		await Promise.allSettled(
+			targets.map(async target => {
+				if (!target || pfCache.has(target)) return
+				pfCache.add(target)
 
-			if (!target || data.has(target)) continue
-			data.add(target)
-
-			try { await this.prefetch(target, tag) }
-			catch (err) { console.warn(`[ContentService] prefetcher() failed on:`, target, err) }
-			finally { data.delete(target) }
-		}
+				await this.prefetch(target)
+				pfCache.delete(target)
+			})
+		)
 	}
 }

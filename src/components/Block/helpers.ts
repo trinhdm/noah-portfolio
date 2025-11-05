@@ -35,7 +35,7 @@ const applyHeaderBlockStyle = (
 	deepest.classList.add(`${className}__header`)
 
 	for (const word of text) {
-		const span = wrapContent(word, 'span')
+		const span = trimContent(word, 'span')
 		if (!span) continue
 
 		deepest.appendChild(span)
