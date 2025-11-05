@@ -1,17 +1,5 @@
-import { findChildBy, isHeaderTag, wrapContent } from '../utils'
-
-
-type PageGroup = {
-	id: string
-	url: string
-}
-
-export type PageDetails = PageGroup & {
-	content: string | undefined
-	title: HTMLElement | null
-}
-
-export type HTMLTarget = HTMLElement | null | undefined
+import { findChildBy, isHeaderTag, trimContent } from '../utils'
+import type { HTMLTarget, PageDetails, PageGroup } from '../types'
 
 
 export class ContentService {
@@ -62,59 +50,57 @@ export class ContentService {
 		}
 	}
 
-	private async retrieve(target: HTMLTarget, tag: string = 'strong'): Promise<PageDetails> {
+	private async retrieve(target: HTMLTarget): Promise<PageDetails | undefined> {
 		const page = this.parse(target),
 			parent = await this.fetch(page)
 
-		let content: string | undefined,
-			title: HTMLElement | null = null
+		if (!parent) return
 
-		if (parent) {
-			const textEls = parent.querySelectorAll('[data-sqsp-text-block-content]')
-			let titleEl = Array.from(textEls).find(
-					el => !(isHeaderTag(el.firstElementChild!.tagName ?? ''))
-				) as HTMLElement | null
+		const wrappers = parent.querySelectorAll('[data-sqsp-text-block-content]'),
+			textWrapper = (Array.from(wrappers) as HTMLElement[]).find(el =>
+				isHeaderTag(el.firstElementChild!.tagName ?? '') === false)
 
-			titleEl = findChildBy(titleEl, { tagName: 'strong' })
+		if (!textWrapper) return
 
-			if (titleEl) {
-				const newTitleEl = wrapContent(titleEl, tag)
-				titleEl.replaceWith(newTitleEl ?? '')
-			}
+		const textEl = findChildBy(textWrapper, { tagName: 'strong' }),
+			title = trimContent(textEl)
 
-			content = parent.innerHTML.trim()
-			title = titleEl
+		if (textEl && title) {
+			title.dataset.title = ''
+			textEl.replaceWith(title)
 		}
 
-		return { ...page, content, title }
+		return {
+			...page,
+			content: parent.innerHTML.trim(),
+			title,
+		} as PageDetails
 	}
 
-	async load(t: HTMLTarget, tag?: string): Promise<PageDetails> {
+	async load(target: HTMLTarget): Promise<PageDetails> {
 		const base = { content: undefined } as PageDetails,
-			target = t as HTMLElement,
-			id = target.dataset.id || target.id
+			id = target?.dataset.id || target?.id || ''
 
 		if (this.cache.has(id)) return this.cache.get(id) ?? base
 
-		const fragment = await this.retrieve(target, tag)
+		const fragment = await this.retrieve(target)
 		if (fragment) this.cache.set(id, fragment)
 
 		return fragment ?? base
 	}
 
-	async prefetch(t: HTMLTarget, tag?: string): Promise<void> {
-		const target = t as HTMLElement,
-			id = target.dataset.id || target.id
-
+	async prefetch(target: HTMLTarget): Promise<void> {
+		const id = target?.dataset.id || target?.id || ''
 		if (this.cache.has(id)) return
 
 		try {
 			const fragment = await this.retrieve(target, tag)
-			if (fragment) this.cache.set(id, fragment)
+		if (fragment) this.cache.set(id, fragment)
 		} catch (err) { console.warn(`[ContentService] prefetch() failed for:`, id, err) }
 	}
 
-	async prefetcher(targets: HTMLTarget[], tag?: string) {
+	async prefetcher(targets: HTMLTarget[]) {
+		if (!targets.length) return
 		const data = new WeakSet<HTMLElement>()
 
 		for (const t of targets) {

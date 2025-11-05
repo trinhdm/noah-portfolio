@@ -1,10 +1,10 @@
-import type { Properties } from '../../types'
-import type { HandlerFor, PageDetails } from '../../services'
+import type { HandlerFor } from '../../services'
+import type { PageDetails, Properties } from '../../types'
 
 
 type NavigationItem = PageDetails & {
 	index: number
-	target: HTMLElement | null
+	target: HTMLElement | undefined
 }
 
 type ArrowGroup = {
@@ -15,9 +15,8 @@ type ArrowGroup = {
 type ArrowDirections = keyof ArrowGroup
 
 
-type LightboxStates = 'open' | 'change' | 'close'
 
-type LightboxOptions = Pick<NavigationItem, 'index' | 'target'> & {
+interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
 	elements: HTMLElement[]
 	properties?: Properties<HTMLDivElement>
 }
@@ -26,11 +25,12 @@ type LightboxElements = {
 	arrows: HTMLElement[]
 	blocks: HTMLElement[]
 	body: HTMLDivElement | undefined
-	close: HTMLElement | undefined
+	closeBtn: HTMLElement | undefined
 	container: HTMLDivElement | undefined
 	content: HTMLDivElement | undefined
 	footer: HTMLDivElement | undefined
 	header: HTMLDivElement | undefined
+	icons: HTMLElement[]
 	image: HTMLDivElement | undefined
 	navigation: HTMLElement | undefined
 	overlay: HTMLDivElement | undefined
@@ -41,7 +41,9 @@ type LightboxElements = {
 
 type LightboxElement = keyof LightboxElements
 
-type LightboxEventMap = {
+type LightboxStates = 'open' | 'change' | 'close'
+
+interface LightboxEventMap {
 	close: void
 	error: {
 		error: unknown

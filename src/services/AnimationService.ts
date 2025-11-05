@@ -135,7 +135,6 @@ export class AnimationService {
 
 		const { styles, timeout } = this.get(target, options)
 		Object.assign(target.style, styles)
-		console.log({ target, styles })
 
 		return this.resetOnEnd(target, timeout)
 	}
@@ -174,7 +173,6 @@ export class AnimationService {
 
 		const animations = target.getAnimations({ subtree: true }),
 			[cssAnimations] = animations.filter(anim => anim instanceof CSSAnimation)
-			if (target.tagName === 'SPAN') console.log({ target, animations })
 
 		if (cssAnimations) {
 			const keyframeEffect = cssAnimations.effect

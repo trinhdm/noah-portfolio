@@ -1,4 +1,4 @@
-import { getDeepestChild, toggleDisableAttr, wrapContent } from '../../utils'
+import { getDeepestChild, toggleDisableAttr, trimContent } from '../../utils'
 import { AnimationService } from '../../services'
 import type { BlockOptions } from '../../types'
 

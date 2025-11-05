@@ -2,13 +2,13 @@ import type { Properties } from '../types'
 
 
 export const findChildBy = (
-	element: Element | null,
+	element: Element | undefined,
 	criteria: Record<string, number | string> = {}
-): HTMLElement | null => {
-	if (!element) return null
+): HTMLElement | undefined => {
+	if (!element) return
 
 	const [property, value] = Object.entries(criteria)[0]
-	if (!property) return null
+	if (!property) return
 
 	const actual = (element as any)[property],
 		expected = property === 'tagName' && typeof value === 'string'
@@ -33,7 +33,7 @@ export const findChildBy = (
 		if (match) return match
 	}
 
-	return null
+	return
 }
 
 

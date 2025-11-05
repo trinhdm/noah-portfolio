@@ -1,6 +1,6 @@
 import { getBlockType, toggleDisableAttr } from '../../utils'
 import { AnimationService as Animation, ContentService } from '../../services'
-import type { BlockOptions } from '../../types'
+import type { BlockOptions, PageDetails } from '../../types'
 
 
 export class BlockPortfolio {
@@ -55,7 +55,7 @@ export class BlockPortfolio {
 	private async update(): Promise<void> {
 		toggleDisableAttr(this.block)
 
-		const { id, title } = await this.contentService.load(this.block, 'span')
+		const { id, title } = await this.contentService.load(this.block)
 		this.id = id
 
 		this.configureBlock()
@@ -78,12 +78,11 @@ export class BlockPortfolio {
 		const animOptions = animation
 			? Object.assign({}, this.baseAnimation, animation)
 			: this.baseAnimation
-		console.log(animOptions)
 
 		Animation.set(this.block, animOptions)
 	}
 
-	private renderDetails(title: HTMLElement | null): void {
+	private renderDetails(title: PageDetails['title']): void {
 		if (!title) return
 
 		const details = document.createElement('div')

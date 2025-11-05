@@ -27,20 +27,24 @@ export const getBlockType = (block: HTMLElement): BlockTypes | null => {
 
 export const isHeaderTag = (tag: string) => /^H[1-4]$/.test(tag)
 
-export const wrapContent = (
-	input: HTMLElement | string | null | undefined,
-	tag: string = 'span',
-	sanitize = true
-): HTMLElement | null => {
-	if (!input) return null
 
-	let content = typeof input === 'string' ? input : input.innerHTML
-	const wrapper = document.createElement(tag)
+export function trimContent (input: HTMLElement | null | undefined, tag?: string): HTMLElement | undefined;
+export function trimContent (input: string | null | undefined, tag: string): HTMLElement | undefined;
+export function trimContent (input: HTMLElement | string | null | undefined, tag?: string): HTMLElement | undefined {
+	if (!input) return undefined
+	let content: string, tagName: string = ''
 
-	if (sanitize)
-		content = content.replaceAll('<br>', '').trim()
+	if (input instanceof HTMLElement) {
+		content = input.innerHTML
+		;({ tagName } = input)
+	} else {
+		content = input
+	}
 
-	wrapper.innerHTML = content
+	if (!!tag) tagName = tag
+
+	const wrapper = document.createElement(tagName)
+	wrapper.innerHTML = content.replaceAll('<br>', '').trim()
 
 	return wrapper
 }
