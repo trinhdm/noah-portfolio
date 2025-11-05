@@ -6,8 +6,9 @@ import { LightboxBlockClass } from './constants.ts'
 
 export class LightboxContentService extends ContentService {
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
-		const { content } = await this.load(target)
-		if (!content) return
+		const data = await this.fetch(target)
+		if (!data) return
+		const { content } = data
 
 		const container = document.createElement('div')
 		container.insertAdjacentHTML('beforeend', content)

@@ -55,12 +55,14 @@ export class BlockPortfolio {
 	private async update(): Promise<void> {
 		toggleDisableAttr(this.block)
 
-		const { id, title } = await this.contentService.load(this.block)
-		this.id = id
+		const data = await this.contentService.fetch(this.block)
+		if (!data) return
+
+		this.id = data.id
 
 		this.configureBlock()
 		this.applyStyle()
-		this.renderDetails(title)
+		this.renderDetails(data.title)
 	}
 
 	private configureBlock(): void {

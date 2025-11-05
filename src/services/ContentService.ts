@@ -1,5 +1,5 @@
 import { findChildBy, isHeaderTag, trimContent } from '../utils'
-import type { HTMLTarget, PageDetails, PageGroup } from '../types'
+import type { PageDetails, PageGroup } from '../types'
 
 
 export class ContentService {
@@ -10,23 +10,26 @@ export class ContentService {
 		this.selector = selector
 	}
 
-	private parse(target: HTMLTarget): PageGroup {
-		const anchor = target ? findChildBy(target, { tagName: 'a' }) : null
-		let id = '', url = ''
-
-		if (anchor) {
-			const { hash, href } = anchor as HTMLAnchorElement
-			const [link] = href?.split('#'),
-				separator = link?.includes('?') ? '&' : '?'
-
-			id = hash.slice(1)
-			url = `${link}${separator}format=html`
-		}
-
-		return { id, url }
+	private getID(target?: HTMLElement): string {
+		return (target?.dataset.id || target?.id || '').toString()
 	}
 
-	private extract(html: string, id: string): HTMLTarget {
+	private buildURL(target: HTMLElement | undefined): PageGroup {
+		const anchor = target ? findChildBy(target, { tagName: 'a' }) : null
+
+		if (!anchor) return { id: '', url: '' }
+
+		const { hash, href } = anchor as HTMLAnchorElement
+		const [link] = href?.split('#'),
+			separator = link?.includes('?') ? '&' : '?'
+
+		return {
+			id: hash.slice(1),
+			url: `${link}${separator}format=html`,
+		}
+	}
+
+	private parseHTML(html: string, id: string): HTMLElement | undefined {
 		const doc = new DOMParser().parseFromString(html, 'text/html'),
 			anchor = doc.getElementById(id)
 
@@ -36,30 +39,29 @@ export class ContentService {
 		return parent as HTMLElement || undefined
 	}
 
-	private async fetch(target: HTMLTarget): Promise<{ page: PageGroup, parent: HTMLElement } | undefined> {
-		const page = this.parse(target)
-		const { id, url } = page
+	private async load(target: HTMLElement | undefined): Promise<PageGroup & { parent: HTMLElement } | undefined> {
+		const { id, url } = this.buildURL(target)
 
 		try {
 			const response = await fetch(url)
 			if (!response.ok) throw new Error('content not found')
 
 			const html = await response.text(),
-				parent = this.extract(html, id)
+				parent = this.parseHTML(html, id)
 
 			if (!parent) throw new Error('element not found')
-			return { page, parent }
+			return { id, url, parent }
 		} catch (err) {
 			console.error(`[ContentService] fetch() failed for ${url}`, err)
 			return undefined
 		}
 	}
 
-	private async retrieve(target: HTMLTarget): Promise<PageDetails | undefined> {
-		const data = await this.fetch(target)
+	private async retrieve(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
+		const data = await this.load(target)
 		if (!data) return
 
-		const { page, parent } = data
+		const { parent, ...page } = data
 
 		const wrappers = parent.querySelectorAll('[data-sqsp-text-block-content]'),
 			textWrapper = (Array.from(wrappers) as HTMLElement[]).find(el =>
@@ -82,27 +84,24 @@ export class ContentService {
 		} as PageDetails
 	}
 
-	async load(target: HTMLTarget): Promise<PageDetails> {
-		const base = { content: undefined } as PageDetails,
-			id = target?.dataset.id || target?.id || ''
+	async fetch(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
+		const id = this.getID(target)
 
-		if (this.cache.has(id)) return this.cache.get(id) ?? base
+		if (this.cache.has(id)) return this.cache.get(id)
 
 		const fragment = await this.retrieve(target)
 		if (fragment) this.cache.set(id, fragment)
 
-		return fragment ?? base
+		return fragment ?? undefined
 	}
 
-	async prefetch(target: HTMLTarget): Promise<void> {
-		const id = target?.dataset.id || target?.id || ''
-		if (this.cache.has(id)) return
-
-		const fragment = await this.load(target)
-		if (fragment) this.cache.set(id, fragment)
+	async prefetch(target: HTMLElement | undefined): Promise<void> {
+		const id = this.getID(target)
+		if (!id || this.cache.has(id)) return
+		await this.fetch(target)
 	}
 
-	async prefetcher(targets: HTMLTarget[]) {
+	async prefetcher(targets: (HTMLElement | undefined)[]) {
 		if (!targets.length) return
 		const pfCache = new WeakSet<HTMLElement>()
 
