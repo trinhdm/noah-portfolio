@@ -21,7 +21,13 @@ interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
 	properties?: Properties<HTMLDivElement>
 }
 
-type LightboxElements = {
+interface LightboxVideoOptions {
+	controls?: boolean
+	loop?: boolean
+	mute?: boolean
+}
+
+interface LightboxElements {
 	arrows: HTMLElement[]
 	blocks: HTMLElement[]
 	body: HTMLDivElement | undefined
@@ -71,4 +77,5 @@ export type {
 	LightboxEventMap,
 	LightboxOptions,
 	LightboxStates,
+	LightboxVideoOptions,
 }
