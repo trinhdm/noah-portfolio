@@ -7,9 +7,7 @@ const template = `
 		aria-labelledby="${LightboxArias.labelledby}"
 		aria-modal="true"
 		class="${LightboxClass.Container}"
-		role="dialog"
 	>
-		<div class="${LightboxClass.Header}"></div>
 		<div class="${LightboxClass.Body}">
 			<div class="${LightboxClass.Content}"></div>
 		</div>

@@ -2,8 +2,16 @@
 .lightbox {
 	--dt-lb-background-color: var(--siteBackgroundColor);
 
+	background-color: transparent;
+	border: 0;
+	color: var(--paragraphMediumColor);
+	font-family: var(--body-font-font-family);
+	font-style: var(--body-font-font-style);
+	font-weight: var(--body-font-font-weight);
+	line-height: var(--body-font-line-height);
 	opacity: 0;
-	overflow-x: clip;
+	overflow: clip;
+	padding: 0;
 	z-index: 9999;
 
 	&:is([data-state]) {
@@ -17,10 +25,6 @@
 		.lightbox__overlay {
 			pointer-events: none;
 			user-select: none;
-		}
-
-		.lightbox__exit > span {
-			opacity: .25;
 		}
 	}
 
@@ -41,9 +45,16 @@
 	}
 
 	&,
+	&::backdrop,
 	.lightbox__overlay {
 		height: 100%;
 		position: fixed;
+	}
+
+	&::backdrop,
+	.lightbox__overlay {
+		background-color: rgba(0, 0, 0, .75);
+		z-index: 50;
 	}
 
 	.lightbox__container,
@@ -58,11 +69,6 @@
 		background-color: var(--dt-lb-background-color);
 		border-radius: var(--dt-border-radius);
 		box-shadow: var(--dt-box-shadow);
-		color: var(--paragraphMediumColor);
-		font-family: var(--body-font-font-family);
-		font-style: var(--body-font-font-style);
-		font-weight: var(--body-font-font-weight);
-		line-height: var(--body-font-line-height);
 		overflow: hidden;
 		padding: var(--dt-gap);
 		place-self: center;
@@ -99,11 +105,6 @@
 		z-index: 100;
 	}
 
-	.lightbox__overlay {
-		background-color: rgba(0, 0, 0, .75);
-		z-index: 50;
-	}
-
 	.lightbox__error {
 		color: #F44336;
 		font-size: calc(.625 * var(--base-font-size));
@@ -119,7 +120,7 @@
 		display: flex;
 		font-family: sans-serif;
 		font-size: var(--dt-button-size);
-		font-weight: 600;
+		font-weight: 400;
 		justify-content: center;
 		max-height: fit-content;
 		max-width: fit-content;
@@ -143,7 +144,7 @@
 		}
 
 		&[data-icon*="close"] {
-			font-weight: 700;
+			font-weight: 600;
 		}
 
 		&::before,

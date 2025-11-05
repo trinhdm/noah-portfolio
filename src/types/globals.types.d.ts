@@ -4,6 +4,10 @@ import type { AnimationOptions } from '../services'
 export type Entries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>
 export type Properties<T extends HTMLElement = HTMLElement> = Record<keyof T, T[keyof T]> | {}
 
+export type FilterObjArrs<T> = {
+	[K in keyof T as T[K] extends any[] ? never : K]: T[K]
+}
+
 
 export type HTMLTarget = HTMLElement | null | undefined
 

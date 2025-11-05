@@ -40,11 +40,12 @@ interface LightboxElements {
 	navigation: HTMLElement | undefined
 	overlay: HTMLDivElement | undefined
 	player: HTMLIFrameElement | HTMLVideoElement | undefined
-	root: HTMLDivElement
+	root: HTMLDialogElement
 	video: HTMLDivElement | undefined
 }
 
-type LightboxElement = keyof LightboxElements
+// type LightboxElement = keyof LightboxElements
+type LightboxElement = LightboxElements[keyof LightboxElements]
 
 type LightboxStates = 'open' | 'change' | 'close'
 

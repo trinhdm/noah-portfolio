@@ -28,16 +28,26 @@
 
 
 	--dt-cqh-base: 2.5cqw;
-	--dt-cqw-base: 7.5cqw;
+	--dt-cqw-base: 15cqw;
 
 
 	--dt-fade-base: translate3d(0, 0, 0);
 	--dt-fade-left-max: translate3d(100%, 0, 0);
 
 	--dt-fade-down: translate3d(0, -2.5cqw, 0);
-	--dt-fade-left: translate3d(-7.5cqw, 0, 0);
-	--dt-fade-right: translate3d(7.5cqw, 0, 0);
+	--dt-fade-left: translate3d(-15cqw, 0, 0);
+	--dt-fade-right: translate3d(15cqw, 0, 0);
 	--dt-fade-up: translate3d(0, 2.5cqw, 0);
+
+	--dt-translate-base: translate3d(0, 0, 0);
+
+	--dt-translate-lr-xs: 5cqw;
+	--dt-translate-left-xs: translate3d(-5cqw, 0, 0);
+	--dt-translate-right-xs: translate3d(5cqw, 0, 0);
+
+	--dt-translate-lr-md: 15cqw;
+	--dt-translate-left-md: translate3d(-15cqw, 0, 0);
+	--dt-translate-right-md: translate3d(15cqw, 0, 0);
 
 
 	--dt-transition-base: opacity .35s var(--ease-in-out-quad) .11s,

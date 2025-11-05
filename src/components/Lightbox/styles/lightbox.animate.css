@@ -1,5 +1,5 @@
 
-.lightbox:is([data-state]) {
+.lightbox:is([data-animated]) {
 	--dt-lb-duration: .6s;
 	--dt-lb-delay: .075s;
 	--dt-lb-stagger: calc(1.375 * var(--dt-lb-delay));
@@ -9,23 +9,10 @@
 }
 
 .lightbox {
-	.lightbox__body,
-	.lightbox__container,
-	.lightbox__overlay {
-		opacity: 1;
-	}
-
-	&:not([data-state]) {
-		.lightbox__body,
-		.lightbox__container {
-			transform: var(--dt-fade-base);
-		}
-	}
-
 	/*	shared fade styles
 		-----------------	*/
 
-	&:is([data-state]) {
+	&:is([data-animated]) {
 		.lightbox__body,
 		.lightbox__container,
 		.lightbox__overlay {
@@ -49,6 +36,14 @@
 			animation-timing-function: var(--ease-in-out-back);
 		}
 
+		&:is([data-state="change"]) {
+			.lightbox__body,
+			.lightbox__container,
+			.lightbox__overlay {
+				animation-name: none;
+			}
+		}
+
 		/*	fade out
 			-----------------	*/
 
@@ -70,7 +65,7 @@
 			}
 
 			.lightbox__container {
-				animation-delay: 0;
+				animation-delay: 0s;
 				animation-timing-function: var(--ease-in-quart);
 			}
 		}
@@ -105,23 +100,7 @@
 
 
 .lightbox {
-	&:not([data-state]) {
-		.lightbox__icon {
-			&[data-icon="close"] {
-				transform: var(--dt-fade-up);
-			}
-
-			&[data-icon*="next"] {
-				transform: var(--dt-fade-left);
-			}
-
-			&[data-icon*="prev"] {
-				transform: var(--dt-fade-right);
-			}
-		}
-	}
-
-	&:is([data-state]) {
+	&:is([data-animated]) {
 		.lightbox__icon {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
@@ -141,6 +120,17 @@
 			}
 		}
 
+		&:is([data-state="change"]) {
+			.lightbox__icon {
+				animation-name: none;
+
+				& > span {
+					opacity: .5;
+					transition-delay: .35s, 0s;
+				}
+			}
+		}
+
 		/*	fade out
 			-----------------	*/
 
@@ -148,12 +138,7 @@
 			.lightbox__icon {
 				animation-direction: reverse;
 				opacity: 1;
-
-				&[data-icon="close"],
-				&[data-icon*="next"],
-				&[data-icon*="prev"] {
-					transform: var(--dt-fade-base);
-				}
+				transform: var(--dt-fade-base);
 			}
 		}
 

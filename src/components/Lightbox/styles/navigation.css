@@ -1,6 +1,7 @@
 
 .lightbox__navigation {
 	--dt-button-size: 3rem;
+	--dt-button-spacing: calc(.125rem + var(--dt-translate-lr-xs));
 
 	display: flex;
 	flex: 1 100%;
@@ -31,8 +32,8 @@
 			}
 
 			.lightbox__label {
-				padding-right: var(--dt-cqw-base);
-				transform: var(--dt-fade-right);
+				padding-right: var(--dt-button-spacing);
+				transform: var(--dt-translate-right-xs);
 			}
 		}
 
@@ -53,8 +54,8 @@
 			}
 
 			.lightbox__label {
-				padding-left: var(--dt-cqw-base);
-				transform: var(--dt-fade-left);
+				padding-left: var(--dt-button-spacing);
+				transform: var(--dt-translate-left-xs);
 			}
 		}
 
@@ -69,7 +70,7 @@
 
 			.lightbox__label {
 				opacity: .5;
-				transform: var(--dt-fade-base);
+				transform: var(--dt-translate-base);
 			}
 		}
 	}
@@ -100,7 +101,6 @@
 	}
 
 	.lightbox__icon {
-		font-weight: 400;
 	    margin-bottom: .125rem;
 	}
 
@@ -131,13 +131,13 @@
 			user-select: none;
 		}
 
-		.lightbox__navitem:is(:focus-within, :hover) {
+		/* .lightbox__navitem:is(:focus-within, :hover) {
 			&[data-direction="next"] .lightbox__label {
-				transform: var(--dt-fade-right);
+				transform: var(--dt-translate-right-xs);
 			}
 
 			&[data-direction="prev"] .lightbox__label {
-				transform: var(--dt-fade-left);
+				transform: var(--dt-translate-left-xs);
 			}
 
 			.lightbox__control,
@@ -161,6 +161,6 @@
 				opacity: .75;
 				transform: scale(1);
 			}
-		}
+		} */
 	}
 }

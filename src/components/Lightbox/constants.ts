@@ -1,7 +1,6 @@
 
 enum LightboxClass {
 	Root 		= 'lightbox',
-	Animation 	= `${Root}--animated`,
 	Error 		= `${Root}__error`,
 
 	Body 		= `${Root}__body`,
@@ -24,7 +23,6 @@ enum LightboxClass {
 
 enum LightboxSelector {
 	Root 		= `.${LightboxClass.Root}`,
-	Animation 	= `.${LightboxClass.Animation}`,
 	Error 		= `.${LightboxClass.Error}`,
 
 	Body 		= `.${LightboxClass.Body}`,

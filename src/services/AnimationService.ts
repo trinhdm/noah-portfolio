@@ -15,7 +15,7 @@ type AnimationStyles = {
 
 export type AnimationOptions = BaseAnimationOptions & Pick<AnimationStyles, 'timeout'>
 
-const PSEUDO_ELEMENTS = ['::before', '::after'] as const
+const PSEUDO_ELEMENTS = ['::backdrop', '::before', '::after'] as const
 type PseudoElement = typeof PSEUDO_ELEMENTS[number]
 
 
@@ -67,11 +67,12 @@ class Styles {
 }
 
 export class AnimationService {
-	private static readonly waitTimes: Record<'default' | 'pause' | 'swap' | 'timeout', number> = {
+	private static readonly waitTimes = {
+		buffer: 5,
 		default: 50,
 		pause: 500,
-		swap: 1000,
-		timeout: 1500,
+		swap: 250,
+		timeout: 1000,
 	}
 
 	static async wait(value: keyof typeof this.waitTimes | number = 'default') {
@@ -84,18 +85,17 @@ export class AnimationService {
 
 	static async waitForEnd(
 		element: HTMLElement | undefined,
-		timeoutMs = this.waitTimes.default,
-		event = 'animationend'
+		timeoutMs = this.waitTimes.buffer
 	): Promise<void> {
 		const animations = element?.getAnimations({ subtree: true })
+
 		if (!element || !animations?.length) return
+		await new Promise(requestAnimationFrame)
 
 		const animated = (animations[0].effect as KeyframeEffect).target,
 			target = animated && element.className !== animated?.className
 			? animated
 			: element
-
-		await new Promise(requestAnimationFrame)
 
 		const {
 			delay = 0,
@@ -103,21 +103,16 @@ export class AnimationService {
 		} = Styles.deriveFromDOM(window.getComputedStyle(target))
 
 		const totalMs = (duration + delay) * 1000,
-			bufferTime = (duration * 1000) + timeoutMs
+			bufferTime = totalMs + timeoutMs
 
 		if (totalMs === 0) return
-		return Promise.race([
-			new Promise<void>(resolve => {
-				const handleEnd = (evt: Event) => {
-					if ((evt as AnimationEvent).target !== target) return
-					target.removeEventListener(event, handleEnd)
-					resolve()
-				}
 
-				target.addEventListener(event, handleEnd, { once: true })
-			}),
-			await this.wait(bufferTime),
-		])
+		try {
+			await Promise.race([
+				Promise.all(animations.map(a => a.finished.catch(() => {}))),
+				this.wait(bufferTime)
+			])
+		} finally {}
 	}
 
 	static set(
@@ -125,11 +120,6 @@ export class AnimationService {
 		options: AnimationOptions | {} = {}
 	) {
 		if (!element) return
-
-		// if (!document.body.contains(element)) {
-		// 	requestAnimationFrame(() => this.set(element, options))
-		// 	return
-		// }
 
 		const target = element as HTMLElement
 
