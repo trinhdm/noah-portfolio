@@ -27,50 +27,71 @@ export class BlockDispatcher {
 		return handler(block)
 	}
 
-	private static cloneBlock(block: HTMLElement): HTMLElement {
+	private static sanitizeBlock(block: HTMLElement): HTMLElement {
 		const cloned = block.cloneNode(true) as HTMLElement,
-			type = getBlockType(block)
+			attributes = Array.from(cloned.attributes),
+			children = Array.from(cloned.children)
 
-		cloned.classList.add(`lightbox__${type}`)
+		attributes.forEach(({ name, value }) => {
+			if (name === 'class') {
+				const classes = value.split(' ')
+					.filter((cl, i) => (i === 0 || cl.includes(LightboxClass.Root)))
+					.join(' ')
+				cloned.setAttribute(name, classes)
+			} else {
+				cloned.removeAttribute(name)
+			}
+		})
+
+		if (children.length > 1) {
+			children.forEach(child => {
+				if (child.className.includes('sqs-block')) return
+				child.remove()
+			})
+		}
+
+		const type = getBlockType(block)
+		cloned.classList.add('lightbox-block', `lightbox__${type}`)
+
 		return cloned
 	}
 
 	private static handleBlock(
 		block: HTMLElement,
 		selector: string,
-		handler: (clonedBlock: HTMLElement, container: HTMLElement) => HTMLElement | null
-	) {
-		const clonedBlock = BlockDispatcher.cloneBlock(block),
-			container = clonedBlock.querySelector(selector) as HTMLElement | null
+		handler: (outputBlock: HTMLElement, container: HTMLElement) => HTMLElement | null
+	): HTMLElement | null {
+		const outputBlock = BlockDispatcher.sanitizeBlock(block),
+			container = outputBlock.querySelector(selector) as HTMLElement | null
 
 		if (!container) return null
-		return handler(clonedBlock, container)
+		return handler(outputBlock, container)
 	}
 
 	private static handleHtmlBlock(block: HTMLElement): HTMLElement | null {
 		return BlockDispatcher.handleBlock(block, '[data-sqsp-text-block-content]',
-			(clonedBlock, container) => {
+			(outputBlock, container) => {
 				const children = Array.from(container.children)
 				if (children.length === 1 && isHeaderTag(children[0].tagName)) return null
 
 				const title = container.querySelector('[data-title]')
 				if (title) title.id = LightboxArias.labelledby
 
-				return clonedBlock
+				return outputBlock
 			}
 		)
 	}
 
 	private static handleImageBlock(block: HTMLElement): HTMLElement | null {
 		return BlockDispatcher.handleBlock(block, '[data-animation-role]',
-			(clonedBlock, container) => {
+			(outputBlock, container) => {
 				const img = container ? findChildBy(container, { tagName: 'img' }) : null
 				if (!img) return null
 
 				const link = container.querySelector('a')
 				if (link) link.setAttribute('disabled', '')
 
-				return clonedBlock
+				return outputBlock
 			}
 		)
 	}
@@ -143,7 +164,7 @@ export class BlockDispatcher {
 		}
 
 		return BlockDispatcher.handleBlock(block, '.embed-block-wrapper',
-			(clonedBlock, container) => {
+			(outputBlock, container) => {
 				let element: HTMLIFrameElement | HTMLVideoElement | null = null
 				const nativeVideo = block.querySelector('[data-config-video]'),
 					iframeVideo = block.querySelector('[data-html]')
@@ -164,7 +185,7 @@ export class BlockDispatcher {
 
 				container.replaceChildren(wrapper)
 
-				return clonedBlock
+				return outputBlock
 			}
 		)
 	}

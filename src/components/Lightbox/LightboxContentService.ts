@@ -1,12 +1,11 @@
-import { findElement, getBlockType } from '../../utils'
+import { findElement } from '../../utils'
 import { BlockDispatcher } from './BlockDispatcher.ts'
-import { ContentService, type HTMLTarget } from '../../services'
-import { LightboxBlockClass, LightboxClass } from './constants.ts'
+import { ContentService } from '../../services'
+import { LightboxBlockClass } from './constants.ts'
+import type { HTMLTarget } from '../../types'
 
 
 export class LightboxContentService extends ContentService {
-	private readonly classPrefixes = [LightboxClass.Root, LightboxBlockClass.Root]
-
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const { content } = await this.load(target)
 		if (!content) return
@@ -16,24 +15,10 @@ export class LightboxContentService extends ContentService {
 
 		const imgSelector = '[data-sqsp-image-block-image-container]',
 			imgBlock = findElement(target.querySelector(imgSelector))
+
 		if (imgBlock) container.prepend(imgBlock.cloneNode(true))
 
 		return container
-	}
-
-	private sanitize(fragment: HTMLElement): void {
-		const attributes = Array.from(fragment.attributes)
-
-		attributes.forEach(({ name, value }) => {
-			if (name === 'class') {
-				const classes = value.split(' ')
-					.filter(cl => this.classPrefixes.some(c => cl.includes(c)))
-					.join(' ')
-				fragment.setAttribute(name, classes)
-			} else {
-				fragment.removeAttribute(name)
-			}
-		})
 	}
 
 	private process(fragment: HTMLTarget): HTMLDivElement | undefined {
@@ -46,16 +31,13 @@ export class LightboxContentService extends ContentService {
 			const block = BlockDispatcher.format(el as HTMLElement)
 			if (!block) continue
 
-			if (el === Array.from(elements).at(-1))
-				block.firstElementChild?.classList.add(LightboxBlockClass.Animation)
-
-			const type = getBlockType(block)
-			if (type === 'image') this.sanitize(block)
+			if (el === Array.from(elements).at(-1) && !!block.firstElementChild)
+				block.firstElementChild.classList.add(LightboxBlockClass.Animation)
 
 			container.appendChild(block)
 		}
 
-		return !!container.childNodes.length ? container : undefined
+		return !!container.children.length ? container : undefined
 	}
 
 	async render(target: HTMLTarget): Promise<HTMLDivElement | undefined> {
