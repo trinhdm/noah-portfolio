@@ -1,5 +1,5 @@
 
-.lightbox:is([data-animated]) {
+.lightbox:is([data-animate]) {
 	--dt-lb-duration: .6s;
 	--dt-lb-delay: .075s;
 	--dt-lb-stagger: calc(1.375 * var(--dt-lb-delay));
@@ -9,13 +9,10 @@
 }
 
 .lightbox {
-	/*	shared fade styles
-		-----------------	*/
-
-	&:is([data-animated]) {
+	&:is([data-animate]) {
+		&::backdrop,
 		.lightbox__body,
-		.lightbox__container,
-		.lightbox__overlay {
+		.lightbox__container {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
 			animation-play-state: paused;
@@ -26,17 +23,18 @@
 			animation-name: fadeInUp;
 		}
 
-		.lightbox__body {
-			animation-delay: var(--dt-lb-delay-start);
+		&:not([open])::backdrop {
+			animation-name: none;
+			opacity: 0;
 		}
 
-		.lightbox__overlay {
-			animation-delay: 0s;
+		&:is([open])::backdrop {
 			animation-name: fadeIn;
 			animation-timing-function: var(--ease-in-out-back);
 		}
 
 		&:is([data-state="change"]) {
+			&:is([open])::backdrop,
 			.lightbox__body,
 			.lightbox__container,
 			.lightbox__overlay {
@@ -48,9 +46,9 @@
 			-----------------	*/
 
 		&:is([data-state="close"]) {
+			&::backdrop,
 			.lightbox__body,
-			.lightbox__container,
-			.lightbox__overlay {
+			.lightbox__container {
 				animation-direction: reverse;
 				opacity: 1;
 			}
@@ -61,6 +59,7 @@
 			}
 
 			.lightbox__body {
+				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-in-quad);
 			}
 
@@ -68,15 +67,24 @@
 				animation-delay: 0s;
 				animation-timing-function: var(--ease-in-quart);
 			}
+
+			&:is([data-animate="overlay"])::backdrop {
+				animation-delay: var(--dt-lb-stagger);
+				animation-play-state: running;
+
+				@starting-style {
+					opacity: 1;
+				}
+			}
 		}
 
 		/*	fade in
 			-----------------	*/
 
 		&:is([data-state="open"]) {
+			&::backdrop,
 			.lightbox__body,
-			.lightbox__container,
-			.lightbox__overlay {
+			.lightbox__container {
 				animation-direction: normal;
 				opacity: 0;
 			}
@@ -87,6 +95,7 @@
 			}
 
 			.lightbox__body {
+				animation-delay: var(--dt-lb-delay-start);
 				animation-timing-function: var(--ease-in-quart);
 			}
 
@@ -94,13 +103,21 @@
 				animation-delay: var(--dt-lb-stagger-start);
 				animation-timing-function: var(--ease-in-quad);
 			}
+
+			&::backdrop {
+				animation-play-state: running;
+
+				@starting-style {
+					opacity: 0;
+				}
+			}
 		}
 	}
 }
 
 
 .lightbox {
-	&:is([data-animated]) {
+	&:is([data-animate]) {
 		.lightbox__icon {
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;

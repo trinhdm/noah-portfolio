@@ -1,7 +1,8 @@
 
 .lightbox__navigation {
+	--dt-control-gutter: .125rem;
 	--dt-button-size: 3rem;
-	--dt-button-spacing: calc(.125rem + var(--dt-translate-lr-xs));
+	--dt-button-spacing: calc(var(--dt-control-gutter) + var(--dt-translate-lr-xs));
 
 	display: flex;
 	flex: 1 100%;
@@ -31,6 +32,10 @@
 				}
 			}
 
+			.lightbox__icon {
+				margin-right: calc(-1 * var(--dt-control-gutter));
+			}
+
 			.lightbox__label {
 				padding-right: var(--dt-button-spacing);
 				transform: var(--dt-translate-right-xs);
@@ -51,6 +56,10 @@
 				& > span {
 					transform-origin: left center;
 				}
+			}
+
+			.lightbox__icon {
+				margin-left: calc(-1 * var(--dt-control-gutter));
 			}
 
 			.lightbox__label {

@@ -4,12 +4,19 @@ import type { AnimationOptions } from '../services'
 export type Entries<T> = Array<{ [K in keyof T]: [K, T[K]] }[keyof T]>
 export type Properties<T extends HTMLElement = HTMLElement> = Record<keyof T, T[keyof T]> | {}
 
+
+interface Events {
+	click: MouseEvent
+	focusin: FocusEvent
+	keydown: KeyboardEvent
+}
+type EventHandler<K extends keyof Events> = (event: Events[K]) => void
+
+
 export type FilterObjArrs<T> = {
 	[K in keyof T as T[K] extends any[] ? never : K]: T[K]
 }
 
-
-export type HTMLTarget = HTMLElement | null | undefined
 
 export type PageGroup = {
 	id: string
@@ -18,9 +25,12 @@ export type PageGroup = {
 
 export type PageDetails = PageGroup & {
 	content: string
-	title: HTMLTarget
+	title: HTMLElement | undefined
 }
 
+
+const BLOCK_TYPES = ['html', 'image', 'video'] as const
+export type BlockTypes = typeof BLOCK_TYPES[number]
 
 export interface BlockOptions {
 	animation?: AnimationOptions
@@ -29,5 +39,3 @@ export interface BlockOptions {
 	target: HTMLElement
 }
 
-const BLOCK_TYPES = ['html', 'image', 'video'] as const
-export type BlockTypes = typeof BLOCK_TYPES[number]

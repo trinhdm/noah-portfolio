@@ -35,10 +35,10 @@ interface LightboxElements {
 	content: HTMLDivElement | undefined
 	exit: HTMLElement | undefined
 	footer: HTMLDivElement | undefined
+	html: HTMLElement[]
 	icons: HTMLButtonElement[]
 	image: HTMLDivElement | undefined
 	navigation: HTMLElement | undefined
-	overlay: HTMLDivElement | undefined
 	player: HTMLIFrameElement | HTMLVideoElement | undefined
 	root: HTMLDialogElement
 	video: HTMLDivElement | undefined
@@ -47,6 +47,7 @@ interface LightboxElements {
 // type LightboxElement = keyof LightboxElements
 type LightboxElement = LightboxElements[keyof LightboxElements]
 
+type LightboxAnimations = '' | 'in' | 'out' | 'overlay'
 type LightboxStates = 'open' | 'change' | 'close'
 
 interface LightboxEventMap {
@@ -71,6 +72,7 @@ interface LightboxDispatcher<E = LightboxEventMap> {
 export type {
 	ArrowDirections,
 	ArrowGroup,
+	LightboxAnimations,
 	LightboxDispatcher,
 	LightboxElement,
 	LightboxElements,

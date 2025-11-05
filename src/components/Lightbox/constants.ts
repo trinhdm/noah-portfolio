@@ -9,7 +9,6 @@ enum LightboxClass {
 	Footer 		= `${Root}__footer`,
 	Header 		= `${Root}__header`,
 	Navigation 	= `${Root}__navigation`,
-	Overlay 	= `${Root}__overlay`,
 
 	NavItem		= `${Root}__navitem`,
 	Control		= `${Root}__control`,
@@ -17,7 +16,6 @@ enum LightboxClass {
 	Label 		= `${Root}__label`,
 	Html 		= `${Root}__html`,
 	Image 		= `${Root}__image`,
-	Temp 		= `${Root}__temp`,
 	Video 		= `${Root}__video`,
 }
 
@@ -31,7 +29,6 @@ enum LightboxSelector {
 	Footer 		= `.${LightboxClass.Footer}`,
 	Header 		= `.${LightboxClass.Header}`,
 	Navigation 	= `.${LightboxClass.Navigation}`,
-	Overlay 	= `.${LightboxClass.Overlay}`,
 
 	NavItem		= `.${LightboxClass.NavItem}`,
 	Control		= `.${LightboxClass.Control}`,
@@ -39,7 +36,6 @@ enum LightboxSelector {
 	Label 		= `.${LightboxClass.Label}`,
 	Html 		= `.${LightboxClass.Html}`,
 	Image 		= `.${LightboxClass.Image}`,
-	Temp 		= `.${LightboxClass.Temp}`,
 	Video 		= `.${LightboxClass.Video}`,
 }
 

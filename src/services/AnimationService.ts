@@ -15,7 +15,7 @@ type AnimationStyles = {
 
 export type AnimationOptions = BaseAnimationOptions & Pick<AnimationStyles, 'timeout'>
 
-const PSEUDO_ELEMENTS = ['::backdrop', '::before', '::after'] as const
+const PSEUDO_ELEMENTS = ['::before', '::after'] as const
 type PseudoElement = typeof PSEUDO_ELEMENTS[number]
 
 
@@ -68,7 +68,7 @@ class Styles {
 
 export class AnimationService {
 	private static readonly waitTimes = {
-		buffer: 5,
+		buffer: 50,
 		default: 50,
 		pause: 500,
 		swap: 250,

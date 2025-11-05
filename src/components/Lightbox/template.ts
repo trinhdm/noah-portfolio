@@ -2,10 +2,9 @@ import { LightboxArias, LightboxClass } from './constants'
 
 
 const template = `
-	<div class="${LightboxClass.Overlay}"></div>
 	<div
+		aria-hidden="true"
 		aria-labelledby="${LightboxArias.labelledby}"
-		aria-modal="true"
 		class="${LightboxClass.Container}"
 	>
 		<div class="${LightboxClass.Body}">
@@ -15,7 +14,12 @@ const template = `
 			<div class="${LightboxClass.Navigation}">
 				<div class="${LightboxClass.NavItem}" data-direction="prev">
 					<div class="${LightboxClass.Control}">
-						<button class="${LightboxClass.Icon}" data-icon="arrow-prev">
+						<button
+							aria-label="Previous Item"
+							class="${LightboxClass.Icon}"
+							data-icon="arrow-prev"
+							disabled
+						>
 							<span>&lsaquo;</span>
 						</button>
 						<span class="${LightboxClass.Label}"></span>
@@ -24,7 +28,12 @@ const template = `
 				<div class="${LightboxClass.NavItem}" data-direction="next">
 					<div class="${LightboxClass.Control}">
 						<span class="${LightboxClass.Label}"></span>
-						<button class="${LightboxClass.Icon}" data-icon="arrow-next">
+						<button
+							aria-label="Next Item"
+							class="${LightboxClass.Icon}"
+							data-icon="arrow-next"
+							disabled
+						>
 							<span>&rsaquo;</span>
 						</button>
 					</div>
@@ -37,6 +46,7 @@ const template = `
 			aria-label="Close"
 			class="${LightboxClass.Icon}"
 			data-icon="close"
+			disabled
 		>
 			<span>&times;</span>
 		</button>
