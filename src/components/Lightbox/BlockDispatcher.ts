@@ -14,6 +14,9 @@ export class BlockDispatcher {
 	}
 
 	static register(type: BlockTypes, handler: BlockHandler) {
+		if (Object.hasOwn(BlockDispatcher.handlers, type))
+			console.warn(`[BlockDispatcher] overwriting handler for ${type}`)
+
 		BlockDispatcher.handlers[type] = handler
 	}
 
@@ -29,10 +32,9 @@ export class BlockDispatcher {
 
 	private static sanitizeBlock(block: HTMLElement): HTMLElement {
 		const cloned = block.cloneNode(true) as HTMLElement,
-			attributes = Array.from(cloned.attributes),
-			children = Array.from(cloned.children)
+			attributes = Array.from(cloned.attributes)
 
-		attributes.forEach(({ name, value }) => {
+		for (const { name, value } of attributes) {
 			if (name === 'class') {
 				const classes = value.split(' ')
 					.filter((cl, i) => (i === 0 || cl.includes(LightboxClass.Root)))
@@ -41,13 +43,12 @@ export class BlockDispatcher {
 			} else {
 				cloned.removeAttribute(name)
 			}
-		})
+		}
 
-		if (children.length > 1) {
-			children.forEach(child => {
-				if (child.className.includes('sqs-block')) return
-				child.remove()
-			})
+		if (cloned.childElementCount > 1) {
+			const children = Array.from(cloned.children)
+			for (const child of children)
+				if (!child.className.includes('sqs-block')) child.remove()
 		}
 
 		const type = getBlockType(block)
@@ -71,11 +72,23 @@ export class BlockDispatcher {
 	private static handleHtmlBlock(block: HTMLElement): HTMLElement | null {
 		return BlockDispatcher.handleBlock(block, '[data-sqsp-text-block-content]',
 			(outputBlock, container) => {
-				const children = Array.from(container.children)
-				if (children.length === 1 && isHeaderTag(children[0].tagName)) return null
+				const children = Array.from(container.children),
+					title = container.querySelector('[data-title]')
 
-				const title = container.querySelector('[data-title]')
-				if (title) title.id = LightboxArias.labelledby
+				if (children.length === 1 && isHeaderTag(children[0].tagName))
+					return null
+
+				if (title) {
+					title.id = LightboxArias.labelledby
+
+					if (title.nextSibling?.nodeType === Node.TEXT_NODE) {
+						const titleEl = document.createElement('p')
+
+						titleEl.appendChild(title.cloneNode(true))
+						title.remove()
+						container.prepend(titleEl)
+					}
+				}
 
 				return outputBlock
 			}
@@ -85,11 +98,15 @@ export class BlockDispatcher {
 	private static handleImageBlock(block: HTMLElement): HTMLElement | null {
 		return BlockDispatcher.handleBlock(block, '[data-animation-role]',
 			(outputBlock, container) => {
-				const img = container ? findChildBy(container, { tagName: 'img' }) : null
+				const img = findChildBy(container, { tagName: 'img' }),
+					link = container.querySelector('a')
+
 				if (!img) return null
 
-				const link = container.querySelector('a')
-				if (link) link.setAttribute('disabled', '')
+				if (link) {
+					link.removeAttribute('href')
+					link.setAttribute('disabled', '')
+				}
 
 				return outputBlock
 			}
@@ -150,14 +167,16 @@ export class BlockDispatcher {
 				if (!config) return null
 
 				const video: HTMLVideoElement = document.createElement('video')
-				Object.assign(video, {
+				const attributes = {
 					controls: true,
 					crossOrigin: true,
 					muted: true,
 					playsInline: true,
 					poster: config.poster,
 					src: config.source,
-				})
+				}
+
+				Object.assign(video, attributes)
 
 				return video
 			},
@@ -166,23 +185,23 @@ export class BlockDispatcher {
 		return BlockDispatcher.handleBlock(block, '.embed-block-wrapper',
 			(outputBlock, container) => {
 				let element: HTMLIFrameElement | HTMLVideoElement | null = null
-				const nativeVideo = block.querySelector('[data-config-video]'),
-					iframeVideo = block.querySelector('[data-html]')
+				const nativeData = block.querySelector('[data-config-video]'),
+					iframeData = block.querySelector('[data-html]')
 
-				if (nativeVideo) {
-					const json = (nativeVideo as HTMLElement).dataset?.configVideo
-					element = Video.create(json)
-				} else if (iframeVideo) {
-					const json = (iframeVideo as HTMLElement).dataset?.html
-					element = IFrame.create(json)
+				if (nativeData) {
+					const data = (nativeData as HTMLElement).dataset?.configVideo
+					element = Video.create(data)
+				} else if (iframeData) {
+					const data = (iframeData as HTMLElement).dataset?.html
+					element = IFrame.create(data)
 				}
 
 				if (!element) return null
 
 				const wrapper = document.createElement('div')
 				wrapper.classList.add(`${LightboxClass.Video}-wrapper`)
-				wrapper.appendChild(element)
 
+				wrapper.appendChild(element)
 				container.replaceChildren(wrapper)
 
 				return outputBlock

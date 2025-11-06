@@ -70,7 +70,7 @@ export class AnimationService {
 	private static readonly waitTimes = {
 		buffer: 50,
 		default: 50,
-		pause: 500,
+		pause: 300,
 		timeout: 1000,
 	}
 

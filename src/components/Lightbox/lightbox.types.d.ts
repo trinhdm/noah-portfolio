@@ -15,7 +15,6 @@ type ArrowGroup = {
 type ArrowDirections = keyof ArrowGroup
 
 
-
 interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
 	elements: HTMLElement[]
 	properties?: Properties<HTMLDivElement>
@@ -24,7 +23,7 @@ interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
 interface LightboxVideoOptions {
 	controls?: boolean
 	loop?: boolean
-	mute?: boolean
+	muted?: boolean
 }
 
 interface LightboxElements {
@@ -48,7 +47,7 @@ interface LightboxElements {
 type LightboxElement = LightboxElements[keyof LightboxElements]
 
 type LightboxAnimations = '' | 'in' | 'out' | 'overlay'
-type LightboxStates = 'open' | 'change' | 'close'
+type LightboxStates = 'close' | 'open' | 'swap'
 
 interface LightboxEventMap {
 	close: void

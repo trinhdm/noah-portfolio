@@ -57,7 +57,7 @@ class LightboxCache {
 	private map: Partial<LightboxElements> = {}
 
 	private selectors = {
-		root: LightboxSelector.Root,
+		root: '',
 		arrows: '',
 		blocks: LightboxBlockSelector.Root,
 		body: LightboxSelector.Body,
@@ -72,43 +72,49 @@ class LightboxCache {
 		player: '',
 		video: LightboxSelector.Video,
 	} as const satisfies Record<
-		// Exclude<keyof LightboxElements, 'arrows' | 'exit' | 'player'>,
 		keyof LightboxElements,
 		string
 	>
 
 	constructor(private root: HTMLDialogElement) {
-		const nonContentEls: (keyof LightboxElements)[] = ['root', 'body', 'container', 'content', 'footer', 'navigation']
-		this.build(nonContentEls)
+		const core = ['root', 'body', 'container', 'content', 'footer', 'navigation']
+		this.build(core as (keyof LightboxElements)[])
 	}
 
 	private query<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
+		let result
 		const root = this.root,
 			target = this.selectors[key]
 
-		if (target) {
-			if (key === 'root')
-				return root as LightboxElements[K]
-			else if (key.endsWith('s') || key === 'html')
-				return Array.from(root.querySelectorAll(target) ?? []) as LightboxElements[K]
-			return root.querySelector(target) as LightboxElements[K]
+		if (!target) {
+			switch (key) {
+				case 'root':
+					result = root
+					break
+				case 'arrows':
+					const navigation = this.query('navigation')
+					result = Array.from(navigation?.querySelectorAll('[data-direction]') ?? [])
+					break
+				case 'exit':
+					const icons = this.query('icons')
+					result = icons?.find(ic => ic.dataset.icon === 'close')
+					break
+				case 'player':
+					const video = this.query('video')
+					result = video?.querySelector('video') || video?.querySelector('iframe')
+					break
+				default: console.warn(`unknown selector for '${key}'`)
+					break
+			}
+		} else {
+			const isQueryAll = key.endsWith('s') || key === 'html'
+
+			result = isQueryAll
+				? Array.from(root.querySelectorAll(target) ?? [])
+				: root.querySelector(target)
 		}
 
-		const icons = this.query('icons'),
-			navigation = this.query('navigation'),
-			video = this.query('video')
-
-		const extended = {
-			arrows: Array.from(navigation?.querySelectorAll('[data-direction]') ?? []),
-			exit: icons?.find(ic => ic.dataset.icon === 'close'),
-			player: video?.querySelector('video') || video?.querySelector('iframe'),
-		} as Partial<LightboxElements>
-
-		type LeftoverKeys = keyof FilterValues<typeof this.selectors, `.${string}`>
-		const value = extended[key as LeftoverKeys]
-		if (!value) console.warn(`unknown selector for '${key}'`)
-
-		return value as LightboxElements[K]
+		return result as LightboxElements[K]
 	}
 
 	private build<K extends keyof LightboxElements>(targets?: K[]): void {
@@ -262,7 +268,7 @@ class LightboxDOM {
 }
 
 class LightboxAnimator {
-	private queue = new Set<Exclude<LightboxElement, any[]>>()
+	private queue = new Set<Exclude<LightboxElement, HTMLElement[]>>()
 
 	Media: InstanceType<typeof LightboxAnimator.Media>
 	Root: InstanceType<typeof LightboxAnimator.Root>
@@ -287,7 +293,7 @@ class LightboxAnimator {
 	}
 
 	private animate(
-		key: keyof FilterValues<LightboxElements, any[]> | Element | null | undefined,
+		key: keyof FilterValues<LightboxElements, Element[]> | Element | null | undefined,
 		options: AnimationOptions = {},
 		isPseudo: boolean = false
 	): void {
@@ -328,7 +334,7 @@ class LightboxAnimator {
 		const arrows = this.dom.get('arrows')
 		if (!arrows?.length) return
 
-		const arrowList = isActive ? arrows : arrows.reverse()
+		const arrowList = isActive ? arrows : arrows.slice().reverse()
 
 		arrowList.forEach((arrow, index) => {
 			const icon = arrow.querySelector(LightboxSelector.Icon)
@@ -819,7 +825,7 @@ class LightboxNavigator {
 
 	private async setSwap<T extends ArrowDirections>(
 		target: NonNullable<ArrowGroup[T]['target']>,
-		element: keyof FilterValues<LightboxElements, any[]> = 'image'
+		element: keyof FilterValues<LightboxElements, Element[]> = 'image'
 	) {
 		const content = await this.content.render(target),
 			key = element.charAt(0).toUpperCase() + element.slice(1),
@@ -928,7 +934,7 @@ class LightboxLifecycle {
 
 		if (!adjTargets.length) return
 		await this.content.prefetcher(adjTargets).catch(error => (
-			this.dispatch.emit('error', { error, message: '[Lifecycle] prefetch failed' })
+			this.dispatch.emit('error', { error, message: 'Lifecycle.prefetch() failed' })
 		))
 	}
 
@@ -964,13 +970,13 @@ class LightboxLifecycle {
 		elements?: LightboxOptions['elements']
 	) {
 		this.currentIndex = index ?? 0
-		await Animation.wait()
 
-		const directory = await this.menu.configure(this.currentIndex, elements)
-		this.directory = directory
-
-		await Animation.wait()
-		await this.prefetch(this.directory)
+		try {
+			const directory = await this.menu.configure(this.currentIndex, elements)
+			this.directory = directory
+		} catch (error) {
+			this.dispatch.emit('error', { error, message: 'Lifecycle.handleUpdate() failed' })
+		} finally { await this.prefetch(this.directory) }
 	}
 
 	async handleMount(options: LightboxOptions) {
