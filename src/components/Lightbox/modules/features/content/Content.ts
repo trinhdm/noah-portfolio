@@ -1,10 +1,12 @@
 import { findElement } from '../../../../../utils'
-import { BlockDispatcher } from './Blocks'
 import { ContentService } from '../../../../../services'
+import { LightboxBlocks } from './Blocks.ts'
 import { LightboxBlockClass } from '../../../utils'
+import type { IContent } from '../types/interfaces.d.ts'
 
 
-export class LightboxContent extends ContentService {
+export class LightboxContent
+	extends ContentService implements IContent {
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const data = await this.fetch(target)
 		if (!data) return
@@ -30,7 +32,7 @@ export class LightboxContent extends ContentService {
 
 		for (let i = 0; i < elements.length; i++) {
 			const el = elements[i],
-				block = BlockDispatcher.format(el)
+				block = LightboxBlocks.format(el)
 
 			if (!block) continue
 

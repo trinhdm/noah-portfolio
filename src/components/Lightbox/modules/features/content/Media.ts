@@ -1,10 +1,12 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
-import { LightboxDOM } from '../../presentation'
-import type { LightboxDispatcher, LightboxVideoOptions } from '../../../types'
+import type { IDispatcher } from '../../core'
+import type { IDOM } from '../../presentation'
+import type { IMedia } from '../types/interfaces.d.ts'
+import type { LightboxVideoOptions } from '../types/features.types.d.ts'
 
 
-export class LightboxMedia {
+export class LightboxMedia implements IMedia {
 	private instance?: Hls | Plyr
 	private media?: HTMLIFrameElement | HTMLVideoElement
 	private source: string = ''
@@ -16,11 +18,11 @@ export class LightboxMedia {
 	}
 
 	constructor(
-		private dom: LightboxDOM,
-		private dispatch: LightboxDispatcher
+		private dom: IDOM,
+		private dispatch: IDispatcher
 	) {}
 
-	private loadNative(element: HTMLVideoElement) {
+	private loadNative(element: HTMLVideoElement): void {
 		const src = element.src || ''
 
 		for (const option in this.options) {
@@ -57,14 +59,14 @@ export class LightboxMedia {
 		}
 	}
 
-	private getYoutubeID(src: string) {
+	private getYoutubeID(src: string): string {
 		const baseURL = src.includes('?') ? src.split('?')[0] : src,
 			videoID = baseURL.substring(baseURL.lastIndexOf('/') + 1)
 
 		return videoID
 	}
 
-	private loadYoutube(element: HTMLIFrameElement) {
+	private loadYoutube(element: HTMLIFrameElement): void {
 		let queries = ''
 		const src = element.src || '',
 			separator = src.includes('?') ? '&' : '?'
@@ -85,7 +87,7 @@ export class LightboxMedia {
 		element.src += queries
 	}
 
-	load(options?: LightboxVideoOptions) {
+	load(options?: LightboxVideoOptions): void {
 		this.dispose()
 
 		const player = this.dom.get('player')

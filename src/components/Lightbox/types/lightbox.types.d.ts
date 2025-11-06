@@ -7,26 +7,20 @@ type NavigationItem = PageDetails & {
 	target: HTMLElement | undefined
 }
 
-type ArrowGroup = {
+export type ArrowGroup = {
 	next: NavigationItem
 	prev: NavigationItem
 }
 
-type ArrowDirections = keyof ArrowGroup
+export type ArrowDirections = keyof ArrowGroup
 
 
-interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
+export interface LightboxOptions extends Pick<NavigationItem, 'index' | 'target'> {
 	elements: HTMLElement[]
 	properties?: Properties<HTMLDivElement>
 }
 
-interface LightboxVideoOptions {
-	controls?: boolean
-	loop?: boolean
-	muted?: boolean
-}
-
-interface LightboxElements {
+export interface LightboxElements {
 	arrows: HTMLElement[]
 	blocks: HTMLElement[]
 	body: HTMLDivElement | undefined
@@ -44,39 +38,10 @@ interface LightboxElements {
 }
 
 // type LightboxElement = keyof LightboxElements
-type LightboxElement = LightboxElements[keyof LightboxElements]
-
-type LightboxAnimations = '' | 'in' | 'out' | 'overlay'
-type LightboxStates = 'close' | 'open' | 'swap'
-
-interface LightboxEventMap {
-	close: void
-	error: {
-		error: unknown
-		message?: string
-	}
-	navigate: ArrowDirections
-	open: void
-	update: number
-}
-
-interface LightboxDispatcher<E = LightboxEventMap> {
-	on<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void
-	off<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void
-	emit<K extends keyof E>(event: K, payload?: E[K]): Promise<void>
-	clear<K extends keyof E>(event?: K): void
-}
+export type LightboxElement = LightboxElements[keyof LightboxElements]
 
 
-export type {
-	ArrowDirections,
-	ArrowGroup,
-	LightboxAnimations,
-	LightboxDispatcher,
-	LightboxElement,
-	LightboxElements,
-	LightboxEventMap,
-	LightboxOptions,
-	LightboxStates,
-	LightboxVideoOptions,
+export interface IManager {
+	close(): Promise<void>
+	open(index?: number): Promise<void>
 }

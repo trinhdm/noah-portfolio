@@ -1,26 +1,27 @@
-import { LightboxDOM } from './DOM'
-import type { ArrowDirections, LightboxDispatcher } from '../../types'
+import type { ArrowDirections } from '../../types'
+import type { IDispatcher } from '../core'
+import type { IDOM, IEvents } from './types/interfaces.d.ts'
 
 
-export class LightboxEvents {
+export class LightboxEvents implements IEvents {
 	private currentFocus: HTMLElement | undefined
 	private handlers: Array<() => void> = []
 
 	constructor(
-		private dom: LightboxDOM,
-		private dispatch: LightboxDispatcher
+		private dom: IDOM,
+		private dispatch: IDispatcher
 	) {}
 
 	private handleClick(
 		target: HTMLElement,
 		callback: (e: MouseEvent) => void
-	) {
+	): void {
 		const handler = (e: MouseEvent) => { e.preventDefault(); callback?.(e) }
 		target.addEventListener('click', handler)
 		this.handlers.push(() => target.removeEventListener('click', handler))
 	}
 
-	private bindClicks() {
+	private bindClicks(): void {
 		const arrows = this.dom.get('arrows'),
 			exit = this.dom.get('exit'),
 			root = this.dom.get('root')
@@ -41,7 +42,7 @@ export class LightboxEvents {
 		}
 	}
 
-	private bindKeys() {
+	private bindKeys(): void {
 		const icons = this.dom.get('icons')
 
 		const keyHandlers = {
@@ -86,7 +87,7 @@ export class LightboxEvents {
 		this.handlers.push(() => window.removeEventListener('keydown', handleKey))
 	}
 
-	private bindFocus() {
+	private bindFocus(): void {
 		const root = this.dom.get('root')
 
 		const handleFocus = (event: FocusEvent) => {
@@ -99,7 +100,7 @@ export class LightboxEvents {
 		this.handlers.push(() => root.removeEventListener('focusin', handleFocus))
 	}
 
-	private bindTime() {
+	private bindTime(): void {
 		const player = this.dom.get('player')
 		let timeout: NodeJS.Timeout | null = null
 

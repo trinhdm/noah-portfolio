@@ -1,21 +1,21 @@
-import { LightboxContent } from '../content'
-import { LightboxDOM } from '../../presentation'
 import { LightboxSelector } from '../../../utils'
 import type { ArrowDirections, ArrowGroup, LightboxOptions } from '../../../types'
+import type { IContent, IMenu } from '../types/interfaces.d.ts'
+import type { IDOM } from '../../presentation'
 
 
-export class LightboxMenu {
+export class LightboxMenu implements IMenu {
 	private elements: LightboxOptions['elements'] = []
 
 	constructor(
-		private dom: LightboxDOM,
-		private content: LightboxContent
+		private dom: IDOM,
+		private content: IContent
 	) {}
 
 	async configure(
 		index: number,
 		elements?: LightboxOptions['elements']
-	) {
+	): Promise<ArrowGroup> {
 		if (elements?.length) this.elements = elements
 
 		const directory = await this.getDirectory(index)

@@ -1,58 +1,37 @@
-import { LightboxAnimator, LightboxDOM, LightboxEvents } from '../presentation'
 import { LightboxClass } from '../../utils'
-
-import {
-	LightboxContent,
-	LightboxMedia,
-	LightboxMenu,
-	LightboxNavigator,
-} from '../features'
 
 import type {
 	ArrowDirections,
 	ArrowGroup,
-	LightboxDispatcher,
-	LightboxEventMap,
 	LightboxOptions,
 } from '../../types'
 
 import type { Entries } from '../../../../types'
 import type { HandlerFor } from '../../../../services'
+import type { LightboxEventMap } from './types/core.types.d.ts'
+import type { IAnimator, IDOM, IEvents } from '../presentation'
+import type { IContent, IMedia, IMenu, INavigator } from '../features'
+import type { IDispatcher, ILifecycle } from './types/interfaces.d.ts'
 
 
-export class LightboxLifecycle {
+export class LightboxLifecycle implements ILifecycle {
 	private currentIndex: number = 0
 	private directory: ArrowGroup = {} as ArrowGroup
 	private isActive: boolean = false
 	private isReady: Promise<void> | null = null
 
 	constructor(
-		private dom: LightboxDOM,
-		private animator: LightboxAnimator,
-		private events: LightboxEvents,
-		private media: LightboxMedia,
-		private menu: LightboxMenu,
-		private navigator: LightboxNavigator,
-		private content: LightboxContent,
-		private dispatch: LightboxDispatcher
+		private dom: IDOM,
+		private animator: IAnimator,
+		private events: IEvents,
+		private media: IMedia,
+		private menu: IMenu,
+		private navigator: INavigator,
+		private content: IContent,
+		private dispatch: IDispatcher
 	) {}
 
-	handleError({
-		error,
-		message = 'Something went wrong with the lightbox.'
-	}: LightboxEventMap['error']): void {
-		const container = document.createElement('div'),
-			wrapper = document.createElement('span')
-
-		wrapper.textContent = message
-		container.classList.add(LightboxClass.Error)
-		container.appendChild(wrapper)
-
-		this.dom.get('footer')?.appendChild(container)
-		console.error(`[Lightbox Error]: ${message}\n`, error)
-	}
-
-	private async prefetch(directory: ArrowGroup) {
+	private async prefetch(directory: ArrowGroup): Promise<void> {
 		if (!this.isActive || !Object.keys(this.directory).length) return
 
 		const adjTargets = Object.values(directory).map(v => v.target)
@@ -80,11 +59,12 @@ export class LightboxLifecycle {
 		}
 	}
 
-	private async initialize({ elements, index, target }: LightboxOptions) {
+	private async initialize({ elements, index, target }: LightboxOptions): Promise<void> {
 		if (this.isActive) return
 
 		this.isReady = (async () => {
-			await this.dom.setContent(target)
+			const content = await this.content.render(target)
+			this.dom.setContent(content)
 			this.media.load()
 		})()
 
@@ -94,29 +74,30 @@ export class LightboxLifecycle {
 	async handleUpdate(
 		index: number,
 		elements?: LightboxOptions['elements']
-	) {
+	): Promise<void> {
 		this.currentIndex = index ?? 0
 
 		try {
 			const directory = await this.menu.configure(this.currentIndex, elements)
 			this.directory = directory
+			console.log({ directory })
 		} catch (error) {
 			this.dispatch.emit('error', { error, message: 'Lifecycle.handleUpdate() failed' })
 		} finally { await this.prefetch(this.directory) }
 	}
 
-	async handleMount(options: LightboxOptions) {
+	async handleMount(options: LightboxOptions): Promise<void> {
 		await this.initialize(options)
 		this.registerHandlers()
 		this.dom.append()
 	}
 
-	async handleNavigate(dir: ArrowDirections) {
+	async handleNavigate(dir: ArrowDirections): Promise<void> {
 		if (!this.isActive || !Object.keys(this.directory).length) return
 		await this.navigator.swapContent<typeof dir>(this.directory, dir)
 	}
 
-	async handleOpen() {
+	async handleOpen(): Promise<void> {
 		if (this.isActive) return
 		this.isActive = true
 
@@ -135,7 +116,7 @@ export class LightboxLifecycle {
 		this.dom.toggleDisable()
 	}
 
-	async handleClose() {
+	async handleClose(): Promise<void> {
 		if (!this.isActive) return
 		this.isActive = false
 
@@ -162,5 +143,20 @@ export class LightboxLifecycle {
 		this.dispatch.clear()
 		this.media.dispose()
 		this.dom.remove()
+	}
+
+	handleError({
+		error,
+		message = 'Something went wrong with the lightbox.'
+	}: LightboxEventMap['error']): void {
+		const container = document.createElement('div'),
+			wrapper = document.createElement('span')
+
+		wrapper.textContent = message
+		container.classList.add(LightboxClass.Error)
+		container.appendChild(wrapper)
+
+		this.dom.get('footer')?.appendChild(container)
+		console.error(`[Lightbox Error]: ${message}\n`, error)
 	}
 }

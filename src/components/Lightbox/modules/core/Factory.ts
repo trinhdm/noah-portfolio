@@ -1,14 +1,15 @@
 import template from '../../utils/template.ts'
 import { LightboxClass } from '../../utils'
-import type { LightboxOptions } from '../../types'
+import type { LightboxElements, LightboxOptions } from '../../types'
+import type { IFactory } from './types/interfaces.d.ts'
 
 
-export class LightboxFactory {
+export class LightboxFactory implements IFactory {
 	private readonly ignored: string[] = ['innerHTML', 'innerText', 'outerHTML', 'textContent']
 
 	constructor() {}
 
-	createRoot({ properties }: LightboxOptions): HTMLDialogElement {
+	createRoot({ properties }: LightboxOptions): LightboxElements['root'] {
 		const root = document.createElement('dialog')
 
 		root.classList.add(LightboxClass.Root)

@@ -1,15 +1,15 @@
 import { LightboxController } from './core'
-import type { LightboxOptions } from '../types'
+import type { IManager, LightboxOptions } from '../types'
 
 
-export class LightboxManager {
+export class LightboxManager implements IManager {
 	private instance: LightboxController | null = null
 
 	constructor(private options: LightboxOptions) {
 		this.instance = null
 	}
 
-	async open(index?: number) {
+	async open(index?: number): Promise<void> {
 		if (this.instance) await this.instance?.close()
 
 		const { elements } = this.options
@@ -23,7 +23,7 @@ export class LightboxManager {
 		await controller.open()
 	}
 
-	async close() {
+	async close(): Promise<void> {
 		if (!this.instance) return
 		await this.instance?.close()
 		this.instance = null

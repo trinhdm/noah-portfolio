@@ -1,22 +1,22 @@
 import { AnimationService as Animation, AnimationOptions } from '../../../../services'
-import { FilterValues } from '../../../../types'
-import { LightboxDOM } from './DOM'
 import { LightboxBlockSelector, LightboxSelector } from '../../utils'
+import type { FilterValues } from '../../../../types'
+import type { IAnimator, IDOM } from './types/interfaces.d.ts'
 import type { LightboxElement, LightboxElements } from '../../types'
 
 
-export class LightboxAnimator {
+export class LightboxAnimator implements IAnimator {
 	private queue = new Set<Exclude<LightboxElement, HTMLElement[]>>()
 
 	Media: InstanceType<typeof LightboxAnimator.Media>
 	Root: InstanceType<typeof LightboxAnimator.Root>
 
-	constructor(private dom: LightboxDOM) {
+	constructor(private dom: IDOM) {
 		this.Media = new LightboxAnimator.Media(this)
 		this.Root = new LightboxAnimator.Root(this)
 	}
 
-	async swap(direction: 'in' | 'out') {
+	async swap(direction: 'in' | 'out'): Promise<void> {
 		this.dom.setAnimate(direction)
 
 		const isMediaAsync = direction === 'out',
@@ -46,13 +46,13 @@ export class LightboxAnimator {
 		else Animation.set(target, options)
 	}
 
-	private async waitForEnd(target: HTMLElement | undefined) {
+	private async waitForEnd(target: HTMLElement | undefined): Promise<void> {
 		if (!target) return
 		this.queue.delete(target)
 		await Animation.waitForEnd(target)
 	}
 
-	private async waitForFinish() {
+	private async waitForFinish(): Promise<void> {
 		await new Promise(requestAnimationFrame)
 
 		const animations = Array.from(this.queue),
@@ -115,14 +115,14 @@ export class LightboxAnimator {
 	}
 
 	static Media = class {
-		private dom: LightboxDOM
+		private dom: IDOM
 
 		constructor(private animator: LightboxAnimator) {
 			this.animator = animator
 			this.dom = this.animator.dom
 		}
 
-		private async fadeParallel({ image, video }: Pick<LightboxElements, 'image' | 'video'>) {
+		private async fadeParallel({ image, video }: Pick<LightboxElements, 'image' | 'video'>): Promise<void> {
 			this.animator.animate(video)
 			this.animator.animate(image)
 
@@ -133,7 +133,7 @@ export class LightboxAnimator {
 			await this.animator.waitForEnd(slower)
 		}
 
-		private async fadeSequential({ image, video }: Pick<LightboxElements, 'image' | 'video'>) {
+		private async fadeSequential({ image, video }: Pick<LightboxElements, 'image' | 'video'>): Promise<void> {
 			this.animator.animate(video)
 			await this.animator.waitForEnd(video)
 
@@ -141,7 +141,7 @@ export class LightboxAnimator {
 			await this.animator.waitForEnd(image)
 		}
 
-		async fadeMediaBlocks(isAsync: boolean = false) {
+		async fadeMediaBlocks(isAsync: boolean = false): Promise<void> {
 			const image = this.dom.get('image'),
 				video = this.dom.get('video')
 
@@ -154,14 +154,14 @@ export class LightboxAnimator {
 	}
 
 	static Root = class {
-		private dom: LightboxDOM
+		private dom: IDOM
 
 		constructor(private animator: LightboxAnimator) {
 			this.animator = animator
 			this.dom = this.animator.dom
 		}
 
-		private fadeMain() {
+		private fadeMain(): void {
 			this.animator.animate('container')
 			this.animator.animate('body')
 
@@ -169,7 +169,7 @@ export class LightboxAnimator {
 				this.dom.setAnimate('overlay')
 		}
 
-		async fadeIn() {
+		async fadeIn(): Promise<void> {
 			const targetBlock = this.dom.get('html').at(-1)
 
 			this.dom.setState('open')
@@ -189,7 +189,7 @@ export class LightboxAnimator {
 			await this.animator.waitForFinish()
 		}
 
-		async fadeOut() {
+		async fadeOut(): Promise<void> {
 			const targetArrow = this.dom.get('arrows').at(-1),
 				targetBlock = this.dom.get('html').at(-1)
 

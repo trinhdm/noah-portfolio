@@ -1,8 +1,3 @@
-import { EventDispatcher } from '../../../../services'
-import { LightboxFactory } from './Factory'
-import { LightboxLifecycle } from './Lifecycle'
-import { LightboxAnimator, LightboxDOM, LightboxEvents } from '../presentation'
-
 import {
 	LightboxContent,
 	LightboxMedia,
@@ -10,33 +5,49 @@ import {
 	LightboxNavigator,
 } from '../features'
 
-import type { LightboxDispatcher, LightboxOptions } from '../../types'
+import { LightboxAnimator, LightboxDOM, LightboxEvents } from '../presentation'
+import { LightboxDispatcher } from './Dispatcher'
+import { LightboxFactory } from './Factory'
+import { LightboxLifecycle } from './Lifecycle'
+
+import type {
+	IContent,
+	IMedia,
+	IMenu,
+	INavigator
+} from '../features'
+
+import type { IAnimator, IDOM, IEvents } from '../presentation'
+import type { IController, IDispatcher, ILifecycle } from './types/interfaces.d.ts'
+import type { LightboxElements, LightboxOptions } from '../../types'
 
 
-export class LightboxController {
-	private readonly content: LightboxContent
-	private readonly dispatch: LightboxDispatcher
-	private readonly root: HTMLDialogElement
+export class LightboxController implements IController {
+	private readonly dispatch: IDispatcher
+	private readonly root: LightboxElements['root']
 
-	private readonly dom: LightboxDOM
-	private readonly media: LightboxMedia
-	private readonly menu: LightboxMenu
-	private readonly events: LightboxEvents
-	private readonly animator: LightboxAnimator
-	private readonly navigator: LightboxNavigator
-	private readonly lifecycle: LightboxLifecycle
+	private readonly dom: IDOM
+	private readonly events: IEvents
+	private readonly animator: IAnimator
+
+	private readonly content: IContent
+	private readonly media: IMedia
+	private readonly menu: IMenu
+	private readonly navigator: INavigator
+
+	private readonly lifecycle: ILifecycle
 
 	constructor(private options: LightboxOptions) {
-		this.content = new LightboxContent()
-		this.dispatch = new EventDispatcher()
+		this.dispatch = new LightboxDispatcher()
 		this.root = new LightboxFactory().createRoot(this.options)
 
-		this.dom = new LightboxDOM(this.root, this.content)
+		this.dom = new LightboxDOM(this.root)
+		this.events = new LightboxEvents(this.dom, this.dispatch)
+		this.animator = new LightboxAnimator(this.dom)
+
+		this.content = new LightboxContent()
 		this.media = new LightboxMedia(this.dom, this.dispatch)
 		this.menu = new LightboxMenu(this.dom, this.content)
-		this.events = new LightboxEvents(this.dom, this.dispatch)
-
-		this.animator = new LightboxAnimator(this.dom)
 		this.navigator = new LightboxNavigator(
 			this.dom,
 			this.animator,
@@ -57,11 +68,11 @@ export class LightboxController {
 		)
 	}
 
-	async mount() { await this.lifecycle.handleMount(this.options) }
+	async mount(): Promise<void> { await this.lifecycle.handleMount(this.options) }
 
-	async open() { await this.dispatch.emit('open') }
+	async open(): Promise<void> { await this.dispatch.emit('open') }
 
-	async close() { await this.dispatch.emit('close') }
+	async close(): Promise<void> { await this.dispatch.emit('close') }
 
 	destroy(): void { this.lifecycle.handleDestroy() }
 }

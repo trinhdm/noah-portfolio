@@ -1,39 +1,30 @@
 import { toggleDisableAttr } from '../../../../utils'
 import { LightboxCache } from './Cache'
-import { LightboxContent } from '../features'
 import { LightboxSelector } from '../../utils'
 
 import type {
+	DataValues,
 	LightboxAnimations,
-	LightboxElements,
-	LightboxOptions,
 	LightboxStates,
-} from '../../types'
+} from './types/presentation.types.d.ts'
+
+import type { ICache, IDOM } from './types/interfaces.d.ts'
+import type { LightboxElements } from '../../types'
 
 
-export class LightboxDOM {
-	private readonly cache: LightboxCache
-	private readonly dataValues = {} as {
-		animate: LightboxAnimations,
-		disabled: `${boolean}`,
-		state: LightboxStates,
-	}
+export class LightboxDOM implements IDOM {
+	private readonly cache: ICache
 
-	constructor(
-		private root: HTMLDialogElement,
-		private content: LightboxContent
-	) {
+	constructor(private root: LightboxElements['root']) {
 		this.cache = new LightboxCache(this.root)
 	}
 
-	async setContent(target: LightboxOptions['target']): Promise<void> {
+	setContent(content: HTMLElement | undefined): void {
 		const wrapper = this.cache.get('content')
-		if (!wrapper) return
+		if (!content || !wrapper) return
+		console.log('is empty:', wrapper.childElementCount)
 
-		const rendered = await this.content.render(target)
-		if (!rendered) return
-
-		wrapper.replaceChildren(...rendered.children)
+		wrapper.replaceChildren(...content.children)
 		this.rebuildCache()
 	}
 
@@ -57,10 +48,10 @@ export class LightboxDOM {
 		}
 	}
 
-	onChange = (
+	onChange(
 		attr: string,
 		callback: (current: string | null, observer: MutationObserver) => void
-	) => {
+	): MutationObserver {
 		const observer = new MutationObserver(mutationList => {
 			for (const mutate of mutationList) {
 				if (mutate.attributeName !== attr) continue
@@ -96,7 +87,7 @@ export class LightboxDOM {
 
 	setState(state: LightboxStates): void { this.root.dataset.state = state }
 
-	getData<K extends keyof typeof this.dataValues>(key: K): (typeof this.dataValues)[K] {
+	getData<K extends keyof DataValues>(key: K): DataValues[K] {
 		const value = this.root.dataset[key]
 		return {
 			animate: value as LightboxAnimations,

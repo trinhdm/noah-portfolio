@@ -27,7 +27,7 @@ export class ContentService {
 		await this.fetch(target)
 	}
 
-	async prefetcher(targets: (HTMLElement | undefined)[]) {
+	async prefetcher(targets: (HTMLElement | undefined)[]): Promise<void> {
 		if (!targets.length) return
 
 		const unique = new Set<HTMLElement>(targets.filter(Boolean) as HTMLElement[])

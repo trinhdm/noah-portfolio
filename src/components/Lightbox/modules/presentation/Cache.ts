@@ -1,8 +1,9 @@
 import { LightboxBlockSelector, LightboxSelector } from '../../utils'
 import type { LightboxElement, LightboxElements } from '../../types'
+import type { ICache } from './types/interfaces.d.ts'
 
 
-export class LightboxCache {
+export class LightboxCache implements ICache {
 	private cache = new Map<keyof LightboxElements, LightboxElement>()
 	private map: Partial<LightboxElements> = {}
 
@@ -101,7 +102,8 @@ export class LightboxCache {
 				? cached.some(cv => this.validate(cv))
 				: this.validate(cached)
 
-			return isValid ? cached : this.reset(key)
+			if (!isValid) this.reset(key)
+			return this.cache.get(key) as LightboxElements[K]
 		}
 
 		const value = (this.map[key] ?? null) as LightboxElements[K]
@@ -110,13 +112,11 @@ export class LightboxCache {
 		return value
 	}
 
-	reset<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
+	reset<K extends keyof LightboxElements>(key: K): void {
 		if (this.cache.has(key)) this.cache.delete(key)
 
 		const value = (this.query(key) ?? null) as LightboxElements[K]
 		this.cache.set(key, value)
-
-		return value
 	}
 
 	clear(): void { this.cache.clear() }

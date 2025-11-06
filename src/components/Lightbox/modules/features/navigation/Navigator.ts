@@ -1,34 +1,35 @@
 import { AnimationService as Animation } from '../../../../../services'
 import { LightboxSelector } from '../../../utils'
-import { LightboxContent, LightboxMedia } from '../content'
-import { LightboxAnimator, LightboxDOM } from '../../presentation'
-import type { FilterValues } from '../../../../../types'
 
 import type {
 	ArrowDirections,
 	ArrowGroup,
-	LightboxDispatcher,
 	LightboxElements,
 } from '../../../types'
 
+import type { FilterValues } from '../../../../../types'
+import type { IAnimator, IDOM } from '../../presentation'
+import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
+import type { IDispatcher } from '../../core'
 
-export class LightboxNavigator {
+
+export class LightboxNavigator implements INavigator {
 	private readonly delay: number = 250
 	private isSwapping = false
 	private pendingContent: HTMLElement | undefined
 
 	constructor(
-		private dom: LightboxDOM,
-		private animator: LightboxAnimator,
-		private media: LightboxMedia,
-		private content: LightboxContent,
-		private dispatch: LightboxDispatcher
+		private dom: IDOM,
+		private animator: IAnimator,
+		private media: IMedia,
+		private content: IContent,
+		private dispatch: IDispatcher
 	) {}
 
 	private async setSwap<T extends ArrowDirections>(
 		target: NonNullable<ArrowGroup[T]['target']>,
 		element: keyof FilterValues<LightboxElements, Element[]> = 'image'
-	) {
+	): Promise<void> {
 		const content = await this.content.render(target),
 			key = element.charAt(0).toUpperCase() + element.slice(1),
 			selector = LightboxSelector[key as keyof typeof LightboxSelector]
@@ -37,15 +38,16 @@ export class LightboxNavigator {
 			const currentEl = this.dom.get(element),
 				newEl = content.querySelector(selector)
 
+			this.pendingContent = content
+
 			if (currentEl && newEl) {
-				this.pendingContent = content
 				currentEl.replaceWith(newEl)
 				this.dom.reset(element)
 			}
 		}
 	}
 
-	private async beginSwap() {
+	private async beginSwap(): Promise<void> {
 		this.media.pause()
 
 		this.dom.toggleDisable()
@@ -53,14 +55,14 @@ export class LightboxNavigator {
 		await Animation.wait(this.delay)
 	}
 
-	private async performSwap() {
+	private async performSwap(): Promise<void> {
 		await this.animator.swap('out')
 		this.dom.updateContent(this.pendingContent)
 		this.media.load()
 		await this.animator.swap('in')
 	}
 
-	private async finishSwap(index: number) {
+	private async finishSwap(index: number): Promise<void> {
 		await this.dispatch.emit('update', index)
 
 		await Animation.wait(this.delay)
@@ -73,7 +75,7 @@ export class LightboxNavigator {
 	async swapContent<T extends ArrowDirections>(
 		directory: ArrowGroup,
 		dir: T
-	) {
+	): Promise<void> {
 		const { index, target } = directory[dir]
 		if (this.isSwapping || !target) return
 

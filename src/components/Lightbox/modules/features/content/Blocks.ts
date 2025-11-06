@@ -1,19 +1,18 @@
 import { getBlockType, findChildBy, isHeaderTag } from '../../../../../utils'
 import { LightboxArias, LightboxClass } from '../../../utils'
+import type { BlockHandler } from '../types/features.types.d.ts'
 import type { BlockTypes } from '../../../../../types'
+import type { IBlocks } from '../types/interfaces.d.ts'
 
 
-type BlockHandler = (block: HTMLElement) => HTMLElement | null
-
-
-export class BlockDispatcher {
+class BlockDispatcher {
 	private static handlers: Record<BlockTypes, BlockHandler> = {
 		html: BlockDispatcher.handleHtmlBlock,
 		image: BlockDispatcher.handleImageBlock,
 		video: BlockDispatcher.handleVideoBlock,
 	}
 
-	static register(type: BlockTypes, handler: BlockHandler) {
+	static register(type: BlockTypes, handler: BlockHandler): void {
 		if (Object.hasOwn(BlockDispatcher.handlers, type))
 			console.warn(`[BlockDispatcher] overwriting handler for ${type}`)
 
@@ -209,3 +208,6 @@ export class BlockDispatcher {
 		)
 	}
 }
+
+
+export const LightboxBlocks: IBlocks = BlockDispatcher
