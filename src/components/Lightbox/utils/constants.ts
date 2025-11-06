@@ -72,7 +72,6 @@ const LightboxSelectors = {
 }
 
 
-
 export {
 	LightboxArias,
 	LightboxBlockClass,

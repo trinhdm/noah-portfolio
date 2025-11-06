@@ -1,5 +1,5 @@
-import type { HandlerFor } from '../../services'
-import type { PageDetails, Properties } from '../../types'
+import type { HandlerFor } from '../../../services'
+import type { PageDetails, Properties } from '../../../types'
 
 
 type NavigationItem = PageDetails & {

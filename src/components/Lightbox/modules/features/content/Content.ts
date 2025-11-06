@@ -1,10 +1,10 @@
-import { findElement } from '../../utils'
-import { BlockDispatcher } from './BlockDispatcher.ts'
-import { ContentService } from '../../services'
-import { LightboxBlockClass } from './constants.ts'
+import { findElement } from '../../../../../utils'
+import { BlockDispatcher } from './Blocks'
+import { ContentService } from '../../../../../services'
+import { LightboxBlockClass } from '../../../utils'
 
 
-export class LightboxContentService extends ContentService {
+export class LightboxContent extends ContentService {
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const data = await this.fetch(target)
 		if (!data) return
