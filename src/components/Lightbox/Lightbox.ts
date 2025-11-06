@@ -532,8 +532,8 @@ class LightboxEvents {
 
 			if (key === 'Enter') {
 				const isIconFocused = icons.some(ic => ic === document.activeElement)
+				if (!isIconFocused) return
 
-				if (isIconFocused) {
 				this.currentFocus = document.activeElement as HTMLElement
 				this.dom.onChange('data-disabled', (value, observer) => {
 					if (value === 'false' && this.currentFocus) {
@@ -542,7 +542,6 @@ class LightboxEvents {
 						observer.disconnect()
 					}
 				})
-				}
 
 				return
 			}
@@ -559,12 +558,36 @@ class LightboxEvents {
 
 		const handleFocus = (event: FocusEvent) => {
 			event.stopPropagation()
-			if (root === document.activeElement && root.childElementCount)
+			if (root !== document.activeElement || !root.childElementCount) return
 			(root.children[0] as HTMLElement).focus()
 		}
 
 		root.addEventListener('focusin', handleFocus)
 		this.handlers.push(() => root.removeEventListener('focusin', handleFocus))
+	}
+
+	private bindTime() {
+		const player = this.dom.get('player')
+		let timeout: NodeJS.Timeout | null = null
+
+		if (!player
+			|| !player.hasAttribute('loop')
+			|| !(player instanceof HTMLVideoElement)
+		) return
+
+		const handleTime = () => {
+			if (timeout) clearTimeout(timeout)
+
+			if (player.duration && player.currentTime >= player.duration - 1) {
+				timeout = setTimeout(() => {
+					player.currentTime = 0
+					player.play()
+				}, 1000)
+			}
+		}
+
+		player.addEventListener('timeupdate', handleTime)
+		this.handlers.push(() => player.removeEventListener('timeupdate', handleTime))
 	}
 
 	bind(): void {
@@ -573,6 +596,7 @@ class LightboxEvents {
 		this.bindClicks()
 		this.bindKeys()
 		this.bindFocus()
+		// this.bindTime()
 	}
 
 	unbind(): void {
@@ -582,14 +606,14 @@ class LightboxEvents {
 }
 
 class LightboxMedia {
-	private instance?: Hls | Plyr | null
+	private instance?: Hls | Plyr
 	private media?: HTMLIFrameElement | HTMLVideoElement
 	private source: string = ''
 
 	private options: Required<LightboxVideoOptions> = {
-		controls: false,
+		controls: true,
 		loop: true,
-		mute: false,
+		muted: false,
 	}
 
 	constructor(
@@ -599,7 +623,15 @@ class LightboxMedia {
 
 	private loadNative(element: HTMLVideoElement) {
 		const src = element.src || ''
-		element.setAttribute('controls', `${this.options.controls}`)
+
+		for (const option in this.options) {
+			const attr = option as keyof typeof this.options
+
+			if (this.options[attr])
+				element.setAttribute(attr, '')
+			else if (element.hasAttribute(attr))
+				element.removeAttribute(attr)
+		}
 
 		if (Hls.isSupported()) {
 			try {
@@ -607,24 +639,30 @@ class LightboxMedia {
 				this.instance.loadSource(src)
 				this.instance.attachMedia(element)
 			} catch (error) {
-				const message = '[LightboxMedia] load() failed on: HLS'
+				const message = 'LightboxMedia.load() failed on: HLS'
 				this.dispatch.emit('error', { error, message })
 			}
 		} else {
 			try {
 				const plyrOptions: Plyr.Options = {
-					muted: this.options.mute,
+					muted: this.options.muted,
 					loop: { active: this.options.loop },
 					tooltips: { controls: this.options.controls },
 				}
 
 				this.instance = new Plyr(element, plyrOptions)
-			}
-			catch (error) {
-				const message = '[LightboxMedia] load() failed on: Plyr'
+			} catch (error) {
+				const message = 'LightboxMedia.load() failed on: Plyr'
 				this.dispatch.emit('error', { error, message })
 			}
 		}
+	}
+
+	private getYoutubeID(src: string) {
+		const baseURL = src.includes('?') ? src.split('?')[0] : src,
+			videoID = baseURL.substring(baseURL.lastIndexOf('/') + 1)
+
+		return videoID
 	}
 
 	private loadYoutube(element: HTMLIFrameElement) {
@@ -632,10 +670,20 @@ class LightboxMedia {
 		const src = element.src || '',
 			separator = src.includes('?') ? '&' : '?'
 
-		for (const [option, value] of Object.entries(this.options))
-			queries += `${option}=${value ? 1 : 0}`
+		for (const [key, value] of Object.entries(this.options)) {
+			let option = key
+			switch (key) {
+				case 'loop':
+					if (value) queries += `${separator}playlist=${this.getYoutubeID(src)}`
+					break
+				case 'muted': option = 'mute'
+					break
+			}
 
-		element.src += `${separator}${queries}`
+			queries += `${separator}${option}=${value ? 1 : 0}`
+		}
+
+		element.src += queries
 	}
 
 	load(options?: LightboxVideoOptions) {
@@ -650,19 +698,21 @@ class LightboxMedia {
 			this.loadNative(player)
 		else if (player instanceof HTMLIFrameElement)
 			this.loadYoutube(player)
+		else return
 
-		if (this.instance) {
+		player.setAttribute('autofocus', '')
+		this.dom.reset('player')
 		this.media = player
 		this.source = player.src
-			player.setAttribute('autofocus', '')
-		}
 	}
 
 	dispose(): void {
 		if (this.instance) {
-			try { this.instance.destroy() }
-			catch (err) {}
-			this.instance = null
+			try { this.instance.destroy?.() }
+			catch (error) { this.dispatch.emit('error', {
+				error, message: `LightboxMedia.dispose() failed` }) }
+
+			this.instance = undefined
 		}
 
 		this.media = undefined
@@ -673,7 +723,7 @@ class LightboxMedia {
 		if (!this.media) return
 
 		if (this.media instanceof HTMLVideoElement)
-			this.media.play()
+			this.media.play().catch(() => {})
 		else if (this.media instanceof HTMLIFrameElement)
 			this.media.src = `${this.source}&autoplay=1`
 	}
