@@ -71,7 +71,6 @@ export class AnimationService {
 		buffer: 50,
 		default: 50,
 		pause: 500,
-		swap: 250,
 		timeout: 1000,
 	}
 

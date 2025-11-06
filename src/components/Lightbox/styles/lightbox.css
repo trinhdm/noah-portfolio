@@ -15,10 +15,10 @@
 	position: fixed;
 	z-index: 9999;
 
-	/* &:focus,
+	&:focus,
 	&:focus-visible {
 		outline: none;
-	} */
+	}
 
 	&:is([data-state]) {
 		opacity: 1;

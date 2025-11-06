@@ -33,11 +33,10 @@
 			animation-timing-function: var(--ease-in-out-back);
 		}
 
-		&:is([data-state="change"]) {
+		&:is([data-state="swap"]) {
 			&:is([open])::backdrop,
 			.lightbox__body,
-			.lightbox__container,
-			.lightbox__overlay {
+			.lightbox__container {
 				animation-name: none;
 			}
 		}
@@ -137,13 +136,13 @@
 			}
 		}
 
-		&:is([data-state="change"]) {
+		&:is([data-state="swap"]) {
 			.lightbox__icon {
 				animation-name: none;
 
 				& > span {
-					opacity: .5;
-					transition-delay: .35s, 0s;
+					opacity: .375;
+					transition-delay: .3s, 0s;
 				}
 			}
 		}

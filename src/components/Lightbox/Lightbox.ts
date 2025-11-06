@@ -24,7 +24,7 @@ import type {
 	LightboxVideoOptions,
 } from './lightbox.types'
 
-import type { Entries, FilterObjArrs } from '../../types'
+import type { Entries, FilterValues } from '../../types'
 import type { AnimationOptions, HandlerFor } from '../../services'
 
 import template from './template.ts'
@@ -56,10 +56,6 @@ class LightboxCache {
 	private cache = new Map<keyof LightboxElements, LightboxElement>()
 	private map: Partial<LightboxElements> = {}
 
-	constructor(private root: HTMLDialogElement) {
-		this.build()
-	}
-
 	private selectors = {
 		root: LightboxSelector.Root,
 		arrows: '',
@@ -81,10 +77,14 @@ class LightboxCache {
 		string
 	>
 
-	private query<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
-		const target = this.selectors[key as keyof typeof this.selectors]
+	constructor(private root: HTMLDialogElement) {
+		const nonContentEls: (keyof LightboxElements)[] = ['root', 'body', 'container', 'content', 'footer', 'navigation']
+		this.build(nonContentEls)
+	}
 
-		const root = this.root
+	private query<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
+		const root = this.root,
+			target = this.selectors[key]
 
 		if (target) {
 			if (key === 'root')
@@ -104,15 +104,23 @@ class LightboxCache {
 			player: video?.querySelector('video') || video?.querySelector('iframe'),
 		} as Partial<LightboxElements>
 
-		const value = extended[key as Exclude<K, keyof typeof this.selectors>]
+		type LeftoverKeys = keyof FilterValues<typeof this.selectors, `.${string}`>
+		const value = extended[key as LeftoverKeys]
 		if (!value) console.warn(`unknown selector for '${key}'`)
 
 		return value as LightboxElements[K]
 	}
 
-	private build<K extends keyof typeof this.selectors>(): void {
-		const map = {} as LightboxElements,
-			selectors = Object.keys(this.selectors) as K[]
+	private build<K extends keyof LightboxElements>(targets?: K[]): void {
+		const map = {} as LightboxElements
+		let selectors = Object.keys(this.selectors) as K[]
+
+		if (targets?.length) {
+			selectors = selectors.reduce((acc, value) => {
+				if (targets.includes(value)) acc.push(value)
+				return acc
+			}, [] as K[])
+		}
 
 		for (const key of selectors)
 			map[key] = this.query(key as typeof key)
@@ -121,26 +129,23 @@ class LightboxCache {
 		this.clear()
 	}
 
+	private validate(value: LightboxElement): boolean {
+		return !(value instanceof Node) || document.contains(value)
+	}
+
 	rebuild(): void {
 		this.build()
 		this.clear()
 	}
 
-	clear(): void { this.cache.clear() }
-
-	check<K extends keyof LightboxElements>(value: LightboxElements[K]): boolean {
-		return value instanceof Node && !document.contains(value)
-	}
-
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
 		if (this.cache.has(key)) {
-			const value = this.cache.get(key) as LightboxElements[K]
-			const isStale = Array.isArray(value)
-				? value.some(v => this.check(v))
-				: this.check(value)
+			const cached = this.cache.get(key) as LightboxElements[K]
+			const isValid = Array.isArray(cached)
+				? cached.some(cv => this.validate(cv))
+				: this.validate(cached)
 
-			if (isStale) return this.query(key)
-			return value
+			return isValid ? cached : this.reset(key)
 		}
 
 		const value = (this.map[key] ?? null) as LightboxElements[K]
@@ -149,15 +154,25 @@ class LightboxCache {
 		return value
 	}
 
-	reset<K extends keyof LightboxElements>(key: K): void {
+	reset<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
 		if (this.cache.has(key)) this.cache.delete(key)
+
 		const value = (this.query(key) ?? null) as LightboxElements[K]
 		this.cache.set(key, value)
+
+		return value
 	}
+
+	clear(): void { this.cache.clear() }
 }
 
 class LightboxDOM {
 	private readonly cache: LightboxCache
+	private readonly dataValues = {} as {
+		animate: LightboxAnimations,
+		disabled: `${boolean}`,
+		state: LightboxStates,
+	}
 
 	constructor(
 		private root: HTMLDialogElement,
@@ -201,22 +216,17 @@ class LightboxDOM {
 		attr: string,
 		callback: (current: string | null, observer: MutationObserver) => void
 	) => {
-		const mutationObserver = new MutationObserver(mutationList => {
+		const observer = new MutationObserver(mutationList => {
 			for (const mutate of mutationList) {
 				if (mutate.attributeName !== attr) continue
-
-				const { oldValue, target } = mutate,
-					newValue = (target as typeof this.root).getAttribute(attr)
-
-				if (newValue !== oldValue) {
-					callback(newValue, mutationObserver)
-					break
-				}
+				const newValue = (mutate.target as HTMLElement).getAttribute(attr)
+				callback(newValue, observer)
+				break
 			}
 		})
 
-		mutationObserver.observe(this.root, { attributes: true, attributeOldValue: true })
-		return mutationObserver
+		observer.observe(this.root, { attributes: true, attributeOldValue: true })
+		return observer
 	}
 
 	get<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
@@ -224,10 +234,6 @@ class LightboxDOM {
 	}
 
 	reset<K extends keyof LightboxElements>(key: K): void { this.cache.reset(key) }
-
-	toggleDisable(): void { toggleDisableAttr(this.root) }
-
-	toggleIcons(): void { this.cache.get('icons').forEach(c => c.disabled = !c.disabled) }
 
 	clearCache(): void { this.cache.clear() }
 
@@ -237,11 +243,22 @@ class LightboxDOM {
 
 	remove(): void { this.root.remove() }
 
-	getState(): LightboxStates { return this.root.dataset.state as LightboxStates }
+	toggleDisable(): void { toggleDisableAttr(this.root) }
+
+	toggleIcons(): void { this.cache.get('icons').forEach(c => c.disabled = !c.disabled) }
+
+	setAnimate(value: LightboxAnimations = ''): void { this.root.dataset.animate = value }
 
 	setState(state: LightboxStates): void { this.root.dataset.state = state }
 
-	setAnimate(value: LightboxAnimations = ''): void { this.root.dataset.animate = value }
+	getData<K extends keyof typeof this.dataValues>(key: K): (typeof this.dataValues)[K] {
+		const value = this.root.dataset[key]
+		return {
+			animate: value as LightboxAnimations,
+			disabled: value as `${boolean}`,
+			state: value as LightboxStates,
+		}[key]
+	}
 }
 
 class LightboxAnimator {
@@ -255,8 +272,22 @@ class LightboxAnimator {
 		this.Root = new LightboxAnimator.Root(this)
 	}
 
+	async swap(direction: 'in' | 'out') {
+		this.dom.setAnimate(direction)
+
+		const isMediaAsync = direction === 'out',
+			targetBlock = this.dom.get('html').at(isMediaAsync ? -1 : -2)
+
+		this.fadeTextBlocks()
+		this.dom.toggleIcons()
+		await this.waitForEnd(targetBlock)
+
+		await this.Media.fadeMediaBlocks?.(isMediaAsync)
+		await this.waitForFinish()
+	}
+
 	private animate(
-		key: keyof FilterObjArrs<LightboxElements> | Element | null | undefined,
+		key: keyof FilterValues<LightboxElements, any[]> | Element | null | undefined,
 		options: AnimationOptions = {},
 		isPseudo: boolean = false
 	): void {
@@ -271,13 +302,13 @@ class LightboxAnimator {
 		else Animation.set(target, options)
 	}
 
-	async waitForEnd(target: HTMLElement | undefined) {
+	private async waitForEnd(target: HTMLElement | undefined) {
 		if (!target) return
 		this.queue.delete(target)
 		await Animation.waitForEnd(target)
 	}
 
-	async waitForFinish() {
+	private async waitForFinish() {
 		await new Promise(requestAnimationFrame)
 
 		const animations = Array.from(this.queue),
@@ -293,20 +324,6 @@ class LightboxAnimator {
 			root.removeAttribute('data-animate')
 	}
 
-	async swap(direction: 'in' | 'out') {
-		this.dom.setAnimate(direction)
-
-		const isMediaAsync = direction === 'out',
-			targetBlock = this.dom.get('html').at(isMediaAsync ? -1 : -2)
-
-		this.fadeBlocks()
-		this.dom.toggleIcons()
-		await this.waitForEnd(targetBlock)
-
-		await this.Media.fadeAll?.(isMediaAsync)
-		await this.waitForFinish()
-	}
-
 	private fadeArrows(isActive: boolean): void {
 		const arrows = this.dom.get('arrows')
 		if (!arrows?.length) return
@@ -319,26 +336,26 @@ class LightboxAnimator {
 		})
 	}
 
-	private fadeBlocks(): void {
-		let blocks = this.dom.get('html')
+	private fadeTextBlocks(): void {
+		const blocks = this.dom.get('html')
 		if (!blocks?.length) return
 
 		const delay = .3,
 			stagger = .15
 
-		const state = this.dom.getState(),
-			isSwapIn = state === 'change' && this.dom.get('root').dataset.animate === 'in'
+		const state = this.dom.getData('state'),
+			isSwapIn = state === 'swap' && this.dom.getData('animate') === 'in'
 
 		const stateDelay = {
-			change: isSwapIn ? delay : delay * 3,
 			close: delay,
 			open: 0,
+			swap: isSwapIn ? delay : delay * 3,
 		}[state]
 
 		const innerDelay = {
-			change: isSwapIn ? delay * 3 : delay + stagger,
 			close: 0,
 			open: delay + stagger,
+			swap: isSwapIn ? delay * 3 : delay + stagger,
 		}[state]
 
 		const blockList = state === 'open' || isSwapIn ? blocks : blocks.slice().reverse()
@@ -380,7 +397,7 @@ class LightboxAnimator {
 			await this.animator.waitForEnd(image)
 		}
 
-		async fadeAll(isAsync: boolean = false) {
+		async fadeMediaBlocks(isAsync: boolean = false) {
 			const image = this.dom.get('image'),
 				video = this.dom.get('video')
 
@@ -404,7 +421,7 @@ class LightboxAnimator {
 			this.animator.animate('container')
 			this.animator.animate('body')
 
-			if (this.dom.getState() === 'close')
+			if (this.dom.getData('state') === 'close')
 				this.dom.setAnimate('overlay')
 		}
 
@@ -414,14 +431,15 @@ class LightboxAnimator {
 			this.dom.setState('open')
 			this.dom.setAnimate()
 
+			await Animation.wait('pause')
 			this.fadeMain()
 			await this.animator.waitForEnd(this.dom.get('container'))
 
-			this.animator.fadeBlocks()
+			this.animator.fadeTextBlocks()
 			await this.animator.waitForEnd(targetBlock)
 
 			this.animator.fadeArrows(true)
-			await this.animator.Media.fadeAll?.()
+			await this.animator.Media.fadeMediaBlocks?.()
 			this.animator.animate('exit')
 
 			await this.animator.waitForFinish()
@@ -440,11 +458,11 @@ class LightboxAnimator {
 			this.animator.fadeArrows(false)
 			await this.animator.waitForEnd(targetArrow)
 
-			this.animator.fadeBlocks()
+			this.animator.fadeTextBlocks()
 			await this.animator.waitForEnd(targetBlock)
 
 			this.fadeMain()
-			await this.animator.Media.fadeAll?.()
+			await this.animator.Media.fadeMediaBlocks?.()
 
 			await this.animator.waitForFinish()
 		}
@@ -516,14 +534,14 @@ class LightboxEvents {
 				const isIconFocused = icons.some(ic => ic === document.activeElement)
 
 				if (isIconFocused) {
-					this.currentFocus = document.activeElement as HTMLElement
-					this.dom.onChange('data-disabled', (value, observer) => {
-						if (value === 'false' && this.currentFocus) {
-							this.currentFocus.focus()
-							this.currentFocus = undefined
-							observer.disconnect()
-						}
-					})
+				this.currentFocus = document.activeElement as HTMLElement
+				this.dom.onChange('data-disabled', (value, observer) => {
+					if (value === 'false' && this.currentFocus) {
+						this.currentFocus.focus()
+						this.currentFocus = undefined
+						observer.disconnect()
+					}
+				})
 				}
 
 				return
@@ -542,7 +560,7 @@ class LightboxEvents {
 		const handleFocus = (event: FocusEvent) => {
 			event.stopPropagation()
 			if (root === document.activeElement && root.childElementCount)
-				(root.children[0] as HTMLElement).focus()
+			(root.children[0] as HTMLElement).focus()
 		}
 
 		root.addEventListener('focusin', handleFocus)
@@ -634,8 +652,8 @@ class LightboxMedia {
 			this.loadYoutube(player)
 
 		if (this.instance) {
-			this.media = player
-			this.source = player.src
+		this.media = player
+		this.source = player.src
 			player.setAttribute('autofocus', '')
 		}
 	}
@@ -737,6 +755,7 @@ class LightboxMenu {
 }
 
 class LightboxNavigator {
+	private readonly delay: number = 250
 	private isSwapping = false
 	private pendingContent: HTMLElement | undefined
 
@@ -750,22 +769,18 @@ class LightboxNavigator {
 
 	private async setSwap<T extends ArrowDirections>(
 		target: NonNullable<ArrowGroup[T]['target']>,
-		element: keyof FilterObjArrs<LightboxElements> = 'image'
+		element: keyof FilterValues<LightboxElements, any[]> = 'image'
 	) {
-		try { this.pendingContent = await this.content.render(target) }
-		catch (error) { this.dispatch.emit('error', { error, message: 'LightboxNavigator.setSwap() failed' }) }
-
-		if (!this.pendingContent) return
-
-		const key = element.charAt(0).toUpperCase() + element.slice(1),
+		const content = await this.content.render(target),
+			key = element.charAt(0).toUpperCase() + element.slice(1),
 			selector = LightboxSelector[key as keyof typeof LightboxSelector]
-		console.log({ key, selector })
 
-		if (selector) {
+		if (content && selector) {
 			const currentEl = this.dom.get(element),
-				newEl = this.pendingContent.querySelector(selector)
+				newEl = content.querySelector(selector)
 
 			if (currentEl && newEl) {
+				this.pendingContent = content
 				currentEl.replaceWith(newEl)
 				this.dom.reset(element)
 			}
@@ -776,8 +791,8 @@ class LightboxNavigator {
 		this.media.pause()
 
 		this.dom.toggleDisable()
-		this.dom.setState('change')
-		await Animation.wait('swap')
+		this.dom.setState('swap')
+		await Animation.wait(this.delay)
 	}
 
 	private async performSwap() {
@@ -790,7 +805,7 @@ class LightboxNavigator {
 	private async finishSwap(index: number) {
 		await this.dispatch.emit('update', index)
 
-		await Animation.wait('swap')
+		await Animation.wait(this.delay)
 		this.dom.setState('open')
 		this.dom.toggleDisable()
 

@@ -27,12 +27,6 @@
 			}
 		}
 
-		&:is([data-state="change"]) .fe-block {
-			&.lightbox__video {
-				z-index: 20;
-			}
-		}
-
 		&:is([data-animate="in"], [data-state="open"]) .fe-block {
 			&.lightbox__html,
 			&.lightbox__video,
@@ -47,6 +41,12 @@
 
 			&.lightbox__image {
 				opacity: 1;
+			}
+		}
+
+		&:is([data-state="swap"]) .fe-block {
+			&.lightbox__video {
+				z-index: 20;
 			}
 		}
 	}
@@ -95,49 +95,6 @@
 		}
 	}
 
-	&:is([data-state="change"]) {
-		.fe-block {
-			&,
-			.block--animated::before,
-			.block--animated::after {
-				animation-timing-function: var(--ease-in-out-sine);
-			}
-		}
-
-		&:is([data-animate="in"]) {
-			.fe-block {
-				&.lightbox__image {
-					/* animation-delay: var(--dt-lb-duration); */
-					animation-direction: normal;
-				}
-			}
-		}
-
-		&:is([data-animate="out"]) {
-			.fe-block {
-				&,
-				.block--animated::before,
-				.block--animated::after {
-					animation-direction: reverse;
-				}
-
-				/* &.lightbox__html {
-					animation-duration: calc(.625 * var(--dt-lb-duration));
-				} */
-
-				/* &.lightbox__image,
-				&.lightbox__video {
-					animation-duration: calc(.875 * var(--dt-lb-duration));
-				} */
-
-				&.lightbox__image {
-					animation-direction: normal;
-					/* animation-delay: var(--dt-lb-duration); */
-				}
-			}
-		}
-	}
-
 	&:is([data-state="close"]) {
 		.fe-block {
 			&,
@@ -176,6 +133,39 @@
 				animation-delay: var(--dt-lb-bl-delay);
 				animation-direction: reverse;
 				animation-timing-function: var(--ease-out-sine);
+			}
+		}
+	}
+
+	&:is([data-state="swap"]) {
+		.fe-block {
+			&,
+			.block--animated::before,
+			.block--animated::after {
+				animation-timing-function: var(--ease-in-out-sine);
+			}
+		}
+
+		&:is([data-animate="in"]) {
+			.fe-block {
+				&.lightbox__image {
+					/* animation-delay: var(--dt-lb-duration); */
+					animation-direction: normal;
+				}
+			}
+		}
+
+		&:is([data-animate="out"]) {
+			.fe-block {
+				&,
+				.block--animated::before,
+				.block--animated::after {
+					animation-direction: reverse;
+				}
+
+				&.lightbox__image {
+					animation-direction: normal;
+				}
 			}
 		}
 	}

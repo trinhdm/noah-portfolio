@@ -10,11 +10,11 @@ interface Events {
 	focusin: FocusEvent
 	keydown: KeyboardEvent
 }
+
 type EventHandler<K extends keyof Events> = (event: Events[K]) => void
 
-
-export type FilterObjArrs<T> = {
-	[K in keyof T as T[K] extends any[] ? never : K]: T[K]
+export type FilterValues<T, V> = {
+	[K in keyof T as T[K] extends V ? never : K]: T[K]
 }
 
 
