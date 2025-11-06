@@ -81,15 +81,15 @@
 
 			&[style] {
 				&::before {
-					animation-delay: var(--animationDelay-before) !important;
-					animation-duration: var(--animationDuration-before) !important;
-					animation-play-state: var(--animationPlayState-before) !important;
+					animation-delay: var(--animationDelay-before);
+					animation-duration: var(--animationDuration-before);
+					animation-play-state: var(--animationPlayState-before);
 				}
 
 				&::after {
-					animation-delay: var(--animationDelay-after) !important;
-					animation-duration: var(--animationDuration-after) !important;
-					animation-play-state: var(--animationPlayState-after) !important;
+					animation-delay: var(--animationDelay-after);
+					animation-duration: var(--animationDuration-after);
+					animation-play-state: var(--animationPlayState-after);
 				}
 			}
 		}
@@ -143,15 +143,6 @@
 			.block--animated::before,
 			.block--animated::after {
 				animation-timing-function: var(--ease-in-out-sine);
-			}
-		}
-
-		&:is([data-animate="in"]) {
-			.fe-block {
-				&.lightbox__image {
-					/* animation-delay: var(--dt-lb-duration); */
-					animation-direction: normal;
-				}
 			}
 		}
 
