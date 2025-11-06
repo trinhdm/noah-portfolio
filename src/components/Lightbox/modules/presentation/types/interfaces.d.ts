@@ -4,6 +4,7 @@ import type {
 	DataValues,
 	LightboxAnimations,
 	LightboxStates,
+	LightboxVideoOptions,
 } from './presentation.types.d.ts'
 
 
@@ -48,4 +49,12 @@ export interface IDOM {
 export interface IEvents {
 	bind(): void
 	unbind(): void
+}
+
+
+export interface IMedia {
+	dispose(): void
+	load(options?: LightboxVideoOptions): void
+	pause(): void
+	play(): void
 }

@@ -1,4 +1,5 @@
 import { AnimationService as Animation } from '../../../../../services'
+import { LightboxMenu } from './Menu.ts'
 import { LightboxSelector } from '../../../utils'
 
 import type {
@@ -8,23 +9,26 @@ import type {
 } from '../../../types'
 
 import type { FilterValues } from '../../../../../types'
-import type { IAnimator, IDOM } from '../../presentation'
-import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
+import type { IAnimator, IDOM, IMedia } from '../../presentation'
+import type { IContent, INavigator } from '../types/interfaces.d.ts'
 import type { IDispatcher } from '../../core'
 
 
-export class LightboxNavigator implements INavigator {
+export class LightboxNavigator
+	extends LightboxMenu implements INavigator {
 	private readonly delay: number = 250
 	private isSwapping = false
 	private pendingContent: HTMLElement | undefined
 
 	constructor(
-		private dom: IDOM,
+		protected dom: IDOM,
 		private animator: IAnimator,
 		private media: IMedia,
-		private content: IContent,
+		protected content: IContent,
 		private dispatch: IDispatcher
-	) {}
+	) {
+		super(dom, content)
+	}
 
 	private async setSwap<T extends ArrowDirections>(
 		target: NonNullable<ArrowGroup[T]['target']>,

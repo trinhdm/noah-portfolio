@@ -1,8 +1,8 @@
-import { AnimationService as Animation, AnimationOptions } from '../../../../services'
-import { LightboxBlockSelector, LightboxSelector } from '../../utils'
-import type { FilterValues } from '../../../../types'
-import type { IAnimator, IDOM } from './types/interfaces.d.ts'
-import type { LightboxElement, LightboxElements } from '../../types'
+import { AnimationService as Animation, AnimationOptions } from '../../../../../services/index.ts'
+import { LightboxBlockSelector, LightboxSelector } from '../../../utils/index.ts'
+import type { FilterValues } from '../../../../../types/index.ts'
+import type { IAnimator, IDOM } from '../types/interfaces'
+import type { LightboxElement, LightboxElements } from '../../../types/index.ts'
 
 
 export class LightboxAnimator implements IAnimator {

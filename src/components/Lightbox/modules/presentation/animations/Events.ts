@@ -1,6 +1,6 @@
-import type { ArrowDirections } from '../../types'
-import type { IDispatcher } from '../core'
-import type { IDOM, IEvents } from './types/interfaces.d.ts'
+import type { ArrowDirections } from '../../../types/index.ts'
+import type { IDispatcher } from '../../core/index.ts'
+import type { IDOM, IEvents } from '../types/interfaces'
 
 
 export class LightboxEvents implements IEvents {

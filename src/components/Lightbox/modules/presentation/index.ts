@@ -1,5 +1,4 @@
-export { LightboxAnimator } from './Animator.ts'
-export { LightboxDOM } from './DOM.ts'
-export { LightboxEvents } from './Events.ts'
+export { LightboxAnimator, LightboxEvents } from './animations'
+export { LightboxDOM, LightboxMedia } from './document'
 
 export type * from './types'

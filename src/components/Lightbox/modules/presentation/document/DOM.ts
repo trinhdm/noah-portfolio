@@ -1,15 +1,15 @@
-import { toggleDisableAttr } from '../../../../utils'
-import { LightboxCache } from './Cache'
-import { LightboxSelector } from '../../utils'
+import { toggleDisableAttr } from '../../../../../utils'
+import { LightboxCache } from './Cache.ts'
+import { LightboxSelector } from '../../../utils'
 
 import type {
 	DataValues,
 	LightboxAnimations,
 	LightboxStates,
-} from './types/presentation.types.d.ts'
+} from '../types/presentation.types.d.ts'
 
-import type { ICache, IDOM } from './types/interfaces.d.ts'
-import type { LightboxElements } from '../../types'
+import type { ICache, IDOM } from '../types/interfaces.d.ts'
+import type { LightboxElements } from '../../../types'
 
 
 export class LightboxDOM implements IDOM {

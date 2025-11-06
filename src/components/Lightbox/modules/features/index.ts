@@ -1,4 +1,4 @@
-export { LightboxContent, LightboxMedia } from './content'
-export { LightboxMenu, LightboxNavigator } from './navigation'
+export { LightboxContent } from './content'
+export { LightboxNavigator } from './navigation'
 
 export type * from './types'

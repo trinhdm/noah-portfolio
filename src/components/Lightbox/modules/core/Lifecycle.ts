@@ -9,8 +9,8 @@ import type {
 import type { Entries } from '../../../../types'
 import type { HandlerFor } from '../../../../services'
 import type { LightboxEventMap } from './types/core.types.d.ts'
-import type { IAnimator, IDOM, IEvents } from '../presentation'
-import type { IContent, IMedia, IMenu, INavigator } from '../features'
+import type { IAnimator, IDOM, IEvents, IMedia } from '../presentation'
+import type { IContent, INavigator } from '../features'
 import type { IDispatcher, ILifecycle } from './types/interfaces.d.ts'
 
 
@@ -25,7 +25,6 @@ export class LightboxLifecycle implements ILifecycle {
 		private animator: IAnimator,
 		private events: IEvents,
 		private media: IMedia,
-		private menu: IMenu,
 		private navigator: INavigator,
 		private content: IContent,
 		private dispatch: IDispatcher
@@ -78,7 +77,7 @@ export class LightboxLifecycle implements ILifecycle {
 		this.currentIndex = index ?? 0
 
 		try {
-			const directory = await this.menu.configure(this.currentIndex, elements)
+			const directory = await this.navigator.configure(this.currentIndex, elements)
 			this.directory = directory
 			console.log({ directory })
 		} catch (error) {

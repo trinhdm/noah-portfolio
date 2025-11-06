@@ -8,8 +8,8 @@ export class LightboxMenu implements IMenu {
 	private elements: LightboxOptions['elements'] = []
 
 	constructor(
-		private dom: IDOM,
-		private content: IContent
+		protected dom: IDOM,
+		protected content: IContent
 	) {}
 
 	async configure(
@@ -20,6 +20,7 @@ export class LightboxMenu implements IMenu {
 
 		const directory = await this.getDirectory(index)
 		this.setArrows(directory)
+		console.log({ directory })
 
 		return directory
 	}
@@ -57,15 +58,31 @@ export class LightboxMenu implements IMenu {
 
 		for (const dir of dirs) {
 			const arrow = arrows.find(({ dataset }) => dataset.direction === dir),
-				{ index, title } = (directory as ArrowGroup)[dir]
+				{ index, title } = directory[dir]
 
 			if (!arrow || !title) continue
 
 			const label = arrow.querySelector(LightboxSelector.Label),
-				text = title?.innerText ?? ''
+				text = title.innerText ?? ''
 
 			if (label) label.replaceChildren(text)
 			arrow.setAttribute('data-position', `${index}`)
 		}
+
+		// controls = Object.entries(directory).reverse() as Entries<typeof directory>
+		// for (const [dir, { index, title }] of controls) {
+		// 	const arrow = arrows.find(({ dataset }) => dataset.direction === dir)
+		// 	if (!arrow) continue
+
+		// 	if (title) {
+		// 		const label = arrow.querySelector(LightboxSelector.Label),
+		// 			text = title.innerText ?? ''
+
+		// 		if (label) label.replaceChildren(text)
+		// 		arrow.setAttribute('data-position', `${index}`)
+		// 	} else {
+		// 		arrow.setAttribute('disabled', '')
+		// 	}
+		// }
 	}
 }

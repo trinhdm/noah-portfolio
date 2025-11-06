@@ -1,6 +1,6 @@
-import { LightboxBlockSelector, LightboxSelector } from '../../utils'
-import type { LightboxElement, LightboxElements } from '../../types'
-import type { ICache } from './types/interfaces.d.ts'
+import { LightboxBlockSelector, LightboxSelector } from '../../../utils'
+import type { LightboxElement, LightboxElements } from '../../../types'
+import type { ICache } from '../types/interfaces.d.ts'
 
 
 export class LightboxCache implements ICache {
@@ -73,10 +73,10 @@ export class LightboxCache implements ICache {
 		let selectors = Object.keys(this.selectors) as K[]
 
 		if (targets?.length) {
-			selectors = selectors.reduce((acc, value) => {
-				if (targets.includes(value)) acc.push(value)
+			selectors = selectors.reduce<K[]>((acc, selector) => {
+				if (targets.includes(selector)) acc.push(selector)
 				return acc
-			}, [] as K[])
+			}, [])
 		}
 
 		for (const key of selectors)

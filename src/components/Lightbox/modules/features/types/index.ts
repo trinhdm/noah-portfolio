@@ -1,2 +1,1 @@
-export type * from './features.types.d.ts'
-export type * from './interfaces.d.ts'
+export type { IContent, INavigator } from './interfaces.d.ts'

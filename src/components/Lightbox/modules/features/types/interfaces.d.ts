@@ -1,4 +1,4 @@
-import type { BlockHandler, LightboxVideoOptions } from './features.types.d.ts'
+import type { BlockHandler } from './features.types.d.ts'
 import type { BlockTypes, PageDetails } from '../../../../../types'
 
 import type {
@@ -22,14 +22,6 @@ export interface IContent {
 }
 
 
-export interface IMedia {
-	dispose(): void
-	load(options?: LightboxVideoOptions): void
-	pause(): void
-	play(): void
-}
-
-
 export interface IMenu {
 	configure(
 		index: number,
@@ -38,7 +30,7 @@ export interface IMenu {
 }
 
 
-export interface INavigator {
+export interface INavigator extends IMenu {
 	swapContent<T extends ArrowDirections>(
 		directory: ArrowGroup,
 		dir: T

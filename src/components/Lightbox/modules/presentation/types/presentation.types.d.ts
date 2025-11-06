@@ -7,3 +7,10 @@ export interface DataValues {
 	disabled: `${boolean}`,
 	state: LightboxStates,
 }
+
+
+export interface LightboxVideoOptions {
+	controls?: boolean
+	loop?: boolean
+	muted?: boolean
+}

@@ -1,2 +1,1 @@
-export type * from './presentation.types.d.ts'
-export type * from './interfaces.d.ts'
+export type { IAnimator, IDOM, IEvents, IMedia } from './interfaces.d.ts'
