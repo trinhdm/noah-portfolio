@@ -3,6 +3,7 @@ import type { LightboxEventMap } from './core.types.d.ts'
 
 import type {
 	ArrowDirections,
+	ArrowGroup,
 	LightboxElements,
 	LightboxOptions,
 } from '../../../types'
@@ -36,7 +37,7 @@ export interface ILifecycle {
 	handleMount(options: LightboxOptions): Promise<void>
 	handleNavigate(dir: ArrowDirections): Promise<void>
 	handleOpen(): Promise<void>
-	handleUpdate(index: number, elements?: LightboxOptions['elements']): Promise<void>
+	handleUpdate({ directory, index }: LightboxEventMap['update']): Promise<void>
 }
 
 

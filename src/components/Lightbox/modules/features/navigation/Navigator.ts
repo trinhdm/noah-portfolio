@@ -9,14 +9,14 @@ import type {
 } from '../../../types'
 
 import type { FilterValues } from '../../../../../types'
-import type { IAnimator, IDOM, IMedia } from '../../presentation'
-import type { IContent, INavigator } from '../types/interfaces.d.ts'
+import type { IAnimator, IDOM} from '../../presentation'
+import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
 import type { IDispatcher } from '../../core'
 
 
 export class LightboxNavigator
-	extends LightboxMenu implements INavigator {
-	private readonly delay: number = 250
+extends LightboxMenu implements INavigator {
+	private readonly delay: number = 500
 	private isSwapping = false
 	private pendingContent: HTMLElement | undefined
 
@@ -61,13 +61,14 @@ export class LightboxNavigator
 
 	private async performSwap(): Promise<void> {
 		await this.animator.swap('out')
-		this.dom.updateContent(this.pendingContent)
+		this.dom.setContent(this.pendingContent)
 		this.media.load()
 		await this.animator.swap('in')
 	}
 
 	private async finishSwap(index: number): Promise<void> {
-		await this.dispatch.emit('update', index)
+		const directory = await this.configure(index)
+		await this.dispatch.emit('update', { directory, index })
 
 		await Animation.wait(this.delay)
 		this.dom.setState('open')
@@ -84,8 +85,8 @@ export class LightboxNavigator
 		if (this.isSwapping || !target) return
 
 		this.isSwapping = true
-		await this.setSwap<T>(target)
 
+		await this.setSwap<T>(target)
 		if (!this.pendingContent) return
 
 		const message = 'LightboxNavigator.swapContent() failed'

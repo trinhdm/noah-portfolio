@@ -1,4 +1,4 @@
-import type { ArrowDirections } from '../../../types'
+import type { ArrowDirections, ArrowGroup } from '../../../types'
 
 
 export interface LightboxEventMap {
@@ -7,7 +7,11 @@ export interface LightboxEventMap {
 		error: unknown
 		message?: string
 	}
+	media: void
 	navigate: ArrowDirections
 	open: void
-	update: number
+	update: {
+		directory?: ArrowGroup
+		index: number
+	}
 }

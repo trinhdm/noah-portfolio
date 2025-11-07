@@ -4,5 +4,5 @@ import type { LightboxEventMap } from './types/core.types.d.ts'
 
 
 export class LightboxDispatcher
-	extends EventDispatcher<LightboxEventMap> implements IDispatcher {
+extends EventDispatcher<LightboxEventMap> implements IDispatcher {
 }

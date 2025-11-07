@@ -6,7 +6,7 @@ import type { IContent } from '../types/interfaces.d.ts'
 
 
 export class LightboxContent
-	extends ContentService implements IContent {
+extends ContentService implements IContent {
 	private async construct(target: HTMLElement): Promise<HTMLDivElement | undefined> {
 		const data = await this.fetch(target)
 		if (!data) return
