@@ -49,3 +49,9 @@ export interface IEvents {
 	bind(): void
 	unbind(): void
 }
+
+
+export interface ISelector {
+	collectDom(parent: Element | null): (keyof LightboxElements)[]
+	query<K extends keyof LightboxElements>(key: K): LightboxElements[K]
+}
