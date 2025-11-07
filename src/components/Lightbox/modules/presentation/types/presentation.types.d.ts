@@ -9,8 +9,24 @@ export interface DataValues {
 }
 
 
-export interface LightboxVideoOptions {
+interface LightboxSharedVideoOptions {
 	controls?: boolean
 	loop?: boolean
 	muted?: boolean
 }
+
+interface LightboxIframeOptions {
+	enablejsapi?: boolean
+	playlist?: string
+}
+
+interface LightboxNativeOptions {
+	'data-native'?: 'hls' | 'plyr'
+	enablejsapi?: never
+	playlist?: never
+}
+
+export type LightboxVideoOptions = LightboxSharedVideoOptions & (
+	| LightboxIframeOptions
+	| LightboxNativeOptions
+)

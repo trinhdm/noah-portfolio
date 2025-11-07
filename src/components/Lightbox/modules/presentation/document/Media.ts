@@ -5,12 +5,39 @@ import type { IDOM, IMedia } from '../types/interfaces.d.ts'
 import type { LightboxVideoOptions } from '../types/presentation.types.d.ts'
 
 
-export class LightboxMedia implements IMedia {
-	private instance?: Hls | Plyr
-	private media?: HTMLIFrameElement | HTMLVideoElement
-	private source: string = ''
+const createMedia = (
+	element: HTMLElement,
+	options: LightboxVideoOptions | undefined
+): NativeMedia | YoutubeMedia | undefined => {
+	if (element instanceof HTMLVideoElement)
+		return new NativeMedia(element, options)
+	if (element instanceof HTMLIFrameElement)
+		return new YoutubeMedia(element, options)
+}
 
-	private options: Required<LightboxVideoOptions> = {
+
+abstract class BaseMedia<T extends HTMLElement> {
+	protected instance?: Hls | Plyr
+	protected media?: T
+
+	constructor(protected options?: LightboxVideoOptions) {}
+
+	protected update(opts: LightboxVideoOptions): void {
+		this.options = { ...this.options, ...opts }
+	}
+
+	abstract load(): void
+	abstract dispose(): void
+	abstract pause(): void
+	abstract play(): void
+	abstract stop(): void
+}
+
+
+export class LightboxMedia implements IMedia {
+	private handler?: BaseMedia<HTMLIFrameElement | HTMLVideoElement>
+
+	private options: LightboxVideoOptions = {
 		controls: true,
 		loop: true,
 		muted: false,
@@ -21,115 +48,6 @@ export class LightboxMedia implements IMedia {
 		private dispatch: IDispatcher
 	) {}
 
-	private loadNative(element: HTMLVideoElement): void {
-		const src = element.src || ''
-
-		for (const option in this.options) {
-			const attr = option as keyof typeof this.options
-
-			if (this.options[attr] === true)
-				element.setAttribute(attr, '')
-			else if (element.hasAttribute(attr))
-				element.removeAttribute(attr)
-		}
-
-		if (Hls.isSupported()) {
-			element.setAttribute('data-native', 'hls')
-
-			try {
-				this.instance = new Hls()
-				this.instance.loadSource(src)
-				this.instance.attachMedia(element)
-			} catch (error) {
-				const message = 'LightboxMedia.load() failed on: HLS'
-				this.dispatch.emit('error', { error, message })
-			}
-		} else {
-			element.setAttribute('data-native', 'plyr')
-
-			try {
-				const plyrOptions: Plyr.Options = {
-					muted: this.options.muted,
-					loop: { active: this.options.loop },
-					tooltips: { controls: this.options.controls },
-				}
-
-				this.instance = new Plyr(element, plyrOptions)
-			} catch (error) {
-				const message = 'LightboxMedia.load() failed on: Plyr'
-				this.dispatch.emit('error', { error, message })
-			}
-		}
-	}
-
-	private getYoutubeID(src: string): string {
-		const url = src.includes('?') ? src.split('?')[0] : src,
-			id = url.substring(url.lastIndexOf('/') + 1)
-
-		return id
-	}
-
-	private createParam(src: string, [param, value]: [string, boolean | number | string]) {
-		const separator = src.includes('?') ? '&' : '?'
-		return `${separator}${param}=${value}`
-	}
-
-	private getParams(src: string) {
-		const srcId = this.getYoutubeID(src)
-		let queries = ''
-
-		for (const [key, value] of Object.entries(this.options)) {
-			let option = key
-			switch (key) {
-				case 'loop':
-					if (value) queries += this.createParam(src, ['playlist', srcId])
-					break
-				case 'muted': option = 'mute'
-					break
-			}
-
-			queries += this.createParam(src, [option, value ? 1 : 0])
-		}
-
-		return queries
-	}
-
-	private replaceParams(src: string, params: Record<string, number | string>) {
-		let url = src
-
-		for (const [param, value] of Object.entries(params)) {
-			const regex = new RegExp(`([?&])${param}=[^&]*`, 'g')
-			if (!url.match(regex)) continue
-
-			const parameter = this.createParam(url, [param, value])
-			let i: number | null = null
-
-			url = url.replace(regex, (match, p1, index) => {
-				if (match.startsWith('?')) i = index
-				return value ? `${p1}${parameter.slice(1)}` : ''
-			})
-
-			if (i && url[i] === '&')
-				url = url.substring(0, i) + '?' + url.substring(i + 1)
-		}
-
-		return url
-	}
-
-	private controlYoutube(action: 'pause' | 'play' | 'stop') {
-		const response = `{"event":"command","func":"${action}Video","args":""}`
-		return (this.media as HTMLIFrameElement)?.contentWindow?.postMessage(response, '*')
-	}
-
-	private loadYoutube(element: HTMLIFrameElement): void {
-		const src = element.src || ''
-		let newSrc = this.replaceParams(src, { start: '' })
-		newSrc += this.createParam(src, ['enablejsapi', 1])
-		newSrc += this.getParams(newSrc)
-
-		element.src = newSrc
-	}
-
 	load(options?: LightboxVideoOptions): void {
 		this.dispose()
 
@@ -138,57 +56,178 @@ export class LightboxMedia implements IMedia {
 
 		this.options = options ? { ...this.options, ...options } : this.options
 
-		if (player instanceof HTMLVideoElement)
-			this.loadNative(player)
-		else if (player instanceof HTMLIFrameElement)
-			this.loadYoutube(player)
-		else return
+		try {
+			this.handler = createMedia(player, this.options)
+			this.handler?.load()
 
-		player.setAttribute('autofocus', '')
-		this.dom.reset('player')
-		this.media = player
-		this.source = player.src
+			player.setAttribute('autofocus', '')
+			this.dom.reset('player')
+		} catch (err) { this.err('load() failed', err) }
 	}
 
 	dispose(): void {
-		if (this.instance) {
-			try { this.instance.destroy?.() }
-			catch (error) { this.dispatch.emit('error', {
-				error, message: `LightboxMedia.dispose() failed` }) }
-
-			this.instance = undefined
-		}
-
-		this.media = undefined
-		this.source = ''
+		try { this.handler?.dispose() }
+		catch (err) { this.err('dispose() failed', err) }
+		this.handler = undefined
 	}
 
 	pause(): void {
-		if (!this.media) return
-
-		if (this.media instanceof HTMLVideoElement && !this.media.paused)
-			this.media.pause()
-		else if (this.media instanceof HTMLIFrameElement)
-			this.controlYoutube('pause')
+		try { this.handler?.pause() }
+		catch (err) { this.err('pause() failed', err) }
 	}
 
 	play(): void {
-		if (!this.media) return
-
-		if (this.media instanceof HTMLVideoElement && this.media.paused)
-			this.media.play().catch(() => {})
-		else if (this.media instanceof HTMLIFrameElement)
-			this.controlYoutube('play')
+		try { this.handler?.play() }
+		catch (err) { this.err('play() failed', err) }
 	}
 
 	stop(): void {
+		try { this.handler?.stop() }
+		catch (err) { this.err('stop() failed', err) }
+	}
+
+	private err(msg: string, error: any) {
+		const message = `LightboxMedia.${msg}`
+		return this.dispatch.emit('error', { error, message })
+	}
+}
+
+
+class NativeMedia extends BaseMedia<HTMLVideoElement> {
+	constructor(
+		media: HTMLVideoElement,
+		options?: LightboxVideoOptions
+	) {
+		super(options)
+		this.media = media
+	}
+
+	load(): void {
 		if (!this.media) return
 
-		if (this.media instanceof HTMLVideoElement && !this.media.paused) {
-			this.media.pause()
-			this.media.currentTime = 0
-		} else if (this.media instanceof HTMLIFrameElement) {
-			this.controlYoutube('stop')
+		if (Hls.isSupported()) this.loadHls()
+		else this.loadPlyr()
+
+		this.applyAttributes()
+	}
+
+	private loadHls(): void {
+		if (!this.media) return
+		this.update({ 'data-native': 'hls' })
+
+		this.instance = new Hls()
+		this.instance.loadSource(this.media.src)
+		this.instance.attachMedia(this.media)
+	}
+
+	private loadPlyr(): void {
+		if (!this.media) return
+		this.update({ 'data-native': 'plyr' })
+
+		const plyrOptions = this.options
+			? {
+				muted: this.options.muted,
+				loop: { active: this.options.loop },
+				tooltips: { controls: this.options.controls },
+			} as Partial<Plyr.Options>
+			: {}
+
+		this.instance = new Plyr(this.media, plyrOptions)
+	}
+
+	private applyAttributes(): void {
+		if (!this.options) return
+
+		for (const [attr, value] of Object.entries(this.options)) {
+			if (value === true) this.media?.setAttribute(attr, '')
+			else if (typeof value === 'string') this.media?.setAttribute(attr, value)
+			else if (this.media?.hasAttribute(attr)) this.media?.removeAttribute(attr)
 		}
+	}
+
+	dispose(): void {
+		if (this.instance) this.instance.destroy?.()
+		this.instance = undefined
+	}
+
+	pause(): void { this.media?.pause() }
+
+	play(): void { this.media?.play().catch(() => {}) }
+
+	stop(): void {
+		if (!this.media) return
+		this.media.pause()
+		this.media.currentTime = 0
+	}
+}
+
+
+class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
+	private readonly ytOptions: LightboxVideoOptions = {
+		enablejsapi: true,
+	}
+
+	private readonly omitParams = ['start']
+	private id: string = ''
+
+	constructor(
+		media: HTMLIFrameElement,
+		options?: LightboxVideoOptions
+	) {
+		super(options)
+		this.media = media
+		this.id = this.getVideoID(media)
+	}
+
+	load(): void {
+		if (!this.media) return
+
+		const playlistOption = this.options?.loop ? { playlist: this.id } : {},
+			ytOptions = { ...this.ytOptions, ...playlistOption }
+
+		this.update(ytOptions as LightboxVideoOptions)
+
+		const baseSrc = this.media.src.split('?')[0],
+			parameters = this.createParams(this.media.src)
+
+		this.media.src = baseSrc + parameters
+		console.log({ src: baseSrc + parameters, parameters, })
+	}
+
+	pause(): void { this.control('pause') }
+
+	play(): void { this.control('play') }
+
+	stop(): void { this.control('stop') }
+
+	dispose(): void {}
+
+	private createParams(src: HTMLIFrameElement['src']) {
+		if (!this.options) return ''
+
+		const url = new URL(src, window.location.origin),
+			params = url.searchParams
+
+		for (const key of this.omitParams)
+			params.delete(key)
+
+		for (const [param, value] of Object.entries(this.options)) {
+			const key = param === 'muted' ? 'mute' : param,
+				val = `${value ? 1 : 0}`
+
+			params.set(key, val)
+		}
+
+		return params.toString()
+	}
+
+	private control(action: 'pause' | 'play' | 'stop') {
+		const response = `{"event":"command","func":"${action}Video","args":""}`
+		if (this.media) return this.media.contentWindow?.postMessage(response, '*')
+	}
+
+	private getVideoID({ src }: HTMLIFrameElement): string {
+		const url = src.includes('?') ? src.split('?')[0] : src
+		return url.substring(url.lastIndexOf('/') + 1)
 	}
 }
