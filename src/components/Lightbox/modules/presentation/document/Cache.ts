@@ -28,8 +28,32 @@ export class LightboxCache implements ICache {
 	>
 
 	constructor(private root: HTMLDialogElement) {
-		const core = ['root', 'body', 'container', 'content', 'footer', 'navigation']
-		this.build(core as (keyof LightboxElements)[])
+		const core = this.collectQueries(this.root)
+		this.build([...core, 'arrows'])
+	}
+
+	private collectQueries(parent: Element | null): (keyof LightboxElements)[] {
+		const selectors = Object.values(LightboxSelector)
+
+		const traverse = (element: Element | null): (keyof LightboxElements)[] => {
+			if (!element || !element.children) return []
+
+			const target = selectors.find(str => element.classList.contains(str.slice(1)))
+			if (!target) return []
+
+			const lastIndex = target.lastIndexOf('_'),
+				key = lastIndex > -1 ? target.substring(lastIndex + 1) : 'root',
+				query = (key ? [key] : []) as (keyof LightboxElements)[]
+
+			return query.concat(Array.from(element.children)
+				.reduce<(keyof LightboxElements)[]>((acc, child) => {
+					if (child.className) return acc.concat(traverse(child))
+					return acc
+				}, []))
+		}
+
+		const queries = traverse(parent)
+		return Array.from(new Set<keyof LightboxElements>(queries))
 	}
 
 	private query<K extends keyof LightboxElements>(key: K): LightboxElements[K] {
