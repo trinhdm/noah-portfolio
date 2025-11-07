@@ -57,4 +57,5 @@ export interface IMedia {
 	load(options?: LightboxVideoOptions): void
 	pause(): void
 	play(): void
+	stop(): void
 }

@@ -40,7 +40,6 @@ export class LightboxMedia implements IMedia {
 				this.instance = new Hls()
 				this.instance.loadSource(src)
 				this.instance.attachMedia(element)
-				console.log('is hls')
 			} catch (error) {
 				const message = 'LightboxMedia.load() failed on: HLS'
 				this.dispatch.emit('error', { error, message })
@@ -56,50 +55,79 @@ export class LightboxMedia implements IMedia {
 				}
 
 				this.instance = new Plyr(element, plyrOptions)
-				console.log('is plyr')
 			} catch (error) {
 				const message = 'LightboxMedia.load() failed on: Plyr'
 				this.dispatch.emit('error', { error, message })
 			}
 		}
-
-		console.log('native finish')
 	}
 
 	private getYoutubeID(src: string): string {
-		const baseURL = src.includes('?') ? src.split('?')[0] : src,
-			videoID = baseURL.substring(baseURL.lastIndexOf('/') + 1)
+		const url = src.includes('?') ? src.split('?')[0] : src,
+			id = url.substring(url.lastIndexOf('/') + 1)
 
-		return videoID
+		return id
 	}
 
-	private loadYoutube(element: HTMLIFrameElement): void {
+	private createParam(src: string, [param, value]: [string, boolean | number | string]) {
+		const separator = src.includes('?') ? '&' : '?'
+		return `${separator}${param}=${value}`
+	}
+
+	private getParams(src: string) {
+		const srcId = this.getYoutubeID(src)
 		let queries = ''
-		const src = element.src || '',
-			separator = src.includes('?') ? '&' : '?'
 
 		for (const [key, value] of Object.entries(this.options)) {
 			let option = key
 			switch (key) {
 				case 'loop':
-					if (value) queries += `${separator}playlist=${this.getYoutubeID(src)}`
+					if (value) queries += this.createParam(src, ['playlist', srcId])
 					break
 				case 'muted': option = 'mute'
 					break
 			}
 
-			queries += `${separator}${option}=${value ? 1 : 0}`
+			queries += this.createParam(src, [option, value ? 1 : 0])
 		}
 
-		element.src += queries
-		console.log('iframe finish')
+		return queries
 	}
 
-	private set(element: HTMLIFrameElement | HTMLVideoElement) {
-		element.setAttribute('autofocus', '')
-		this.dom.reset('player')
-		this.media = element
-		this.source = element.src
+	private replaceParams(src: string, params: Record<string, number | string>) {
+		let url = src
+
+		for (const [param, value] of Object.entries(params)) {
+			const regex = new RegExp(`([?&])${param}=[^&]*`, 'g')
+			if (!url.match(regex)) continue
+
+			const parameter = this.createParam(url, [param, value])
+			let i: number | null = null
+
+			url = url.replace(regex, (match, p1, index) => {
+				if (match.startsWith('?')) i = index
+				return value ? `${p1}${parameter.slice(1)}` : ''
+			})
+
+			if (i && url[i] === '&')
+				url = url.substring(0, i) + '?' + url.substring(i + 1)
+		}
+
+		return url
+	}
+
+	private controlYoutube(action: 'pause' | 'play' | 'stop') {
+		const response = `{"event":"command","func":"${action}Video","args":""}`
+		return (this.media as HTMLIFrameElement)?.contentWindow?.postMessage(response, '*')
+	}
+
+	private loadYoutube(element: HTMLIFrameElement): void {
+		const src = element.src || ''
+		let newSrc = this.replaceParams(src, { start: '' })
+		newSrc += this.createParam(src, ['enablejsapi', 1])
+		newSrc += this.getParams(newSrc)
+
+		element.src = newSrc
 	}
 
 	load(options?: LightboxVideoOptions): void {
@@ -116,7 +144,6 @@ export class LightboxMedia implements IMedia {
 			this.loadYoutube(player)
 		else return
 
-		console.log('set')
 		player.setAttribute('autofocus', '')
 		this.dom.reset('player')
 		this.media = player
@@ -136,21 +163,32 @@ export class LightboxMedia implements IMedia {
 		this.source = ''
 	}
 
-	play(): void {
-		if (!this.media) return
-
-		if (this.media instanceof HTMLVideoElement && this.media.paused)
-			this.media.play().catch(() => {})
-		else if (this.media instanceof HTMLIFrameElement)
-			this.media.src = `${this.source}&autoplay=1`
-	}
-
 	pause(): void {
 		if (!this.media) return
 
 		if (this.media instanceof HTMLVideoElement && !this.media.paused)
 			this.media.pause()
 		else if (this.media instanceof HTMLIFrameElement)
-			this.media.src = this.source
+			this.controlYoutube('pause')
+	}
+
+	play(): void {
+		if (!this.media) return
+
+		if (this.media instanceof HTMLVideoElement && this.media.paused)
+			this.media.play().catch(() => {})
+		else if (this.media instanceof HTMLIFrameElement)
+			this.controlYoutube('play')
+	}
+
+	stop(): void {
+		if (!this.media) return
+
+		if (this.media instanceof HTMLVideoElement && !this.media.paused) {
+			this.media.pause()
+			this.media.currentTime = 0
+		} else if (this.media instanceof HTMLIFrameElement) {
+			this.controlYoutube('stop')
+		}
 	}
 }
