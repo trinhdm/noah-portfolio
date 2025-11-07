@@ -1,6 +1,11 @@
-import { LightboxBlockSelector, LightboxSelector } from '../../../utils'
-import type { LightboxElement, LightboxElements } from '../../../types'
+import {
+	extractCacheKey,
+	LightboxBlockSelector,
+	LightboxSelector ,
+} from '../../../utils'
+
 import type { ICache } from '../types/interfaces.d.ts'
+import type { LightboxElement, LightboxElements } from '../../../types'
 
 
 export class LightboxCache implements ICache {
@@ -33,16 +38,10 @@ export class LightboxCache implements ICache {
 	}
 
 	private collectQueries(parent: Element | null): (keyof LightboxElements)[] {
-		const selectors = Object.values(LightboxSelector)
-
 		const traverse = (element: Element | null): (keyof LightboxElements)[] => {
 			if (!element || !element.children) return []
 
-			const target = selectors.find(str => element.classList.contains(str.slice(1)))
-			if (!target) return []
-
-			const lastIndex = target.lastIndexOf('_'),
-				key = lastIndex > -1 ? target.substring(lastIndex + 1) : 'root',
+			const key = extractCacheKey(element),
 				query = (key ? [key] : []) as (keyof LightboxElements)[]
 
 			return query.concat(Array.from(element.children)

@@ -1,3 +1,4 @@
+import { extractCacheKey } from './../../../utils/helpers';
 import { toggleDisableAttr } from '../../../../../utils'
 import { LightboxCache } from './Cache.ts'
 import { LightboxSelector } from '../../../utils'
@@ -21,30 +22,27 @@ export class LightboxDOM implements IDOM {
 
 	setContent(content: HTMLElement | undefined): void {
 		const wrapper = this.cache.get('content')
+
 		if (!content || !wrapper) return
-		console.log('is empty:', wrapper.childElementCount)
+		const { children } = wrapper
 
-		wrapper.replaceChildren(...content.children)
-		this.rebuildCache()
-	}
+		if (children.length) {
+			for (const child of children) {
+				const ckey = extractCacheKey(child)
+				if (!ckey) continue
 
-	updateContent(content: HTMLElement | undefined): void {
-		const wrapper = this.cache.get('content')
-		if (!wrapper || !content) return
+				const key = ckey.charAt(0).toUpperCase() + ckey.slice(1),
+					selector = LightboxSelector[key as keyof typeof LightboxSelector],
+					replacement = content.querySelector(selector)
 
-		const selectors = Object.values(LightboxSelector)
-
-		for (const child of wrapper.children) {
-			const target = selectors.find(cl => child.classList.contains(cl.slice(1)))
-			if (!target) continue
-
-			const element = target.substring(target.lastIndexOf('_') + 1),
-				replacement = content.querySelector(target)
-
-			if (replacement) {
-				child.replaceWith(replacement)
-				this.reset(element as keyof LightboxElements)
+				if (replacement) {
+					child.replaceWith(replacement)
+					this.reset(ckey)
+				}
 			}
+		} else {
+			wrapper.replaceChildren(...content.children)
+			this.rebuildCache()
 		}
 	}
 
@@ -94,5 +92,9 @@ export class LightboxDOM implements IDOM {
 			disabled: value as `${boolean}`,
 			state: value as LightboxStates,
 		}[key]
+	}
+
+	setData<K extends keyof DataValues>(key: K, value: DataValues[K]): void {
+		this.root.dataset[key] = value
 	}
 }

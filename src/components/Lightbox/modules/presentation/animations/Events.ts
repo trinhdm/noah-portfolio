@@ -1,5 +1,5 @@
-import type { ArrowDirections } from '../../../types/index.ts'
-import type { IDispatcher } from '../../core/index.ts'
+import type { ArrowDirections } from '../../../types'
+import type { IDispatcher } from '../../core'
 import type { IDOM, IEvents } from '../types/interfaces'
 
 
@@ -24,7 +24,8 @@ export class LightboxEvents implements IEvents {
 	private bindClicks(): void {
 		const arrows = this.dom.get('arrows'),
 			exit = this.dom.get('exit'),
-			root = this.dom.get('root')
+			root = this.dom.get('root'),
+			video = this.dom.get('video')
 
 		if (root) {
 			this.handleClick(root, (event: MouseEvent) => {
@@ -34,7 +35,15 @@ export class LightboxEvents implements IEvents {
 			})
 		}
 
-		if (exit) this.handleClick(exit, () => this.dispatch.emit('close'))
+		if (exit)
+			this.handleClick(exit, () => this.dispatch.emit('close'))
+
+		if (video) {
+			this.handleClick(video, () => {
+				console.log('click123')
+				this.dispatch.emit('media')
+			})
+		}
 
 		for (const arrow of arrows) {
 			const direction = arrow.dataset.direction as ArrowDirections
