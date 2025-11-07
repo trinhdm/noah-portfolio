@@ -9,8 +9,8 @@ import type {
 import type { Entries } from '../../../../types'
 import type { HandlerFor } from '../../../../services'
 import type { LightboxEventMap } from './types/core.types.d.ts'
-import type { IAnimator, IDOM, IEvents, IMedia } from '../presentation'
-import type { IContent, INavigator } from '../features'
+import type { IAnimator, IDOM, IEvents } from '../presentation'
+import type { IContent, IMedia, INavigator } from '../features'
 import type { IDispatcher, ILifecycle } from './types/interfaces.d.ts'
 
 
@@ -46,6 +46,7 @@ export class LightboxLifecycle implements ILifecycle {
 		const events: Record<keyof LightboxEventMap, keyof LightboxLifecycle> = {
 			close: 'handleClose',
 			error: 'handleError',
+			media: 'handleMedia',
 			navigate: 'handleNavigate',
 			open: 'handleOpen',
 			update: 'handleUpdate',
@@ -67,22 +68,20 @@ export class LightboxLifecycle implements ILifecycle {
 			this.media.load()
 		})()
 
-		if (elements?.length) await this.handleUpdate(index, elements)
+		if (elements?.length) {
+			let directory = {} as ArrowGroup
+			try { directory = await this.navigator.configure(index, elements) }
+			finally { await this.handleUpdate({ directory, index }) }
+		}
 	}
 
-	async handleUpdate(
-		index: number,
-		elements?: LightboxOptions['elements']
-	): Promise<void> {
-		this.currentIndex = index ?? 0
+	async handleUpdate({ directory, index }: LightboxEventMap['update']): Promise<void> {
+		if (!directory) return
 
-		try {
-			const directory = await this.navigator.configure(this.currentIndex, elements)
-			this.directory = directory
-			console.log({ directory })
-		} catch (error) {
-			this.dispatch.emit('error', { error, message: 'Lifecycle.handleUpdate() failed' })
-		} finally { await this.prefetch(this.directory) }
+		this.currentIndex = index ?? 0
+		this.directory = directory
+
+		await this.prefetch(this.directory)
 	}
 
 	async handleMount(options: LightboxOptions): Promise<void> {
@@ -122,7 +121,7 @@ export class LightboxLifecycle implements ILifecycle {
 		this.dom.toggleDisable()
 		this.dom.toggleIcons()
 
-		this.media.pause()
+		this.media.stop()
 		this.events.unbind()
 		await this.animator.Root.fadeOut()
 
@@ -157,5 +156,14 @@ export class LightboxLifecycle implements ILifecycle {
 
 		this.dom.get('footer')?.appendChild(container)
 		console.error(`[Lightbox Error]: ${message}\n`, error)
+	}
+
+	handleMedia() {
+		const player = this.dom.get('player')
+
+		if (player instanceof HTMLVideoElement) {
+			if (player.paused) this.media.play()
+			else this.media.pause()
+		}
 	}
 }

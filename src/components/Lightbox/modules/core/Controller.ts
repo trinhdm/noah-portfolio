@@ -2,16 +2,20 @@ import {
 	LightboxAnimator,
 	LightboxDOM,
 	LightboxEvents,
-	LightboxMedia,
 } from '../presentation'
 
-import { LightboxContent, LightboxNavigator } from '../features'
+import {
+	LightboxContent,
+	LightboxMedia,
+	LightboxNavigator,
+} from '../features'
+
 import { LightboxDispatcher } from './Dispatcher'
 import { LightboxFactory } from './Factory'
 import { LightboxLifecycle } from './Lifecycle'
 
-import type { IContent, INavigator } from '../features'
-import type { IAnimator, IDOM, IEvents, IMedia } from '../presentation'
+import type { IContent, IMedia, INavigator } from '../features'
+import type { IAnimator, IDOM, IEvents } from '../presentation'
 import type { IController, IDispatcher, ILifecycle } from './types/interfaces.d.ts'
 import type { LightboxElements, LightboxOptions } from '../../types'
 

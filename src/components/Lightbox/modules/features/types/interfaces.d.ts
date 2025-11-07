@@ -22,6 +22,16 @@ export interface IContent {
 }
 
 
+export interface IMedia<T extends HTMLElement = HTMLElement> {
+	// readonly media?: T
+	dispose(): void
+	load(options?: LightboxVideoOptions): void
+	pause(): void
+	play(): void
+	stop(): void
+}
+
+
 export interface IMenu {
 	configure(
 		index: number,

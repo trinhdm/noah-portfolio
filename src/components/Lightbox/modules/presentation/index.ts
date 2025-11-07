@@ -1,4 +1,4 @@
 export { LightboxAnimator, LightboxEvents } from './animations'
-export { LightboxDOM, LightboxMedia } from './document'
+export { LightboxDOM } from './document'
 
 export type * from './types'

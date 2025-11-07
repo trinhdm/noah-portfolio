@@ -1,1 +1,1 @@
-export type { IContent, INavigator } from './interfaces.d.ts'
+export type { IContent, IMedia, INavigator } from './interfaces.d.ts'

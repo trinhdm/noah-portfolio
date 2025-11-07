@@ -42,20 +42,10 @@ export interface IDOM {
 	setState(state: LightboxStates): void
 	toggleDisable(): void
 	toggleIcons(): void
-	updateContent(content: HTMLElement | undefined): void
 }
 
 
 export interface IEvents {
 	bind(): void
 	unbind(): void
-}
-
-
-export interface IMedia {
-	dispose(): void
-	load(options?: LightboxVideoOptions): void
-	pause(): void
-	play(): void
-	stop(): void
 }

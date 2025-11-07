@@ -1,1 +1,1 @@
-export type { IAnimator, IDOM, IEvents, IMedia } from './interfaces.d.ts'
+export type { IAnimator, IDOM, IEvents } from './interfaces.d.ts'
