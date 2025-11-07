@@ -4,7 +4,7 @@ import type { BlockTypes } from '../types'
 
 export const getBackground = (selector: string = '.section-background') => {
 	const target = document.querySelector(selector)
-	if (!target || !target.children.length || !target.querySelector('img')) return null
+	if (!target || !target.childElementCount || !target.querySelector('img')) return null
 
 	const background = document.createElement('div')
 	background.classList.add('background')

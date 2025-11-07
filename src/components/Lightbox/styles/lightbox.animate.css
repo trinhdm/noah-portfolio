@@ -142,7 +142,7 @@
 
 				& > span {
 					opacity: .375;
-					transition-delay: .25s, 0s;
+					transition-delay: .2s, 0s;
 				}
 			}
 		}

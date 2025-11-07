@@ -10,14 +10,35 @@
 	place-content: center;
 	position: relative;
 
+	&.lightbox__html,
+	&.lightbox__image,
+	&.lightbox__video {
+		.sqs-block {
+			&::before,
+			&::after {
+				border-radius: var(--dt-border-radius);
+				display: block;
+				height: 100%;
+				inset: 0;
+				pointer-events: none;
+				position: absolute;
+				user-select: none;
+				width: 100%;
+				z-index: -1;
+			}
+		}
+	}
+
 	&.lightbox__html {
 		z-index: 2;
 
 		@media screen and (min-width: 768px) {
 			min-height: calc(var(--dt-lb-html-height) - 1rem);
+		}
 
-			&,
-			.sqs-block {
+		&,
+		.sqs-block {
+			@media screen and (min-width: 768px) {
 				height: 100%;
 				max-height: var(--dt-lb-html-height);
 			}
@@ -78,15 +99,7 @@
 
 				&::after {
 					background-color: rgba(0, 0, 0, .4);
-					border-radius: var(--dt-border-radius);
 					content: '';
-					display: block;
-					height: 100%;
-					left: 0;
-					position: absolute;
-					top: 0;
-					width: 100%;
-					z-index: -1;
 				}
 			}
 
@@ -96,7 +109,6 @@
 		}
 	}
 
-
 	&.lightbox__image,
 	&.lightbox__video {
 		background-color: rgba(0, 0, 0, .25);
@@ -105,19 +117,26 @@
 		overflow-y: hidden;
 		width: 100%;
 
+		@media screen and (min-width: 768px) {
+			height: var(--dt-lb-media-height);
+		}
+
 		:is([data-disabled="true"]) & {
 			pointer-events: none;
 			user-select: none;
 		}
 
-		@media screen and (min-width: 768px) {
-			height: var(--dt-lb-media-height);
-
-			.sqs-block {
+		.sqs-block {
+			@media screen and (min-width: 768px) {
 				height: 100%;
 				max-height: var(--dt-lb-media-height);
 				overflow: hidden;
 			}
+
+			/* &::after {
+				background-color: rgba(0, 0, 0, .25);
+				opacity: 0;
+			} */
 		}
 	}
 
@@ -144,19 +163,11 @@
 			justify-content: center;
 
 			&::before {
-				background-color: var(--dt-lb-background-color);
-				border-radius: var(--dt-border-radius);
 				content: '';
-				display: block;
-				inset: 0;
 				opacity: 1;
-				pointer-events: none;
-				position: absolute;
 				transition: var(--dt-transition-base);
 				transition-property: filter, opacity;
-				user-select: none;
 				width: inherit;
-				z-index: -1;
 			}
 
 			&:focus-within::before {
@@ -168,17 +179,24 @@
 
 		.sqs-block-content {
 			flex: 1 100%;
+			max-height: inherit;
 		}
 
 		.lightbox__video-wrapper {
 			min-width: auto;
 			overflow: hidden;
+
+			@media screen and (min-width: 768px) {
+				height: var(--dt-lb-media-height);
+				position: relative;
+			}
 		}
 
 		iframe,
 		video {
 			border-radius: var(--dt-border-radius);
 			height: 100%;
+			inset: 0;
 			position: relative;
 			width: 100%;
 

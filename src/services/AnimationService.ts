@@ -44,9 +44,11 @@ class Styles {
 		const baseTime = Math.max(duration - stagger, 0),
 			startTime = delay >= 0 ? delay : baseTime
 
+		const delayMs = (stagger * index) + startTime
+
 		return {
-			animationDelay: `${((stagger * index) + startTime).toFixed(4)}s`,
-			animationDuration: `${duration}s`,
+			...delayMs > 0 ? { animationDelay: `${delayMs.toFixed(4)}s` } : {},
+			...duration > 0 ? { animationDuration: `${duration}s` } : {},
 			...styles
 		}
 	}
@@ -111,7 +113,10 @@ export class AnimationService {
 				Promise.all(animations.map(a => a.finished.catch(() => {}))),
 				this.wait(bufferTime)
 			])
-		} finally {}
+		} finally {
+			if (element.hasAttribute('style'))
+				element.removeAttribute('style')
+		}
 	}
 
 	static set(
@@ -121,11 +126,15 @@ export class AnimationService {
 		if (!element) return
 
 		const target = element as HTMLElement
-
 		const { styles, timeout } = this.get(target, options)
+
+		if (!Object.keys(styles).length) return
 		Object.assign(target.style, styles)
 
-		return this.resetOnEnd(target, timeout)
+		// if(target.className.includes('image') || target.className.includes('video'))
+		// console.log({ target, styles })
+
+		// return this.resetOnEnd(target, timeout)
 	}
 
 	// private deriveFromDOM(
@@ -164,12 +173,13 @@ export class AnimationService {
 			[cssAnimations] = animations.filter(anim => anim instanceof CSSAnimation)
 
 		if (cssAnimations) {
-			const keyframeEffect = cssAnimations.effect
+			const { animationName, effect } = cssAnimations
+
+			if (animationName === 'none') return { styles, timeout }
 			let targets = [target] as (Element | string | undefined)[]
 
-			if (keyframeEffect instanceof KeyframeEffect) {
-				const { pseudoElement } = keyframeEffect
-
+			if (effect instanceof KeyframeEffect) {
+				const { pseudoElement } = effect
 				if (!!pseudoElement) targets = [target, pseudoElement]
 			}
 

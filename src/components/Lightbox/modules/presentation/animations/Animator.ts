@@ -1,12 +1,19 @@
-import { AnimationService as Animation, AnimationOptions } from '../../../../../services/index.ts'
-import { LightboxBlockSelector, LightboxSelector } from '../../../utils/index.ts'
-import type { FilterValues } from '../../../../../types/index.ts'
+import { AnimationService as Animation, AnimationOptions } from '../../../../../services'
+import { LightboxBlockSelector, LightboxSelector } from '../../../utils'
+import type { FilterValues } from '../../../../../types'
 import type { IAnimator, IDOM } from '../types/interfaces'
-import type { LightboxElement, LightboxElements } from '../../../types/index.ts'
+import type { LightboxElement, LightboxElements } from '../../../types'
 
 
 export class LightboxAnimator implements IAnimator {
-	private queue = new Set<Exclude<LightboxElement, HTMLElement[]>>()
+	private queue = new Set<Exclude<LightboxElement, HTMLElement[] | undefined>>()
+
+	private readonly settings = {
+		html: {
+			delay: .3,
+			stagger: .15,
+		}
+	}
 
 	Media: InstanceType<typeof LightboxAnimator.Media>
 	Root: InstanceType<typeof LightboxAnimator.Root>
@@ -24,7 +31,7 @@ export class LightboxAnimator implements IAnimator {
 
 		this.fadeTextBlocks()
 		this.dom.toggleIcons()
-		await this.waitForEnd(targetBlock)
+		await Animation.waitForEnd(targetBlock)
 
 		await this.Media.fadeMediaBlocks?.(isMediaAsync)
 		await this.waitForFinish()
@@ -46,26 +53,20 @@ export class LightboxAnimator implements IAnimator {
 		else Animation.set(target, options)
 	}
 
-	private async waitForEnd(target: HTMLElement | undefined): Promise<void> {
-		if (!target) return
-		this.queue.delete(target)
-		await Animation.waitForEnd(target)
-	}
-
 	private async waitForFinish(): Promise<void> {
 		await new Promise(requestAnimationFrame)
 
-		const animations = Array.from(this.queue),
+		const queue = Array.from(this.queue),
 			root = this.dom.get('root')
 
-		if (!animations.length) return
-		await Promise.allSettled(
-			animations.map(el => el ? Animation.waitForEnd(el) : Promise.resolve())
-		)
-		this.queue.clear()
+		if (!queue.length) return
+		await Promise.all(queue.map(el => Animation.waitForEnd(el)))
+		console.warn('all fin')
 
 		if (root.hasAttribute('data-animate'))
 			root.removeAttribute('data-animate')
+
+		this.queue.clear()
 	}
 
 	private fadeArrows(isActive: boolean): void {
@@ -130,25 +131,25 @@ export class LightboxAnimator implements IAnimator {
 				videoDelay = parseFloat(video!.style.animationDelay),
 				slower = imageDelay >= videoDelay ? image : video
 
-			await this.animator.waitForEnd(slower)
+			await Animation.waitForEnd(slower)
 		}
 
 		private async fadeSequential({ image, video }: Pick<LightboxElements, 'image' | 'video'>): Promise<void> {
 			this.animator.animate(video)
-			await this.animator.waitForEnd(video)
+			await Animation.waitForEnd(video)
 
 			this.animator.animate(image)
-			await this.animator.waitForEnd(image)
+			await Animation.waitForEnd(image)
 		}
 
-		async fadeMediaBlocks(isAsync: boolean = false): Promise<void> {
+		async fadeMediaBlocks(isParallel: boolean = false): Promise<void> {
 			const image = this.dom.get('image'),
 				video = this.dom.get('video')
 
 			if (!image || !video) return
 			const media = { image, video }
 
-			if (isAsync) await this.fadeParallel(media)
+			if (isParallel) await this.fadeParallel(media)
 			else await this.fadeSequential(media)
 		}
 	}
@@ -177,10 +178,10 @@ export class LightboxAnimator implements IAnimator {
 
 			await Animation.wait('pause')
 			this.fadeMain()
-			await this.animator.waitForEnd(this.dom.get('container'))
+			await Animation.waitForEnd(this.dom.get('container'))
 
 			this.animator.fadeTextBlocks()
-			await this.animator.waitForEnd(targetBlock)
+			await Animation.waitForEnd(targetBlock)
 
 			this.animator.fadeArrows(true)
 			await this.animator.Media.fadeMediaBlocks?.()
@@ -200,10 +201,10 @@ export class LightboxAnimator implements IAnimator {
 			await Animation.wait('pause')
 
 			this.animator.fadeArrows(false)
-			await this.animator.waitForEnd(targetArrow)
+			await Animation.waitForEnd(targetArrow)
 
 			this.animator.fadeTextBlocks()
-			await this.animator.waitForEnd(targetBlock)
+			await Animation.waitForEnd(targetBlock)
 
 			this.fadeMain()
 			await this.animator.Media.fadeMediaBlocks?.()

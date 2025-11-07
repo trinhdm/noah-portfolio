@@ -51,8 +51,8 @@ export const findElement = (
 export const getDeepestChild = (parent: Element): Element[] => (
 	Array.from(parent.children)
 		.reduce<Element[]>((acc, child) => {
-			if (child.children.length === 0) acc.push(child)
-			else acc.push(...getDeepestChild(child))
+			if (child.childElementCount) acc.push(...getDeepestChild(child))
+			else acc.push(child)
 
 			return acc
 		}, [])
@@ -64,13 +64,20 @@ const setProperties = <T extends HTMLElement>(
 ) => Object.entries(properties)
 	.forEach(([prop, value]) => target.setAttribute(prop, `${value}`))
 
+
 export const toggleDisableAttr = <T extends HTMLElement = HTMLElement>(target: T) => {
+	const dataAttr = 'data-disabled'
 	let isDisabled = true
 
-	if (target.hasAttribute('data-disabled')) {
+	if (target.hasAttribute(dataAttr)) {
 		isDisabled = target.dataset.disabled === 'true'
 		isDisabled = !isDisabled
 	}
 
-	setProperties<T>(target, { 'data-disabled': `${isDisabled}` })
+	const disabledProps = {
+		// 'aria-hidden': `${isDisabled}`,
+		[dataAttr]: `${isDisabled}`,
+	}
+
+	setProperties<T>(target, disabledProps)
 }
