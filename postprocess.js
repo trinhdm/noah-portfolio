@@ -3,6 +3,8 @@ import path from 'path'
 import { spawn } from 'child_process'
 
 
+const prettifyFileName = (filePath) => `\x1b[90m\x1b[22m\x1b[3m${filePath}\x1B[0m`
+
 const createHTMLFile = (files, outDir, destination) => {
 	let htmlContent = ''
 
@@ -27,14 +29,14 @@ const createHTMLFile = (files, outDir, destination) => {
 	\x1b[92m\x1b[1m✅ Success!\x1b[0m\n
    Bundled and minified code with esbuild: [\x1b[32m${fileNames}\x1b[0m].
    Created a HTML file and inlined the bundled code, located here:
-   \x1b[90m\x1b[3m${destination}\x1B[0m`
+   ${prettifyFileName(destination)}`
 
 	console.log(message.trim())
 
 	return htmlContent
 }
 
-const copyToClipboard = (text) => {
+const copyToClipboard = (text, destination) => {
 	const pbcopy = spawn('pbcopy')
 
 	pbcopy.stdin.write(text)
@@ -44,7 +46,7 @@ const copyToClipboard = (text) => {
 	pbcopy.on('error', err => console.error('Error copying to clipboard:', err));
 	pbcopy.on('close', code => {
 		message += code === 0
-			? '\x1b[33m\x1b[1m📋 File contents are copied to clipboard.\x1B[0m'
+			? `\x1b[33m\x1b[1m📋 File contents are copied to clipboard\x1B[0m: ${prettifyFileName(destination)}`
 			: `pbcopy exited with code ${code}`
 
 		console.log(`${message}\n`)
@@ -53,14 +55,16 @@ const copyToClipboard = (text) => {
 
 const compileBundles = () =>  {
 	const template = 'index.html',
-		directory = './dist',
-		outDir = path.resolve(directory)
+		directory = './dist'
 
-	const destination = path.resolve(`${directory}/${template}`),
+	const destination = `${directory}/${template}`,
+		destinationPath = path.resolve(destination)
+
+	const outDir = path.resolve(directory),
 		files = fs.readdirSync(outDir).filter(f => f !== template)
 
-	const fileContent = createHTMLFile(files, outDir, destination)
-	copyToClipboard(fileContent)
+	const fileContent = createHTMLFile(files, outDir, destinationPath)
+	copyToClipboard(fileContent, destination)
 }
 
 compileBundles()
