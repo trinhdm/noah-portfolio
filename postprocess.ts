@@ -1,70 +1,275 @@
-import fs from 'fs'
+import fsp from 'fs/promises'
+import os from 'os'
 import path from 'path'
 import { spawn } from 'child_process'
 
 
-const prettifyFileName = (filePath) => `\x1b[90m\x1b[22m\x1b[3m${filePath}\x1B[0m`
-
-const createHTMLFile = (files, outDir, destination) => {
-	let htmlContent = ''
-
-	for (const file of files) {
-		const filePath = path.join(outDir, file),
-			fileExt = path.extname(file).toLowerCase(),
-			fileData = fs.readFileSync(filePath, 'utf-8')
-
-		htmlContent += ({
-			err: `skipping unsupported file: ${file}`,
-			'.css': `<style>\n${fileData}\n</style>\n\n`,
-			'.js': `<script>\n${fileData}\n</script>\n\n`,
-		}[`${fileExt}` ?? 'err'])
-	}
-
-	fs.writeFileSync(destination, htmlContent, 'utf-8')
-
-	const dist = outDir.split('/').at(-1),
-		fileNames = files.map(file => `'\x1b[32m${dist}/${file}\x1b[0m'`).join(', ')
-
-	const message = `
-	\x1b[92m\x1b[1m✅ Success!\x1b[0m\n
-   Bundled and minified code with esbuild: [\x1b[32m${fileNames}\x1b[0m].
-   Created a HTML file and inlined the bundled code, located here:
-   ${prettifyFileName(destination)}`
-
-	console.log(message.trim())
-
-	return htmlContent
+interface CompileOptions {
+	directory: string
+	template: string
 }
 
-const copyToClipboard = (text, destination) => {
-	const pbcopy = spawn('pbcopy')
+interface FileDestination {
+	files: string[],
+	name: string,
+	pathname: string,
+}
 
-	pbcopy.stdin.write(text)
-	pbcopy.stdin.end()
-	let message = `\n\n`
+const COLORS = {
+	gray: 90,
+	green: 32,
+	red: 31,
+	yellow: 33,
+} as const
 
-	pbcopy.on('error', err => console.error('Error copying to clipboard:', err));
-	pbcopy.on('close', code => {
-		message += code === 0
-			? `\x1b[33m\x1b[1m📋 File contents are copied to clipboard\x1B[0m: ${prettifyFileName(destination)}`
-			: `pbcopy exited with code ${code}`
+const STYLES = {
+	bold: 1,
+	italic: 3,
+} as const
 
-		console.log(`${message}\n`)
+
+type ColorKey = keyof typeof COLORS
+type StyleKey = keyof typeof STYLES
+
+type Colorized = {
+	(str: string): string
+	bold: (str: string) => string
+	italic: (str: string) => string
+}
+
+type Stylized = Record<ColorKey, Colorized>
+
+
+type LogType = 'compile' | 'copy' | 'error'
+
+interface LogContent {
+	input: number | string | (number | string)[]
+	output: number | string
+}
+
+interface ContentLogMap {
+	compile: LogContent
+	copy: LogContent
+	error: string
+}
+
+interface LogTemplate extends Partial<LogContent> {
+	body: string
+	color: ColorKey
+	icon: string
+	title: string
+}
+
+type LogTemplateGenerator<T extends LogType> = {
+	build: ((content: ContentLogMap[T]) => LogTemplate)
+	template: string
+}
+
+type LogMethod = <T extends keyof ContentLogMap>(type: T, content: ContentLogMap[T]) => void
+
+
+const stylize = (str: string, color: ColorKey, style?: StyleKey): string => {
+	const codes = [COLORS[color], style && STYLES[style]].filter(Boolean),
+		ansi = codes.map(c => `\x1b[${c}m`).join('')
+
+	return `${ansi}${str}\x1b[0m`
+}
+
+const setFont = (color: ColorKey): Colorized => {
+	const base = (str: string) => stylize(str, color)
+
+	base.bold = (str: string) => stylize(str, color, 'bold')
+	base.italic = (str: string) => stylize(str, color, 'italic')
+
+	return base
+}
+
+const setFonts = (): Stylized => Object.fromEntries(
+	(Object.keys(COLORS) as ColorKey[]).map(color => [color, setFont(color)])
+) as Stylized
+
+const font = setFonts()
+
+const replaceTokens = (target: string, ctx: LogTemplate, depth = 0): string => {
+	if (depth > 2) return target
+	const color = font[ctx.color]
+
+	const formatters: Record<string, (val) => string> = {
+		input: val => {
+			const v = Array.isArray(val)
+				? val.map(v => color(`'${v}'`)).join(', ')
+				: color(val)
+			return `[${v}]`
+		},
+		output: val => font.gray.italic(val),
+		title: val => `${color.bold(val.slice(0, -1))}${val.slice(-1)}`,
+	} as const
+
+	const result = target.replace(/\{(\w+)\}/g, (_, token) => {
+		let value = ctx[token]
+		if (!value) return ''
+
+		const formatter = formatters[token as keyof typeof formatters]
+		value = formatter?.(value) ?? value
+
+		return String(value)
+	})
+
+	return replaceTokens(result, ctx, depth + 1)
+}
+
+const logDefinitions: { [K in LogType]: LogTemplateGenerator<K> } = {
+	compile: {
+		build: content => ({
+			color: 'green',
+			icon: '✅',
+			title: 'Success!',
+			body: `Bundled and minified code with esbuild: {input}
+				Created a HTML file and inlined the bundled code, located here:
+				{output}`,
+			...content,
+		}),
+		template: `
+			{icon} {title}\n
+			{body}
+		`,
+	},
+	copy: {
+		build: content => ({
+			color: 'yellow',
+			icon: '📋',
+			title: `Copied file contents to clipboard:`,
+			body: `Line count: {input}`,
+			...content,
+		}),
+		template: `
+			{icon} {title} {output}\n
+			{body}
+		`,
+	},
+	error: {
+		build: content => ({
+			color: 'red',
+			icon: '☠️',
+			title: 'Compilation Failed:',
+			body: `${content}`,
+		}),
+		template: `
+			{icon}  {title}\n
+			{body}
+		`,
+	}
+}
+
+const logMsg: LogMethod = (type, content) => {
+	const definition = logDefinitions[type]
+	const { body, color, icon, input, output, title } = definition.build(content)
+
+	const header = `${font[color].bold(title.slice(0, -1))}${title.slice(-1)}`
+	const result = definition.template.trim()
+		.replace(/\{icon\}/g, icon)
+		.replace(/\{title\}/g, header)
+		.replace(/\{body\}/g, body.trim())
+		.replace(/\{input\}/g, `[${font[color](input)}]`)
+		.replace(/\{output\}/g, `${font.gray.italic(output)}`)
+		.split('\n').map(line => line.trim()).join('\n   ')
+
+	console.log(`\n${result.trim()}\n`)
+}
+
+const buildHTML = async (files: FileDestination['files']) => {
+	const tags = {
+		css: 'style',
+		js: 'script',
+	}
+
+	let html = ''
+	for (const file of files) {
+		const ext = path.extname(file).toLowerCase().slice(1)
+		if (!ext || !Object.hasOwn(tags, ext)) continue
+
+		const pathname = path.resolve(file),
+			fileData = await fsp.readFile(pathname, 'utf-8')
+
+		const tag = tags[ext]
+
+		const content = `<${tag}>\n${fileData}\n</${tag}>\n`
+		html += content
+		// ?? `skipping unsupported file: ${file}`
+	}
+
+	return html
+}
+
+const createHTMLFile = async ({ files, pathname }: FileDestination) => {
+	if (!files.length) return
+
+	const content = await buildHTML(files)
+	await fsp.writeFile(pathname, content, 'utf-8')
+
+	logMsg('compile', { input: files, output: pathname })
+
+	return {
+		content,
+		lines: content.split('\n').length,
+	}
+}
+
+const copyToClipboard = async (content: string): Promise<boolean> => {
+	const commands = {
+		darwin: 'pbcopy',
+		linux: 'xclip',
+		win32: 'clip',
+	} as const
+
+	const platform = os.platform(),
+		command = commands[platform]
+
+	if (!command) {
+		logMsg('error', `Clipboard not supported on platform: ${platform}`)
+		return false
+	}
+
+	return await new Promise<boolean>((resolve, reject) => {
+		const process = spawn(command)
+
+		process.stdin.write(content)
+		process.stdin.end()
+		process.on('close', code => resolve(code === 0))
+		// process.on('close', code => (
+		// 	(code === 0 ? resolve(true) : reject(new Error(`Clipboard copy failed with code ${code}`)))
+		// ))
 	})
 }
 
-const compileBundles = () =>  {
-	const template = 'index.html',
-		directory = './dist'
+const getDestination = async ({ directory, template }: CompileOptions): Promise<FileDestination> => {
+	const absDir = path.resolve(directory),
+		entries = await fsp.readdir(absDir, { withFileTypes: true })
 
-	const destination = `${directory}/${template}`,
-		destinationPath = path.resolve(destination)
+	const files = entries
+		.filter(e => e.isFile() && e.name !== template)
+		.map(e => path.join(directory, e.name))
 
-	const outDir = path.resolve(directory),
-		files = fs.readdirSync(outDir).filter(f => f !== template)
-
-	const fileContent = createHTMLFile(files, outDir, destinationPath)
-	copyToClipboard(fileContent, destination)
+	return {
+		files,
+		name: path.join(directory, template),
+		pathname: path.resolve(directory, template),
+	}
 }
 
-compileBundles()
+const compileBundles = async (options: CompileOptions) =>  {
+	const destination = await getDestination(options)
+	const fileContent = await createHTMLFile(destination)
+
+	if (fileContent) {
+		const hasCopied = await copyToClipboard(fileContent.content)
+		if (hasCopied)
+			logMsg('copy', { input: fileContent.lines, output: destination.name })
+	}
+
+	// console.log('\n\n---\n\n', destination, '\n\n---\n\n')
+}
+
+
+compileBundles({ directory: './dist', template: 'index.html' })
+	.catch(err => logMsg('error', `${err.name}: ${err.stack ?? err.message}`))
