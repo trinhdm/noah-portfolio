@@ -5,7 +5,7 @@
 	"scripts": {
 		"_oldbundle": "esbuild src/index.ts --bundle --tree-shaking=false --outfile=dist/index.js && npm run postprocess",
 		"bundle": "node config/bundle.js && npm run postprocess",
-		"postprocess": "node postprocess.js"
+		"postprocess": "node postprocess.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^24.5.2",
