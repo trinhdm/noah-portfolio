@@ -35,6 +35,7 @@ export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElem
 				await this.handler.load()
 				player.setAttribute('autofocus', '')
 				this.dom.reset('player')
+				console.log(this.handler)
 			}
 		} catch (err) { this.err('load() failed', err) }
 	}

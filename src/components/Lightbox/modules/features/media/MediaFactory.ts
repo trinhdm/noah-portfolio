@@ -1,76 +1,78 @@
+
 import { BaseMedia } from './BaseMedia.ts'
 import type { VideoMediaOptions } from '../types/features.types'
 
 
-export interface AsyncMediaModule<T extends HTMLElement = HTMLElement> {
-	default: new (element: T, options?: VideoMediaOptions) => BaseMedia<T>
-	isMatch?(element: HTMLElement): boolean
+export interface MediaModule<T extends HTMLElement = HTMLElement> {
+	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
+	isMatch?(element: T): boolean
 }
 
-export interface SyncMediaModule<T extends HTMLElement = HTMLElement> {
-	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
-	isMatch?(element: HTMLElement): boolean
-}
+export type AsyncLoader<T extends HTMLElement = HTMLElement> = () => Promise<
+	{ default: MediaModule<T> }
+>
 
 
 export class MediaFactory {
-	private static asyncModules: (() => Promise<AsyncMediaModule<any>>)[] = []
-	private static syncModules: SyncMediaModule<any>[] = []
+	private static asyncModules = new Set<AsyncLoader<any>>()
+	private static syncModules = new Set<MediaModule<any>>()
 
 	private static loaderCache = new Map<
-		() => Promise<AsyncMediaModule<any>>, Promise<{ default: SyncMediaModule<any> }>
+		AsyncLoader<any>, Promise<{ default: MediaModule<any> }>
 	>()
 
-
-	static register<T extends HTMLElement>(module: SyncMediaModule<T>): void {
-		this.syncModules.push(module)
-	}
-
-	static registerAsync<T extends HTMLElement>(loader: () => Promise<AsyncMediaModule<T>>): void {
-		this.asyncModules.push(loader)
+	static register<T extends HTMLElement>(loader: AsyncLoader<T>): void
+	static register<T extends HTMLElement>(Module: MediaModule<T>): void
+	static register(arg: any): void {
+		if (typeof arg === 'function' && 'prototype' in arg)
+			this.syncModules.add(arg as MediaModule<any>)
+		else if (typeof arg === 'function')
+			this.asyncModules.add(arg as AsyncLoader<any>)
+		else
+			throw new TypeError('invalid argument passed to MediaFactory.register()')
 	}
 
 	static create<T extends HTMLElement>(
 		element: T,
 		options?: VideoMediaOptions
-	): BaseMedia<T> | undefined {
+	): InstanceType<MediaModule<T>> {
 		for (const Module of this.syncModules) {
 			if (Module.isMatch?.(element))
 				return new Module(element, options)
 		}
 
-		throw new Error(`No matching LightboxMedia Module found for element: ${element.tagName}`)
+		throw new Error(`no matching MediaModule found for element: ${element.tagName}`)
 	}
 
 	static async createAsync<T extends HTMLElement>(
 		element: T,
 		options?: VideoMediaOptions
-	): Promise<BaseMedia<T> | undefined> {
-		// const sync = this.create(element, options)
-	    // if (sync) return sync
-
+	): Promise<InstanceType<MediaModule<T>>> {
 		for (const Module of this.syncModules) {
-			if (Module.isMatch?.(element))
+			if (Module.isMatch?.(element)) {
+				console.log({ sync: Module })
 				return new Module(element, options)
+			}
 		}
 
 		for (const loader of this.asyncModules) {
-			let cachedLoader = this.loaderCache.get(loader)
+			let modLoader = this.loaderCache.get(loader)
 
-			if (!cachedLoader) {
-				cachedLoader = loader().then(m => m as { default: SyncMediaModule })
-				this.loaderCache.set(loader, cachedLoader)
+			if (!modLoader) {
+				modLoader = loader().then(m => m as { default: MediaModule })
+				this.loaderCache.set(loader, modLoader)
 			}
 
-			const mod = await cachedLoader
-		    const Module = mod.default
+			const mod = await modLoader,
+				Module = mod.default
 
 			if (Module.isMatch?.(element)) {
+				console.log({ async: Module })
 				this.register(Module)
 				return new Module(element, options)
 			}
 		}
 
-		throw new Error('no matching media handler found')
+		throw new Error(`no matching MediaModule found for element: ${element.tagName}`)
 	}
 }
