@@ -1,8 +1,14 @@
-import { BaseMedia } from './BaseMedia.ts'
-import type { VideoMediaOptions } from '../types/features.types.d.ts'
+import { BaseMedia } from '../BaseMedia.ts'
+import { MediaFactory } from '../MediaFactory.ts'
+import type { VideoMediaOptions } from '../../types/features.types'
 
 
 export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
+	static isMatch(element: HTMLElement): boolean {
+		return element instanceof HTMLIFrameElement
+			&& element.src.includes('youtube.com')
+	}
+
 	private readonly ytOptions: VideoMediaOptions = {
 		enablejsapi: true,
 	}
@@ -11,12 +17,12 @@ export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
 	private id: string = ''
 
 	constructor(
-		media: HTMLIFrameElement,
+		element: HTMLIFrameElement,
 		options?: VideoMediaOptions
 	) {
-		super(options)
-		this.media = media
-		this.id = this.getVideoID(media)
+		super(element, options)
+		this.media = element
+		this.id = this.getVideoID(this.media)
 	}
 
 	load(): void {
@@ -64,7 +70,7 @@ export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
 	}
 
 	private control(action: 'pause' | 'play' | 'stop') {
-		const response = `{"event":"command","func":"${action}Video","args":""}`
+		const response = `{"event": "command", "func": "${action}Video", "args": ""}`
 		if (this.media) return this.media.contentWindow?.postMessage(response, '*')
 	}
 
@@ -73,3 +79,7 @@ export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
 		return url.substring(url.lastIndexOf('/') + 1)
 	}
 }
+
+
+export const isMatch = YoutubeMedia.isMatch
+export default YoutubeMedia

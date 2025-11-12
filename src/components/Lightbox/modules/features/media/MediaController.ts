@@ -1,5 +1,5 @@
-import { createMedia } from './MediaFactory.ts'
 import { BaseMedia } from './BaseMedia.ts'
+import { MediaFactory } from './MediaFactory.ts'
 import type { IDispatcher } from '../../core'
 import type { IDOM } from '../../presentation'
 import type { IMedia } from '../types/interfaces.d.ts'
@@ -20,7 +20,7 @@ export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElem
 		private dispatch: IDispatcher
 	) {}
 
-	load(options?: VideoMediaOptions): void {
+	async load(options?: VideoMediaOptions): Promise<void> {
 		this.dispose()
 
 		const player = this.dom.get('player')
@@ -29,11 +29,13 @@ export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElem
 		this.options = options ? { ...this.options, ...options } : this.options
 
 		try {
-			this.handler = createMedia(player, this.options)
-			this.handler?.load()
+			this.handler = await MediaFactory.create(player, this.options)
 
-			player.setAttribute('autofocus', '')
-			this.dom.reset('player')
+			if (this.handler) {
+				await this.handler.load()
+				player.setAttribute('autofocus', '')
+				this.dom.reset('player')
+			}
 		} catch (err) { this.err('load() failed', err) }
 	}
 

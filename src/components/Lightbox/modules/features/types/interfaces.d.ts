@@ -22,8 +22,13 @@ export interface IContent {
 }
 
 
+export interface MediaModule<T extends HTMLElement = HTMLElement> {
+	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
+	isValid(element: HTMLElement): boolean
+}
+
 export interface IMedia<T extends HTMLElement = HTMLElement> {
-	// readonly media?: T
+	readonly element?: T
 	dispose(): void
 	load(options?: LightboxVideoOptions): void
 	pause(): void

@@ -1,16 +1,21 @@
 import Hls from 'hls.js'
-import Plyr from 'plyr'
-import { BaseMedia } from './BaseMedia.ts'
-import type { VideoMediaOptions } from '../types/features.types.d.ts'
+import * as Plyr from 'plyr'
+import { BaseMedia } from '../BaseMedia.ts'
+import { MediaFactory } from '../MediaFactory.ts'
+import type { VideoMediaOptions } from '../../types/features.types'
 
 
 export class NativeMedia extends BaseMedia<HTMLVideoElement> {
+	static isMatch(element: HTMLElement): boolean {
+		return element instanceof HTMLVideoElement
+	}
+
 	constructor(
-		media: HTMLVideoElement,
+		element: HTMLVideoElement,
 		options?: VideoMediaOptions
 	) {
-		super(options)
-		this.media = media
+		super(element, options)
+		this.media = element
 	}
 
 	load(): void {
@@ -39,7 +44,6 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 
 	private loadHls(): void {
 		if (!this.media) return
-		this.update({ 'data-native': 'hls' })
 
 		this.instance = new Hls()
 		this.instance.loadSource(this.media.src)
@@ -48,7 +52,6 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 
 	private loadPlyr(): void {
 		if (!this.media) return
-		this.update({ 'data-native': 'plyr' })
 
 		const plyrOptions = this.options
 			? {
@@ -58,7 +61,7 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 			} as Partial<Plyr.Options>
 			: {}
 
-		this.instance = new Plyr(this.media, plyrOptions)
+		this.instance = new Plyr.default(this.media, plyrOptions)
 	}
 
 	private applyAttributes(): void {
@@ -71,3 +74,7 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 		}
 	}
 }
+
+
+export const isMatch = NativeMedia.isMatch
+export default NativeMedia
