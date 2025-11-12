@@ -29,7 +29,7 @@ export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElem
 		this.options = options ? { ...this.options, ...options } : this.options
 
 		try {
-			this.handler = await MediaFactory.create(player, this.options)
+			this.handler = await MediaFactory.createAsync(player, this.options)
 
 			if (this.handler) {
 				await this.handler.load()

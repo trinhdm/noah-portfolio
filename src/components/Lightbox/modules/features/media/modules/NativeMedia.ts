@@ -1,7 +1,6 @@
 import Hls from 'hls.js'
 import * as Plyr from 'plyr'
 import { BaseMedia } from '../BaseMedia.ts'
-import { MediaFactory } from '../MediaFactory.ts'
 import type { VideoMediaOptions } from '../../types/features.types'
 
 
@@ -14,7 +13,7 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 		element: HTMLVideoElement,
 		options?: VideoMediaOptions
 	) {
-		super(element, options)
+		super(options)
 		this.media = element
 	}
 
@@ -68,13 +67,13 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 		if (!this.options) return
 
 		for (const [attr, value] of Object.entries(this.options)) {
-			if (value === true) this.media?.setAttribute(attr, '')
-			else if (typeof value === 'string') this.media?.setAttribute(attr, value)
+			if (typeof value === 'string') this.media?.setAttribute(attr, value)
+			else if (value === true) this.media?.setAttribute(attr, '')
 			else if (this.media?.hasAttribute(attr)) this.media?.removeAttribute(attr)
 		}
 	}
 }
 
 
-export const isMatch = NativeMedia.isMatch
 export default NativeMedia
+// export const isMatch = NativeMedia.isMatch

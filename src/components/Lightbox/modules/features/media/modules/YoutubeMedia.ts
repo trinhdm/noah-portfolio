@@ -1,5 +1,4 @@
 import { BaseMedia } from '../BaseMedia.ts'
-import { MediaFactory } from '../MediaFactory.ts'
 import type { VideoMediaOptions } from '../../types/features.types'
 
 
@@ -20,7 +19,7 @@ export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
 		element: HTMLIFrameElement,
 		options?: VideoMediaOptions
 	) {
-		super(element, options)
+		super(options)
 		this.media = element
 		this.id = this.getVideoID(this.media)
 	}
@@ -81,5 +80,5 @@ export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
 }
 
 
-export const isMatch = YoutubeMedia.isMatch
 export default YoutubeMedia
+// export const isMatch = YoutubeMedia.isMatch

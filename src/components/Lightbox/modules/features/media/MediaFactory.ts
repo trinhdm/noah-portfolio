@@ -2,30 +2,72 @@ import { BaseMedia } from './BaseMedia.ts'
 import type { VideoMediaOptions } from '../types/features.types'
 
 
-export interface MediaModule<T extends HTMLElement = HTMLElement> {
+export interface AsyncMediaModule<T extends HTMLElement = HTMLElement> {
 	default: new (element: T, options?: VideoMediaOptions) => BaseMedia<T>
-	isMatch(element: HTMLElement): boolean
+	isMatch?(element: HTMLElement): boolean
 }
 
-export class MediaFactory {
-	private static modules: (() => Promise<MediaModule<any>>)[] = []
+export interface SyncMediaModule<T extends HTMLElement = HTMLElement> {
+	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
+	isMatch?(element: HTMLElement): boolean
+}
 
-	static register<T extends HTMLElement>(loader: () => Promise<MediaModule<T>>): void {
-		this.modules.push(loader)
+
+export class MediaFactory {
+	private static asyncModules: (() => Promise<AsyncMediaModule<any>>)[] = []
+	private static syncModules: SyncMediaModule<any>[] = []
+
+	private static loaderCache = new Map<
+		() => Promise<AsyncMediaModule<any>>, Promise<{ default: SyncMediaModule<any> }>
+	>()
+
+
+	static register<T extends HTMLElement>(module: SyncMediaModule<T>): void {
+		this.syncModules.push(module)
 	}
 
-	static async create<T extends HTMLElement>(
+	static registerAsync<T extends HTMLElement>(loader: () => Promise<AsyncMediaModule<T>>): void {
+		this.asyncModules.push(loader)
+	}
+
+	static create<T extends HTMLElement>(
+		element: T,
+		options?: VideoMediaOptions
+	): BaseMedia<T> | undefined {
+		for (const Module of this.syncModules) {
+			if (Module.isMatch?.(element))
+				return new Module(element, options)
+		}
+
+		throw new Error(`No matching LightboxMedia Module found for element: ${element.tagName}`)
+	}
+
+	static async createAsync<T extends HTMLElement>(
 		element: T,
 		options?: VideoMediaOptions
 	): Promise<BaseMedia<T> | undefined> {
-		// const modules = await Promise.all(this.modules.map(load => load()))
+		// const sync = this.create(element, options)
+	    // if (sync) return sync
 
-		for (const load of this.modules) {
-			const module = await load()
+		for (const Module of this.syncModules) {
+			if (Module.isMatch?.(element))
+				return new Module(element, options)
+		}
 
-			if (module.isMatch(element)) {
-				const MediaClass = module.default
-				return new MediaClass(element, options)
+		for (const loader of this.asyncModules) {
+			let cachedLoader = this.loaderCache.get(loader)
+
+			if (!cachedLoader) {
+				cachedLoader = loader().then(m => m as { default: SyncMediaModule })
+				this.loaderCache.set(loader, cachedLoader)
+			}
+
+			const mod = await cachedLoader
+		    const Module = mod.default
+
+			if (Module.isMatch?.(element)) {
+				this.register(Module)
+				return new Module(element, options)
 			}
 		}
 

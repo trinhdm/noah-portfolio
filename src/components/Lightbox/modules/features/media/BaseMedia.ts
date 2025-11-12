@@ -9,10 +9,7 @@ implements IMedia<T> {
 	protected instance?: Hls | Plyr
 	protected media?: T
 
-	constructor(
-		element: T,
-		protected options?: VideoMediaOptions
-	) {}
+	constructor(protected options?: VideoMediaOptions) {}
 
 	protected update(opts: VideoMediaOptions): void {
 		this.options = { ...this.options, ...opts }
