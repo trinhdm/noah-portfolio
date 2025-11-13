@@ -52,7 +52,7 @@
 	}
 }
 
-.lightbox:has([data-native]) {
+/* .lightbox:has([data-native]) {
 	&:is([data-disabled="false"][data-state="open"],
 	[data-disabled="true"][data-state="close"])
 	.fe-block {
@@ -100,7 +100,7 @@
 			}
 		}
 	}
-}
+} */
 
 .lightbox:is([data-animate]) {
 	.fe-block {
@@ -145,45 +145,40 @@
 		}
 	}
 
-	&:is([data-state="close"]) {
-		.fe-block {
-			&,
-			.block--animated::before,
-			.block--animated::after {
-				animation-direction: reverse;
-			}
+	&:is([data-state="close"]) .fe-block {
+		&,
+		.block--animated::before,
+		.block--animated::after {
+			animation-direction: reverse;
+		}
 
-			&.lightbox__html,
-			&.lightbox__video,
-			.block--animated::before,
-			.block--animated::after {
-				animation-timing-function: var(--ease-out-sine);
-			}
+		&.lightbox__html,
+		&.lightbox__video,
+		.block--animated::before,
+		.block--animated::after {
+			animation-timing-function: var(--ease-out-sine);
+		}
 
-			&.lightbox__html {
-				animation-name: fadeInUp;
-			}
+		&.lightbox__html {
+			animation-name: fadeInUp;
+		}
 
-			&.lightbox__image {
-				animation-name: none;
-			}
+		&.lightbox__image {
+			animation-name: none;
 		}
 	}
 
-	&:is([data-state="open"]) {
-		.fe-block {
-			&.lightbox__html,
-			&.lightbox__video,
-			.block--animated::before,
-			.block--animated::after {
-				animation-timing-function: var(--ease-in-sine);
-			}
+	&:is([data-state="open"]) .fe-block {
+		&.lightbox__html,
+		&.lightbox__video,
+		.block--animated::before,
+		.block--animated::after {
+			animation-timing-function: var(--ease-in-sine);
+		}
 
-			&.lightbox__image {
-				animation-delay: var(--dt-lb-bl-delay);
-				animation-direction: reverse;
-				animation-timing-function: var(--ease-out-sine);
-			}
+		&.lightbox__image {
+			animation-direction: reverse;
+			animation-timing-function: var(--ease-out-sine);
 		}
 	}
 
@@ -196,25 +191,21 @@
 			}
 		}
 
-		&:is([data-animate="in"]) {
-			.fe-block {
-				&.lightbox__image {
-					animation-direction: normal;
-				}
+		&:is([data-animate="in"]) .fe-block {
+			&.lightbox__image {
+				animation-direction: reverse;
 			}
 		}
 
-		&:is([data-animate="out"]) {
-			.fe-block {
-				&,
-				.block--animated::before,
-				.block--animated::after {
-					animation-direction: reverse;
-				}
+		&:is([data-animate="out"]) .fe-block {
+			&,
+			.block--animated::before,
+			.block--animated::after {
+				animation-direction: reverse;
+			}
 
-				&.lightbox__image {
-					animation-direction: normal;
-				}
+			&.lightbox__image {
+				animation-direction: normal;
 			}
 		}
 	}

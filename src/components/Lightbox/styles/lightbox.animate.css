@@ -3,9 +3,6 @@
 	--dt-lb-duration: .6s;
 	--dt-lb-delay: .075s;
 	--dt-lb-stagger: calc(1.375 * var(--dt-lb-delay));
-
-	--dt-lb-delay-start: calc(var(--dt-lb-duration) - var(--dt-lb-delay));
-	--dt-lb-stagger-start: calc(var(--dt-lb-duration) - var(--dt-lb-stagger));
 }
 
 .lightbox {
@@ -16,6 +13,12 @@
 			animation-duration: var(--dt-lb-duration);
 			animation-fill-mode: forwards;
 			animation-play-state: paused;
+		}
+
+		.lightbox__body,
+		.lightbox__container,
+		.lightbox__content {
+		    overflow-y: visible;
 		}
 
 		.lightbox__body,
@@ -33,17 +36,6 @@
 			animation-timing-function: var(--ease-in-out-back);
 		}
 
-		&:is([data-state="swap"]) {
-			&:is([open])::backdrop,
-			.lightbox__body,
-			.lightbox__container {
-				animation-name: none;
-			}
-		}
-
-		/*	fade out
-			-----------------	*/
-
 		&:is([data-state="close"]) {
 			&::backdrop,
 			.lightbox__body,
@@ -58,12 +50,11 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
+				animation-delay: var(--dt-lb-duration);
 				animation-timing-function: var(--ease-in-quad);
 			}
 
 			.lightbox__container {
-				animation-delay: 0s;
 				animation-timing-function: var(--ease-in-quart);
 			}
 
@@ -76,9 +67,6 @@
 				}
 			}
 		}
-
-		/*	fade in
-			-----------------	*/
 
 		&:is([data-state="open"]) {
 			&::backdrop,
@@ -94,12 +82,12 @@
 			}
 
 			.lightbox__body {
-				animation-delay: var(--dt-lb-delay-start);
+				animation-delay: var(--dt-lb-delay);
 				animation-timing-function: var(--ease-in-quart);
 			}
 
 			.lightbox__container {
-				animation-delay: var(--dt-lb-stagger-start);
+				animation-delay: var(--dt-lb-stagger);
 				animation-timing-function: var(--ease-in-quad);
 			}
 
@@ -109,6 +97,14 @@
 				@starting-style {
 					opacity: 0;
 				}
+			}
+		}
+
+		&:is([data-state="swap"]) {
+			&:is([open])::backdrop,
+			.lightbox__body,
+			.lightbox__container {
+				animation-name: none;
 			}
 		}
 	}

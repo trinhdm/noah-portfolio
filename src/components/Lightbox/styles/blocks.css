@@ -46,6 +46,7 @@
 
 		.sqs-block {
 			min-height: min-content;
+			overflow-y: visible;
 		}
 
 		p {
@@ -144,9 +145,7 @@
 		z-index: 15;
 
 		&:has(+ .lightbox__video) {
-			pointer-events: none;
 			position: absolute;
-			user-select: none;
 		}
 
 		.fluid-image-container {
@@ -197,6 +196,7 @@
 			border-radius: var(--dt-border-radius);
 			height: 100%;
 			inset: 0;
+			object-fit: cover;
 			position: relative;
 			width: 100%;
 

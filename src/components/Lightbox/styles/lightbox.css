@@ -22,18 +22,22 @@
 		box-sizing: border-box;
 	}
 
-	&::backdrop {
-		background-color: rgba(0, 0, 0, .75);
-		z-index: 0;
-	}
-
 	&:focus,
 	&:focus-visible {
 		outline: none;
 	}
 
+	&::backdrop {
+		background-color: rgba(0, 0, 0, .75);
+		opacity: 0;
+		z-index: 0;
+	}
+
 	&:is([data-state]) {
-		opacity: 1;
+		&,
+		&::backdrop {
+			opacity: 1;
+		}
 	}
 
 	&:is([data-disabled="true"]) {
