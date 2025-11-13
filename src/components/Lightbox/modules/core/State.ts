@@ -55,7 +55,7 @@ export class LightboxState implements IState {
 
 		this.store.set(key, value)
 		this.dispatch.emit(`state:${key}`, { key, value })
-		console.log(`update ${key}`)
+		console.log(`update ${key}, ${value}`)
 	}
 
 	clear(): void {

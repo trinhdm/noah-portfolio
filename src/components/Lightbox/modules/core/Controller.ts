@@ -10,7 +10,6 @@ import {
 	LightboxNavigator,
 } from '../features'
 
-import { LightboxDispatcher } from './Dispatcher'
 import { LightboxFactory } from './Factory'
 import { LightboxLifecycle } from './Lifecycle'
 
@@ -18,62 +17,69 @@ import type { IAnimator, IDOM, IEvents } from '../presentation'
 import type { IContent, IMedia, INavigator } from '../features'
 import type { IController, IDispatcher, ILifecycle, IState } from './types/interfaces.d.ts'
 import type { LightboxElements, LightboxOptions } from '../../types'
-import type { LightboxEventMap } from './types/core.types.d.ts'
 
 
 export class LightboxController implements IController {
-	private readonly dispatch: IDispatcher
-	private readonly root: LightboxElements['root']
+	protected readonly dispatcher: IDispatcher
+	protected readonly root: LightboxElements['root']
 
-	private readonly dom: IDOM
-	private readonly animator: IAnimator
-	private readonly events: IEvents
-	private readonly media: IMedia
+	protected readonly dom: IDOM
+	protected readonly animator: IAnimator
+	protected readonly events: IEvents
+	protected readonly media: IMedia
 
-	private readonly content: IContent
-	private readonly navigator: INavigator
+	protected readonly content: IContent
+	protected readonly navigator: INavigator
 
-	private readonly lifecycle: ILifecycle
+	protected readonly lifecycle: ILifecycle
+
+	// private readonly dispatcher: IDispatcher
+	// private options: LightboxOptions
+	// private state: IState
 
 	constructor(
-		private options: LightboxOptions,
-		private state: IState
-	) {
-		this.dispatch = new LightboxDispatcher<LightboxEventMap>()
-		this.root = new LightboxFactory().createRoot(this.options)
-
+		protected args: {
+		dispatcher: IDispatcher,
+		options: LightboxOptions,
+		state: IState,
+	}) {
+		this.dispatcher = args.dispatcher
+		this.root = new LightboxFactory().createRoot(this.args.options)
 		this.dom = new LightboxDOM(this.root)
-		this.animator = new LightboxAnimator(this.dom, this.state)
-		this.events = new LightboxEvents(this.dom, this.dispatch)
-		this.media = new LightboxMedia(this.dom, this.dispatch)
+
+		const deps = {
+			...this.args,
+			dom: this.dom,
+		}
+		this.animator = new LightboxAnimator(deps)
+		this.events = new LightboxEvents(deps)
+		this.media = new LightboxMedia(deps)
 
 		this.content = new LightboxContent()
-		this.navigator = new LightboxNavigator(
-			this.dom,
-			this.animator,
-			this.media,
-			this.content,
-			this.dispatch,
-			this.state
-		)
+		this.navigator = new LightboxNavigator({
+			...this.args,
+			animator: this.animator,
+			content: this.content,
+			dom: this.dom,
+			media: this.media,
+		})
 
-		this.lifecycle = new LightboxLifecycle(
-			this.dom,
-			this.animator,
-			this.events,
-			this.media,
-			this.navigator,
-			this.content,
-			this.dispatch,
-			this.state
-		)
+		this.lifecycle = new LightboxLifecycle({
+			...this.args,
+			animator: this.animator,
+			content: this.content,
+			dom: this.dom,
+			events: this.events,
+			media: this.media,
+			navigator: this.navigator,
+		})
 	}
 
-	async mount(): Promise<void> { await this.lifecycle.handleMount(this.options) }
+	async mount(): Promise<void> { await this.lifecycle.handleMount() }
 
-	async open(): Promise<void> { await this.dispatch.emit('open') }
+	async open(): Promise<void> { await this.dispatcher.emit('open') }
 
-	async close(): Promise<void> { await this.dispatch.emit('close') }
+	async close(): Promise<void> { await this.dispatcher.emit('close') }
 
 	destroy(): void { this.lifecycle.handleDestroy() }
 }

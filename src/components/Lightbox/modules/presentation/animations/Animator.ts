@@ -24,7 +24,7 @@ abstract class BaseAnimator {
 		},
 	}
 
-	protected queue: Set<Exclude<LightboxElement, HTMLElement[] | undefined>>
+	protected queue: AnimatorContext['queue']
 	protected state: IState
 	protected dom: IDOM
 
@@ -176,11 +176,15 @@ extends BaseAnimator implements IAnimator {
 	private Structure: StructureAnimator
 
 	constructor(
-		protected dom: IDOM,
-		protected state: IState
+		protected args: {
+			dom: IDOM,
+			// dispatcher: IDispatcher,
+			// options: LightboxOptions,
+			state: IState,
+		}
 	) {
-		const queue = new Set<Exclude<LightboxElement, HTMLElement[] | undefined>>(),
-			ctx: AnimatorContext = { dom, queue, state }
+		const queue : AnimatorContext['queue']= new Set(),
+			ctx: AnimatorContext = { ...args, queue }
 
 		super(ctx)
 
@@ -197,7 +201,7 @@ extends BaseAnimator implements IAnimator {
 		this.dom.setAnimate()
 
 		await this.state.pause('loaded:Content')
-		await Animation.wait('pause')
+		// await Animation.wait('pause')
 
 		this.Structure.fadeMain()
 		await Animation.waitForEnd(this.dom.get('container'))

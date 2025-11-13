@@ -2,34 +2,57 @@ import { AnimationService as Animation } from '../../../../../services'
 import { LightboxMenu } from './Menu.ts'
 import { LightboxSelector } from '../../../utils'
 import type { FilterValues } from '../../../../../types'
-import type { IAnimator, IDOM } from '../../presentation'
+import type { IAnimator, IDOM } from '../../presentation/types/interfaces.d.ts'
 import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
-import type { IDispatcher, IState } from '../../core'
+import type { IDispatcher, IState } from '../../core/types/interfaces.d.ts'
 import type { LightboxElements, LightboxOptions } from '../../../types'
 
 
-export class LightboxNavigator
-extends LightboxMenu implements INavigator {
+interface NavigatorContext {
+	content: IContent
+	dom: IDOM
+}
+
+export class LightboxNavigator extends LightboxMenu
+implements INavigator {
+	protected readonly animator: IAnimator
+	protected readonly content: IContent
+	protected readonly dispatcher: IDispatcher
+	protected readonly dom: IDOM
+	protected readonly media: IMedia
+	protected readonly state: IState
+
 	private readonly delay: number = 500
 	private isSwapping = false
-	private pendingContent: HTMLElement | undefined
 
 	constructor(
-		protected dom: IDOM,
-		private animator: IAnimator,
-		private media: IMedia,
-		protected content: IContent,
-		private dispatch: IDispatcher,
-		private state: IState
+		protected args: {
+			animator: IAnimator,
+			content: IContent,
+			dispatcher: IDispatcher,
+			dom: IDOM,
+			media: IMedia,
+			state: IState,
+			// options: LightboxOptions,
+		}
 	) {
-		super(dom, content)
+		const ctx: NavigatorContext = { ...args }
+		super(ctx)
+
+		this.animator = args.animator
+		this.content = args.content
+		this.dispatcher = args.dispatcher
+		this.dom = args.dom
+		this.media = args.media
+		this.state = args.state
+
 		this.state.bind(this, 'isSwapping')
 	}
 
 	private async setSwap(
 		target: NonNullable<LightboxOptions['target']>,
 		element: keyof FilterValues<LightboxElements, Element[]> = 'image'
-	): Promise<void> {
+	): Promise<HTMLElement | undefined> {
 		const content = await this.content.render(target),
 			key = element.charAt(0).toUpperCase() + element.slice(1),
 			selector = LightboxSelector[key as keyof typeof LightboxSelector]
@@ -41,10 +64,10 @@ extends LightboxMenu implements INavigator {
 			if (currentEl && newEl) {
 				currentEl.replaceWith(newEl)
 				this.dom.reset(element)
-
-				this.pendingContent = content
 			}
 		}
+
+		return content
 	}
 
 	private async beginSwap(): Promise<void> {
@@ -55,11 +78,13 @@ extends LightboxMenu implements INavigator {
 		await Animation.wait(this.delay)
 	}
 
-	private async performSwap(): Promise<void> {
+	private async performSwap(content: HTMLElement): Promise<void> {
 		await this.animator.swap('out')
-		console.log('pendingContent', this.pendingContent)
-		this.dom.setContent(this.pendingContent)
-		this.media.load()
+
+		this.dom.setContent(content)
+		await this.media.load()
+		this.state.update('loaded:Content', true)
+
 		await this.animator.swap('in')
 	}
 
@@ -76,18 +101,18 @@ extends LightboxMenu implements INavigator {
 
 		this.isSwapping = true
 
-		await this.setSwap(target)
-		if (!this.pendingContent?.children) return
+		const scontent = await this.setSwap(target)
+		if (!scontent || !scontent.childElementCount) return
 
 		const message = 'LightboxNavigator.swapContent() failed'
 		const timeline = [
 			() => this.beginSwap(),
-			() => this.performSwap(),
+			() => this.performSwap(scontent),
 			() => this.finishSwap(),
 		]
 
 		for (const step of timeline)
-			await step().catch(error => this.dispatch.emit('error', { error, message }))
+			await step().catch(error => this.dispatcher.emit('error', { error, message }))
 
 		this.isSwapping = false
 	}

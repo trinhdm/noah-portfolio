@@ -1,34 +1,52 @@
-import { LightboxController, LightboxState } from './core'
-import type { IController } from './core'
+import { LightboxController, LightboxDispatcher, LightboxState } from './core'
+import type { IController, IDispatcher, IState } from './core'
 import type { IManager, LightboxOptions } from '../types'
+import type { LightboxEventMap } from './core/types/core.types'
 
 
 export class LightboxManager implements IManager {
-	private instance: IController | null = null
-	private state = new LightboxState()
+	protected readonly controller: IController
+	protected readonly dispatcher: IDispatcher
+	protected readonly state: IState
+	private instance: LightboxController | null = null
 
 	constructor(private options: LightboxOptions) {
-		this.instance = null
+		this.dispatcher = new LightboxDispatcher<LightboxEventMap>()
+		this.state = new LightboxState()
+
+		this.controller = new LightboxController({
+			dispatcher: this.dispatcher,
+			options: this.options,
+			state: this.state,
+		})
+	}
+
+	async initialize(): Promise<LightboxController | null> {
+		if (this.instance) await this.instance?.close()
+		else if (!this.controller) return null
+
+		this.instance = this.controller as LightboxController
+		await this.instance?.mount()
+
+		return this.instance
 	}
 
 	async open(index?: number): Promise<void> {
-		if (this.instance) await this.instance?.close()
-
 		const { elements } = this.options
 		if (typeof index === 'number' && index < elements.length)
 			this.options = { elements, index, target: elements[index] }
 
-		const controller = new LightboxController(this.options, this.state)
-		this.instance = controller
-
-		await controller.mount()
-		await controller.open()
+		await this.instance?.open()
+		// await this.controller.mount()
 	}
 
 	async close(): Promise<void> {
 		if (!this.instance) return
 		await this.instance?.close()
-		this.state.reset()
 		this.instance = null
+
+		this.state.clear()
+		this.dispatcher.clear()
+		this.controller.destroy()
 	}
 }

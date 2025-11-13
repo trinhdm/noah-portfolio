@@ -39,9 +39,10 @@ export interface ILifecycle {
 	handleClose(): Promise<void>
 	handleDestroy(): void
 	handleError({ error, message }: LightboxEventMap['error']): void
-	handleMount(options: LightboxOptions): Promise<void>
+	handleMount(): Promise<void>
 	handleOpen(): Promise<void>
 	handleSwap(dir: ArrowDirections): Promise<void>
+	handleUpdate(content?: HTMLElement): Promise<void>
 }
 
 

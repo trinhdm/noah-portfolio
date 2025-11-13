@@ -1,17 +1,24 @@
 import { LightboxSelector } from '../../../utils'
-import type { ArrowDirections, ArrowGroup, LightboxOptions } from '../../../types'
+import type { ArrowGroup, LightboxOptions } from '../../../types'
 import type { IContent, IMenu } from '../types/interfaces.d.ts'
 import type { IDOM } from '../../presentation'
 import type { OnlyRequired } from '../../../../../types/globals.types.d.ts'
 
 
+interface NavigatorContext {
+	content: IContent
+	dom: IDOM
+}
+
 export class LightboxMenu implements IMenu {
+	protected readonly content: IContent
+	protected readonly dom: IDOM
 	private elements: LightboxOptions['elements'] = []
 
-	constructor(
-		protected dom: IDOM,
-		protected content: IContent
-	) {}
+	constructor(protected ctx: NavigatorContext) {
+		this.content = ctx.content
+		this.dom = ctx.dom
+	}
 
 	async configure({ elements, index }: OnlyRequired<LightboxOptions, 'index'>): Promise<ArrowGroup> {
 		if (elements?.length) this.elements = elements
@@ -36,7 +43,7 @@ export class LightboxMenu implements IMenu {
 	private async getDirectory(index: number): Promise<ArrowGroup> {
 		const adjacents = this.findAdjacent(index),
 			directory = {} as ArrowGroup,
-			dirs = Object.keys(adjacents) as ArrowDirections[]
+			dirs = Object.keys(adjacents) as (keyof ArrowGroup)[]
 
 		await Promise.all(
 			dirs.map(async dir => {
@@ -51,7 +58,7 @@ export class LightboxMenu implements IMenu {
 
 	private setArrows(directory: ArrowGroup): void {
 		const arrows = this.dom.get('arrows'),
-			dirs = Object.keys(directory).reverse() as ArrowDirections[]
+			dirs = Object.keys(directory).reverse() as (keyof ArrowGroup)[]
 
 		for (const dir of dirs) {
 			const arrow = arrows.find(({ dataset }) => dataset.direction === dir),

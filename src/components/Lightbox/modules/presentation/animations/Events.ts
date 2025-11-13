@@ -1,16 +1,25 @@
 import type { ArrowDirections } from '../../../types'
-import type { IDispatcher } from '../../core'
+import type { IDispatcher } from '../../core/types/interfaces.d.ts'
 import type { IDOM, IEvents } from '../types/interfaces.d.ts'
 
 
 export class LightboxEvents implements IEvents {
+	protected readonly dispatcher: IDispatcher
+	protected readonly dom: IDOM
 	private currentFocus: HTMLElement | undefined
 	private handlers: Array<() => void> = []
 
 	constructor(
-		private dom: IDOM,
-		private dispatch: IDispatcher
-	) {}
+		protected args: {
+			dispatcher: IDispatcher,
+			dom: IDOM,
+			// options: LightboxOptions,
+			// state: IState,
+		}
+	) {
+		this.dispatcher = args.dispatcher
+		this.dom = args.dom
+	}
 
 	private handleClick(
 		target: HTMLElement,
@@ -30,24 +39,30 @@ export class LightboxEvents implements IEvents {
 		if (root) {
 			this.handleClick(root, (event: MouseEvent) => {
 				event.stopPropagation()
-				if (event.target !== event.currentTarget) return
-				this.dispatch.emit('close')
+
+				const { currentTarget, target } = event
+				const isWrongTarget = target !== currentTarget,
+					isDisabled = (target as HTMLElement)?.dataset.disabled === 'true'
+
+				if (isWrongTarget || isDisabled) return
+				console.log('click', target)
+				this.dispatcher.emit('close')
 			})
 		}
 
 		if (exit)
-			this.handleClick(exit, () => this.dispatch.emit('close'))
+			this.handleClick(exit, () => this.dispatcher.emit('close'))
 
 		// if (player) {
 		// 	this.handleClick(player, () => {
 		// 		console.log('click123')
-		// 		this.dispatch.emit('media')
+		// 		this.dispatcher.emit('media')
 		// 	})
 		// }
 
 		for (const arrow of arrows) {
 			const direction = arrow.dataset.direction as ArrowDirections
-			this.handleClick(arrow, () => this.dispatch.emit('swap', direction))
+			this.handleClick(arrow, () => this.dispatcher.emit('swap', direction))
 		}
 	}
 
@@ -55,11 +70,11 @@ export class LightboxEvents implements IEvents {
 		const icons = this.dom.get('icons')
 
 		const keyHandlers = {
-			ArrowDown: () => this.dispatch.emit('swap', 'next'),
-			ArrowLeft: () => this.dispatch.emit('swap', 'prev'),
-			ArrowRight: () => this.dispatch.emit('swap', 'next'),
-			ArrowUp: () => this.dispatch.emit('swap', 'prev'),
-			Escape: () => this.dispatch.emit('close'),
+			ArrowDown: () => this.dispatcher.emit('swap', 'next'),
+			ArrowLeft: () => this.dispatcher.emit('swap', 'prev'),
+			ArrowRight: () => this.dispatcher.emit('swap', 'next'),
+			ArrowUp: () => this.dispatcher.emit('swap', 'prev'),
+			Escape: () => this.dispatcher.emit('close'),
 		} as const
 
 		const handleKey = (event: KeyboardEvent) => {
@@ -180,13 +195,6 @@ export class LightboxEvents implements IEvents {
 			console.log({ element, event })
 			element.addEventListener<K>(event, resolve, { once: true })
 			element.addEventListener('error', reject, { once: true })
-
-			// element.addEventListener<K>(event, () => {
-			// 	resolve()
-			// }, { once: true })
-			// element.addEventListener('error', () => {
-			// 	reject(new Error('video loading failed'))
-			// }, { once: true })
 		})
 	}
 }

@@ -14,19 +14,29 @@ implements IMedia<T> {
 		muted: false,
 	}
 
+	private readonly dispatcher: IDispatcher
+	private readonly dom: IDOM
+
 	private handler?: BaseMedia<T>
 	private options: VideoMediaOptions = this.defaults
 	private target?: T
 
 
 	constructor(
-		private dom: IDOM,
-		private dispatch: IDispatcher
-	) {}
+		protected args: {
+			dispatcher: IDispatcher,
+			dom: IDOM,
+			// options: LightboxOptions,
+			// state: IState,
+		}
+	) {
+		this.dispatcher = args.dispatcher
+		this.dom = args.dom
+	}
 
 	private err(msg: string, error: any) {
 		const message = `LightboxMedia.${msg}`
-		return this.dispatch.emit('error', { error, message })
+		return this.dispatcher.emit('error', { error, message })
 	}
 
 	private async create(
@@ -39,9 +49,6 @@ implements IMedia<T> {
 		this.options = options
 			? { ...this.options, ...options }
 			: this.options
-
-		// if (document.activeElement !== this.target)
-		// 	this.target.setAttribute('autofocus', '')
 
 		this.handler = await MediaFactory.create(this.target, this.options)
 		this.dom.reset('player')

@@ -10,6 +10,7 @@ export interface LightboxEventMap {
 	media: void
 	open: void
 	swap: ArrowDirections
+	update: HTMLElement | undefined
 }
 
 
