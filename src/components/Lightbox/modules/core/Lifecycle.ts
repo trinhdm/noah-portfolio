@@ -16,8 +16,9 @@ import type { IDispatcher, ILifecycle, IState } from './types/interfaces.d.ts'
 
 export class LightboxLifecycle implements ILifecycle {
 	private currentIndex: number = 0
-	private directory: ArrowGroup = {} as ArrowGroup
+	private directory?: ArrowGroup
 	private isActive: boolean = false
+	private options: LightboxOptions = {} as LightboxOptions
 
 	constructor(
 		private dom: IDOM,
@@ -28,10 +29,28 @@ export class LightboxLifecycle implements ILifecycle {
 		private content: IContent,
 		private dispatch: IDispatcher,
 		private state: IState
-	) {}
+	) {
+		this.state.bind(this, 'isActive')
+	}
 
-	private async prefetch(directory: ArrowGroup): Promise<void> {
-		if (!this.isActive || !Object.keys(this.directory).length) return
+	private registerHandlers(): void {
+		const eventMap = {
+			close:	'handleClose',
+			open:	'handleOpen',
+			swap:	'handleSwap',
+			error:	'handleError',
+			media:	'handleMedia',
+		} as const
+
+		const events = Object.entries(eventMap) as Entries<typeof eventMap>
+		for (const [event, method] of events) {
+			const handler = this[method].bind(this)
+			this.dispatch.on(event, handler as HandlerFor<LightboxEventMap, typeof event>)
+		}
+	}
+
+	private async prefetch(directory?: ArrowGroup): Promise<void> {
+		if (!this.isActive || !directory) return
 
 		const adjTargets = Object.values(directory).map(v => v.target)
 			.filter(Boolean) as HTMLElement[]
@@ -42,84 +61,53 @@ export class LightboxLifecycle implements ILifecycle {
 		))
 	}
 
-	private registerHandlers(): void {
-		const events: Record<keyof LightboxEventMap, keyof LightboxLifecycle> = {
-			close:		'handleClose',
-			error:		'handleError',
-			media:		'handleMedia',
-			navigate:	'handleNavigate',
-			open:		'handleOpen',
-			update:		'handleUpdate',
-		} as const
+	private async getNavigation(index: LightboxOptions['index']): Promise<void> {
+		const base = { index },
+			config = this.directory ? base : Object.assign(this.options, base)
 
-		const eventsList = Object.entries(events) as Entries<typeof events>
-		for (const [event, method] of eventsList) {
-			const handler = this[method].bind(this)
-			this.dispatch.on(event, handler as HandlerFor<LightboxEventMap, typeof event>)
-		}
-	}
-
-	private async initialize({ elements, index, target }: LightboxOptions): Promise<void> {
-		if (this.isActive) return
-		console.log('init start')
-
-		const content = await this.content.render(target)
-		this.dom.setContent(content)
-		await this.media.load()
-
-		this.state.update('loaded:Content', true)
-
-		if (elements?.length) {
-			let directory = {} as ArrowGroup
-			try { directory = await this.navigator.configure(index, elements) }
-			finally { await this.handleUpdate({ directory, index }) }
-			console.log('end')
-		}
-	}
-
-	async handleUpdate({ directory, index }: LightboxEventMap['update']): Promise<void> {
-		if (!directory) return
-		console.log('start update')
-
-		this.currentIndex = index ?? 0
-		this.directory = directory
+		this.currentIndex = index
+		this.directory = await this.navigator.configure(config)
 
 		await this.prefetch(this.directory)
-		console.log('finish update')
 	}
 
-	async handleMount(options: LightboxOptions): Promise<void> {
-		await this.initialize(options)
-		this.registerHandlers()
-		this.dom.append()
-		console.log('appended')
+	private async getContent(target: LightboxOptions['target']): Promise<void> {
+		const content = await this.content.render(target)
+		this.dom.setContent(content)
+		this.state.update('loaded:Content', true)
 
+		await this.media.load()
 		await this.events.watch([
 			this.dom.get('image')?.querySelector('img'),
 			this.dom.get('player'),
 		])
-
 		this.state.update('loaded:Media', true)
 	}
 
-	async handleNavigate(dir: ArrowDirections): Promise<void> {
-		if (!this.isActive || !Object.keys(this.directory).length) return
-		await this.navigator.swapContent<typeof dir>(this.directory, dir)
+	async handleMount(options: LightboxOptions): Promise<void> {
+		if (this.isActive) return
+
+		this.options = options
+		this.dom.append()
+		this.registerHandlers()
+
+		const { index, target } = this.options
+		await this.getContent(target)
+		await this.getNavigation(index)
 	}
 
 	async handleOpen(): Promise<void> {
 		if (this.isActive) return
 		this.isActive = true
-		console.log('open')
+		console.log(this.isActive, this.state.get('isActive'))
 
 		this.dom.toggleDisable()
+		await this.state.pause('loaded:Content')
 
-		// await this.state.pause('loaded:Content')
 		this.dom.get('root').showModal()
 		this.dom.get('root').parentElement!.style.overflow = 'hidden'
 		this.dom.get('container')!.setAttribute('aria-hidden', 'false')
 
-		console.log('fade in')
 		await this.animator.Root.fadeIn()
 		this.media.play()
 		this.events.bind()
@@ -131,6 +119,7 @@ export class LightboxLifecycle implements ILifecycle {
 	async handleClose(): Promise<void> {
 		if (!this.isActive) return
 		this.isActive = false
+		console.log(this.isActive, this.state.get('isActive'))
 
 		this.dom.toggleDisable()
 		this.dom.toggleIcons()
@@ -146,14 +135,21 @@ export class LightboxLifecycle implements ILifecycle {
 		this.handleDestroy()
 	}
 
+	async handleSwap(dir: ArrowDirections): Promise<void> {
+		if (!this.isActive || !this.directory) return
+
+		const { index, target } = this.directory[dir]
+		await this.navigator.swapContent<typeof dir>(target)
+		await this.getNavigation(index)
+	}
+
 	handleDestroy(): void {
 		this.currentIndex = 0
-		this.directory = {} as ArrowGroup
+		this.directory = undefined
 		this.isActive = false
 
 		this.dispatch.clear()
 		this.media.dispose()
-		// this.state.reset()
 		this.dom.remove()
 	}
 
@@ -172,7 +168,7 @@ export class LightboxLifecycle implements ILifecycle {
 		console.error(`[Lightbox Error]: ${message}\n`, error)
 	}
 
-	handleMedia() {
+	handleMedia(): void {
 		const player = this.dom.get('player')
 
 		if (player instanceof HTMLVideoElement) {

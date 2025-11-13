@@ -1,11 +1,16 @@
 import type { BlockHandler, VideoMediaOptions } from './features.types.d.ts'
-import type { BlockTypes, PageDetails } from '../../../../../types'
 
 import type {
 	ArrowDirections,
 	ArrowGroup,
 	LightboxOptions,
 } from '../../../types'
+
+import type {
+	BlockTypes,
+	OnlyRequired,
+	PageDetails,
+} from '../../../../../types'
 
 
 export interface IBlocks {
@@ -38,16 +43,10 @@ export interface IMedia<T extends HTMLElement = HTMLElement> {
 
 
 export interface IMenu {
-	configure(
-		index: number,
-		elements?: LightboxOptions['elements']
-	): Promise<ArrowGroup>
+	configure(options: OnlyRequired<LightboxOptions, 'index'>): Promise<ArrowGroup>
 }
 
 
 export interface INavigator extends IMenu {
-	swapContent<T extends ArrowDirections>(
-		directory: ArrowGroup,
-		dir: T
-	): Promise<void>
+	swapContent<T extends ArrowDirections>(target: LightboxOptions['target']): Promise<void>
 }

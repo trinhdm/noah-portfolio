@@ -219,8 +219,8 @@ export class LightboxAnimator implements IAnimator {
 			this.animator.fadeTextBlocks()
 			await Animation.waitForEnd(targetBlock)
 
-			await this.animator.Media.fadeMediaBlocks?.()
 			this.fadeMain()
+			await this.animator.Media.fadeMediaBlocks?.()
 
 			await this.animator.waitForFinish()
 		}

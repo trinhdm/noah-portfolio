@@ -42,7 +42,7 @@ export class LightboxDOM implements IDOM {
 			}
 		} else {
 			wrapper.replaceChildren(...content.children)
-			this.rebuildCache()
+			this.cache.rebuild()
 		}
 	}
 

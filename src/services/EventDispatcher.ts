@@ -25,12 +25,10 @@ export class EventDispatcher<E extends Record<string, any>> {
 	once<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void {
 		const listener: HandlerFor<E, K> = payload => {
 			handler(payload)
-			console.log('listadsaen', event)
 			this.off(event, listener)
 		}
 
 		this.on(event, listener)
-		console.log({ event, listener })
 	}
 
 	async emit<K extends keyof E>(event: K, payload?: E[K]): Promise<void> {

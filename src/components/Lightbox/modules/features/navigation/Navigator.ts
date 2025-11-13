@@ -9,9 +9,9 @@ import type {
 } from '../../../types'
 
 import type { FilterValues } from '../../../../../types'
-import type { IAnimator, IDOM} from '../../presentation'
+import type { IAnimator, IDOM } from '../../presentation'
 import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
-import type { IDispatcher } from '../../core'
+import type { IDispatcher, IState } from '../../core'
 
 
 export class LightboxNavigator
@@ -25,9 +25,11 @@ extends LightboxMenu implements INavigator {
 		private animator: IAnimator,
 		private media: IMedia,
 		protected content: IContent,
-		private dispatch: IDispatcher
+		private dispatch: IDispatcher,
+		private state: IState
 	) {
 		super(dom, content)
+		this.state.bind(this, 'isSwapping')
 	}
 
 	private async setSwap<T extends ArrowDirections>(
@@ -67,10 +69,7 @@ extends LightboxMenu implements INavigator {
 		await this.animator.swap('in')
 	}
 
-	private async finishSwap(index: number): Promise<void> {
-		const directory = await this.configure(index)
-		await this.dispatch.emit('update', { directory, index })
-
+	private async finishSwap(): Promise<void> {
 		await Animation.wait(this.delay)
 		this.dom.setState('open')
 		this.dom.toggleDisable()
@@ -78,11 +77,7 @@ extends LightboxMenu implements INavigator {
 		this.media.play()
 	}
 
-	async swapContent<T extends ArrowDirections>(
-		directory: ArrowGroup,
-		dir: T
-	): Promise<void> {
-		const { index, target } = directory[dir]
+	async swapContent<T extends ArrowDirections>(target: ArrowGroup[T]['target']): Promise<void> {
 		if (this.isSwapping || !target) return
 
 		this.isSwapping = true
@@ -94,7 +89,7 @@ extends LightboxMenu implements INavigator {
 		const timeline = [
 			() => this.beginSwap(),
 			() => this.performSwap(),
-			() => this.finishSwap(index),
+			() => this.finishSwap(),
 		]
 
 		for (const step of timeline)

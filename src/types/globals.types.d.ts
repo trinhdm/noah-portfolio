@@ -17,6 +17,10 @@ export type FilterValues<T, V> = {
 	[K in keyof T as T[K] extends V ? never : K]: T[K]
 }
 
+export type WithOptional<T, U extends keyof T> = Omit<T, U> & Partial<Pick<T, U>>
+export type WithRequired<T, U extends keyof T> = T & Required<Pick<T, U>>
+export type OnlyRequired<T, U extends keyof T> = Partial<Omit<T, U>> & Required<Pick<T, U>>
+
 
 export type PageGroup = {
 	id: string
@@ -24,7 +28,7 @@ export type PageGroup = {
 }
 
 export type PageDetails = PageGroup & {
-	content: string
+	content: HTMLElement
 	title: HTMLElement | undefined
 }
 

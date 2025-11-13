@@ -1,4 +1,4 @@
-import type { ArrowDirections, ArrowGroup } from '../../../types'
+import type { ArrowDirections } from '../../../types'
 
 
 export interface LightboxEventMap {
@@ -8,31 +8,24 @@ export interface LightboxEventMap {
 		message?: string
 	}
 	media: void
-	navigate: ArrowDirections
 	open: void
-	update: {
-		directory?: ArrowGroup
-		index: number
-	}
+	swap: ArrowDirections
 }
 
 
+type StatefulModules = 'Content' | 'Media' | 'Navigator' | 'Root'
 
-
-interface ModuleLoadStates {
-	Content: boolean
-	Media: boolean
-	Navigator: boolean
-}
-
-
-export type LightboxStateEvent = 'active' | 'inactive' | 'loaded'
+type LightboxStateEvent = 'active' | 'loaded'
 
 type LightboxStateEvents = {
 	[E in LightboxStateEvent as `state:${E}`]: boolean
 }
 
-export type LightboxStateKey = `${LightboxStateEvent}:${keyof ModuleLoadStates}`
+type LightboxStateToggles = 'isActive'
+
+export type LightboxStateKey = `${LightboxStateEvent}:${StatefulModules}` | LightboxStateToggles
+
+
 type LightboxStateKeys = {
 	[K in LightboxStateKey as `state:${K}`]: boolean
 }

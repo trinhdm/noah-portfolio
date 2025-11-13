@@ -2,6 +2,7 @@ import { LightboxSelector } from '../../../utils'
 import type { ArrowDirections, ArrowGroup, LightboxOptions } from '../../../types'
 import type { IContent, IMenu } from '../types/interfaces.d.ts'
 import type { IDOM } from '../../presentation'
+import type { OnlyRequired } from '../../../../../types/globals.types.d.ts'
 
 
 export class LightboxMenu implements IMenu {
@@ -12,10 +13,7 @@ export class LightboxMenu implements IMenu {
 		protected content: IContent
 	) {}
 
-	async configure(
-		index: number,
-		elements?: LightboxOptions['elements']
-	): Promise<ArrowGroup> {
+	async configure({ elements, index }: OnlyRequired<LightboxOptions, 'index'>): Promise<ArrowGroup> {
 		if (elements?.length) this.elements = elements
 
 		const directory = await this.getDirectory(index)
@@ -43,7 +41,7 @@ export class LightboxMenu implements IMenu {
 		await Promise.all(
 			dirs.map(async dir => {
 				const adj = adjacents[dir],
-					details = adj.target ? await this.content.fetch(adj.target) : {}
+					details = await (adj.target ? this.content.fetch(adj.target) : {})
 				directory[dir] = Object.assign({}, adj, details)
 			})
 		)

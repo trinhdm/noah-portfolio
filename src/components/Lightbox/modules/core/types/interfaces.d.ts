@@ -1,12 +1,16 @@
 import type { HandlerFor } from '../../../../../services'
-import type { LightboxEventMap, LightboxStateEvent, LightboxStateMap, LightboxStates } from './core.types.d.ts'
 
 import type {
 	ArrowDirections,
-	ArrowGroup,
 	LightboxElements,
 	LightboxOptions,
 } from '../../../types'
+
+import type {
+	LightboxEventMap,
+	LightboxStateKey,
+	LightboxStateMap,
+} from './core.types.d.ts'
 
 
 export interface IController {
@@ -36,9 +40,8 @@ export interface ILifecycle {
 	handleDestroy(): void
 	handleError({ error, message }: LightboxEventMap['error']): void
 	handleMount(options: LightboxOptions): Promise<void>
-	handleNavigate(dir: ArrowDirections): Promise<void>
 	handleOpen(): Promise<void>
-	handleUpdate({ directory, index }: LightboxEventMap['update']): Promise<void>
+	handleSwap(dir: ArrowDirections): Promise<void>
 }
 
 
@@ -49,8 +52,14 @@ export interface IManager {
 
 
 export interface IState {
+	bind<T extends object>(
+		target: T, prop: string
+	): void
+	get(key: LightboxStateKey): boolean | undefined
 	pause(key: LightboxStateKey): Promise<void>
 	reset(): void
-	subscribe(key: LightboxStateKey, listener: () => void): void
-	update(key: `loaded:${keyof LightboxStates['isLoaded']}`, value: boolean): void
+	subscribe(
+		key: LightboxStateKey, listener: (...args: any) => void
+	): void
+	update(key: LightboxStateKey, value: boolean): void
 }

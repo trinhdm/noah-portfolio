@@ -47,7 +47,7 @@ export class LightboxEvents implements IEvents {
 
 		for (const arrow of arrows) {
 			const direction = arrow.dataset.direction as ArrowDirections
-			this.handleClick(arrow, () => this.dispatch.emit('navigate', direction))
+			this.handleClick(arrow, () => this.dispatch.emit('swap', direction))
 		}
 	}
 
@@ -55,10 +55,10 @@ export class LightboxEvents implements IEvents {
 		const icons = this.dom.get('icons')
 
 		const keyHandlers = {
-			ArrowDown: () => this.dispatch.emit('navigate', 'next'),
-			ArrowLeft: () => this.dispatch.emit('navigate', 'prev'),
-			ArrowRight: () => this.dispatch.emit('navigate', 'next'),
-			ArrowUp: () => this.dispatch.emit('navigate', 'prev'),
+			ArrowDown: () => this.dispatch.emit('swap', 'next'),
+			ArrowLeft: () => this.dispatch.emit('swap', 'prev'),
+			ArrowRight: () => this.dispatch.emit('swap', 'next'),
+			ArrowUp: () => this.dispatch.emit('swap', 'prev'),
 			Escape: () => this.dispatch.emit('close'),
 		} as const
 

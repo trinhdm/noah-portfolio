@@ -1,20 +1,39 @@
-import { LightboxDispatcher } from './Dispatcher'
+import { LightboxDispatcher } from './Dispatcher.ts'
 import type { IDispatcher, IState } from './types/interfaces.d.ts'
-import type { LightboxStateKey, LightboxStateMap, ModuleLoadStates } from './types/core.types.d.ts'
+import type { LightboxStateKey, LightboxStateMap } from './types/core.types.d.ts'
 
 
 export class LightboxState implements IState {
 	private readonly dispatchState: IDispatcher<LightboxStateMap>
 
-	private flags = new Map<string, boolean>()
-	private waiters = new Map<string, ((value: boolean) => void)[]>()
+	private store = new Map<string, boolean>()
+	private listeners = new Map<string, ((value: boolean) => void)[]>()
 
 	constructor() {
 		this.dispatchState = new LightboxDispatcher<LightboxStateMap>()
 	}
 
-	private get(key: LightboxStateKey): boolean | undefined {
-		return this.flags.has(key) ? this.flags.get(key) : undefined
+	bind<T extends object>(target: T, prop: string): void {
+		const key = prop as LightboxStateKey,
+			initial = this.get(key)
+
+		if (initial !== undefined) (target as any)[key] = initial
+		let internal = (target as any)[key]
+
+		Object.defineProperty(target, key, {
+			get() { return internal },
+			set: (value) => {
+				internal = value
+				this.update(key, value)
+			},
+			configurable: true,
+		})
+
+		this.subscribe(key, value => (internal = value))
+	}
+
+	get(key: LightboxStateKey): boolean | undefined {
+		return this.store.has(key) ? this.store.get(key) : undefined
 	}
 
 	async pause(key: LightboxStateKey): Promise<void> {
@@ -23,26 +42,26 @@ export class LightboxState implements IState {
 		return new Promise<void>(resolve => {
 			console.log(`pause ${key}`, this.get(key))
 
-			const existing = this.waiters.get(key) ?? []
+			const existing = this.listeners.get(key) ?? []
 			existing.push(() => resolve())
-			this.waiters.set(key, existing)
+			this.listeners.set(key, existing)
 		})
 	}
 
-	subscribe(key: LightboxStateKey, listener: () => void): void {
+	subscribe(key: LightboxStateKey, listener: (...args: any[]) => void): void {
 		this.dispatchState.once(`state:${key}`, listener)
 	}
 
-	update(key: `loaded:${keyof ModuleLoadStates}`, value: boolean): void {
+	update(key: LightboxStateKey, value: boolean): void {
 		if (this.get(key) === value) return
 
-		this.flags.set(key, value)
+		this.store.set(key, value)
 		this.dispatchState.emit(`state:${key}`, { key, value })
 		console.log(`update, ${key}: ${value}`)
 	}
 
 	reset(): void {
-		this.flags.clear()
-		this.waiters.clear()
+		this.store.clear()
+		this.listeners.clear()
 	}
 }

@@ -53,7 +53,8 @@ export class LightboxController implements IController {
 			this.animator,
 			this.media,
 			this.content,
-			this.dispatch
+			this.dispatch,
+			this.state
 		)
 
 		this.lifecycle = new LightboxLifecycle(
