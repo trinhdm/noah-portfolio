@@ -3,6 +3,7 @@ import { LightboxBlockSelector, LightboxSelector } from '../../../utils'
 import type { FilterValues } from '../../../../../types'
 import type { IAnimator, IDOM } from '../types/interfaces'
 import type { LightboxElement, LightboxElements } from '../../../types'
+import type { IState } from '../../core/types/interfaces'
 
 
 export class LightboxAnimator implements IAnimator {
@@ -18,7 +19,10 @@ export class LightboxAnimator implements IAnimator {
 	Media: InstanceType<typeof LightboxAnimator.Media>
 	Root: InstanceType<typeof LightboxAnimator.Root>
 
-	constructor(private dom: IDOM) {
+	constructor(
+		private dom: IDOM,
+		private state: IState
+	) {
 		this.Media = new LightboxAnimator.Media(this)
 		this.Root = new LightboxAnimator.Root(this)
 	}

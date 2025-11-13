@@ -16,8 +16,9 @@ import { LightboxLifecycle } from './Lifecycle'
 
 import type { IContent, IMedia, INavigator } from '../features'
 import type { IAnimator, IDOM, IEvents } from '../presentation'
-import type { IController, IDispatcher, ILifecycle } from './types/interfaces.d.ts'
+import type { IController, IDispatcher, ILifecycle, IState } from './types/interfaces.d.ts'
 import type { LightboxElements, LightboxOptions } from '../../types'
+import type { LightboxEventMap } from './types/core.types.d.ts'
 
 
 export class LightboxController implements IController {
@@ -34,12 +35,15 @@ export class LightboxController implements IController {
 
 	private readonly lifecycle: ILifecycle
 
-	constructor(private options: LightboxOptions) {
-		this.dispatch = new LightboxDispatcher()
+	constructor(
+		private options: LightboxOptions,
+		private state: IState
+	) {
+		this.dispatch = new LightboxDispatcher<LightboxEventMap>()
 		this.root = new LightboxFactory().createRoot(this.options)
 
 		this.dom = new LightboxDOM(this.root)
-		this.animator = new LightboxAnimator(this.dom)
+		this.animator = new LightboxAnimator(this.dom, this.state)
 		this.events = new LightboxEvents(this.dom, this.dispatch)
 		this.media = new LightboxMedia(this.dom, this.dispatch)
 
@@ -59,7 +63,8 @@ export class LightboxController implements IController {
 			this.media,
 			this.navigator,
 			this.content,
-			this.dispatch
+			this.dispatch,
+			this.state
 		)
 	}
 

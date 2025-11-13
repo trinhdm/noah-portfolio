@@ -11,7 +11,7 @@ import type { HandlerFor } from '../../../../services'
 import type { LightboxEventMap } from './types/core.types.d.ts'
 import type { IAnimator, IDOM, IEvents } from '../presentation'
 import type { IContent, IMedia, INavigator } from '../features'
-import type { IDispatcher, ILifecycle } from './types/interfaces.d.ts'
+import type { IDispatcher, ILifecycle, IState } from './types/interfaces.d.ts'
 
 
 export class LightboxLifecycle implements ILifecycle {
@@ -27,7 +27,8 @@ export class LightboxLifecycle implements ILifecycle {
 		private media: IMedia,
 		private navigator: INavigator,
 		private content: IContent,
-		private dispatch: IDispatcher
+		private dispatch: IDispatcher,
+		private state: IState
 	) {}
 
 	private async prefetch(directory: ArrowGroup): Promise<void> {

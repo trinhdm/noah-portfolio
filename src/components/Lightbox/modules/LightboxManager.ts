@@ -1,9 +1,11 @@
-import { LightboxController } from './core'
+import { LightboxController, LightboxState } from './core'
+import type { IController } from './core'
 import type { IManager, LightboxOptions } from '../types'
 
 
 export class LightboxManager implements IManager {
-	private instance: LightboxController | null = null
+	private instance: IController | null = null
+	private state = new LightboxState()
 
 	constructor(private options: LightboxOptions) {
 		this.instance = null
@@ -16,7 +18,7 @@ export class LightboxManager implements IManager {
 		if (typeof index === 'number' && index < elements.length)
 			this.options = { elements, index, target: elements[index] }
 
-		const controller = new LightboxController(this.options)
+		const controller = new LightboxController(this.options, this.state)
 		this.instance = controller
 
 		await controller.mount()

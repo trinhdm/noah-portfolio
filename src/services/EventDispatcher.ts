@@ -22,6 +22,17 @@ export class EventDispatcher<E extends Record<string, any>> {
 		this.listeners.get(event)?.delete(handler as EventHandler<E>)
 	}
 
+	once<K extends keyof E>(event: K, handler: HandlerFor<E, K>): void {
+		const listener: HandlerFor<E, K> = payload => {
+			handler(payload)
+			console.log('listadsaen', event)
+			this.off(event, listener)
+		}
+
+		this.on(event, listener)
+		console.log({ event, listener })
+	}
+
 	async emit<K extends keyof E>(event: K, payload?: E[K]): Promise<void> {
 		const set = this.listeners.get(event)
 		if (!set || set.size === 0) return
@@ -32,7 +43,8 @@ export class EventDispatcher<E extends Record<string, any>> {
 			try {
 				const response = (handler as any)(payload)
 				if (response instanceof Promise) await response
-			} catch (err) { console.error(`[EventService] failed on:`, String(event), err) }
+			}
+			catch (err) { console.error(`[EventService] failed on:`, String(event), err) }
 		}
 	}
 
