@@ -2,8 +2,8 @@ import { AnimationService as Animation, AnimationOptions } from '../../../../../
 import { LightboxBlockSelector, LightboxSelector } from '../../../utils'
 import type { FilterValues } from '../../../../../types'
 import type { IAnimator, IDOM } from '../types/interfaces'
-import type { LightboxElement, LightboxElements } from '../../../types'
 import type { IState } from '../../core/types/interfaces'
+import type { LightboxElement, LightboxElements } from '../../../types'
 
 
 export class LightboxAnimator implements IAnimator {

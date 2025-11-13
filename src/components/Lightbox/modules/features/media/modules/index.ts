@@ -1,6 +1,7 @@
-import NativeMedia from './NativeMedia'
-import YoutubeMedia from './YoutubeMedia'
-import { MediaFactory, MediaModule } from '../MediaFactory.ts'
+import NativeMedia from './NativeMedia.ts'
+import YoutubeMedia from './YoutubeMedia.ts'
+import { MediaFactory } from '../MediaFactory.ts'
+import type { MediaModule } from '../../types/features.types.d.ts'
 
 
 const registerLoaders = () => {

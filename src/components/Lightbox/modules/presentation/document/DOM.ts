@@ -36,8 +36,12 @@ export class LightboxDOM implements IDOM {
 					replacement = content.querySelector(selector)
 
 				if (replacement) {
+					console.log('replacement', replacement)
 					child.replaceWith(replacement)
 					this.reset(ckey)
+				} else {
+					console.log('child', child, 'replacement', replacement, { selector })
+					console.log('---')
 				}
 			}
 		} else {
@@ -94,7 +98,29 @@ export class LightboxDOM implements IDOM {
 		}[key]
 	}
 
-	setData<K extends keyof DataValues>(key: K, value: DataValues[K]): void {
-		this.root.dataset[key] = value
-	}
+	// setData<K extends keyof DataValues>(key: K, value: DataValues[K]): void {
+	// 	this.root.dataset[key] = value
+	// }
+
+	// reset<K extends keyof LightboxElements>(key: K): void { this.cache.reset(key) }
+
+	// append(): void { document.body.appendChild(this.root) }
+
+	// remove(): void { this.root.remove() }
+
+	// toggleIcons(): void { this.cache.get('icons').forEach(c => c.disabled = !c.disabled) }
+
+	// getData<K extends keyof DataValues>(key: K): DataValues[K] {
+	// 	const value = this.root.dataset[key]
+	// 	return {
+	// 		animate: value as LightboxAnimations,
+	// 		disabled: value as `${boolean}`,
+	// 		state: value as LightboxStates,
+	// 	}[key]
+	// }
+
+	// setData(data: Partial<DataValues>): void {
+	// 	for (const [key, value] of Object.entries(data))
+	// 		this.root.dataset[key] = value
+	// }
 }

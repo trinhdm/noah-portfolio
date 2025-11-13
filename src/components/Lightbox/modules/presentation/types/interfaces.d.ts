@@ -4,7 +4,6 @@ import type {
 	DataValues,
 	LightboxAnimations,
 	LightboxStates,
-	LightboxVideoOptions,
 } from './presentation.types.d.ts'
 
 

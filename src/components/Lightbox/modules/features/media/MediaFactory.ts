@@ -1,21 +1,13 @@
-
-import { BaseMedia } from './BaseMedia.ts'
-import type { VideoMediaOptions } from '../types/features.types'
-
-
-export interface MediaModule<T extends HTMLElement = HTMLElement> {
-	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
-	isMatch?(element: T): boolean
-}
-
-export type AsyncLoader<T extends HTMLElement = HTMLElement> = () => Promise<
-	{ default: MediaModule<T> }
->
+import type {
+	AsyncLoader,
+	MediaModule,
+	VideoMediaOptions,
+} from '../types/features.types.d.ts'
 
 
 export class MediaFactory {
 	private static asyncModules = new Set<AsyncLoader<any>>()
-	private static syncModules = new Set<MediaModule<any>>()
+	private static modules = new Set<MediaModule<any>>()
 
 	private static loaderCache = new Map<
 		AsyncLoader<any>, Promise<{ default: MediaModule<any> }>
@@ -25,7 +17,7 @@ export class MediaFactory {
 	static register<T extends HTMLElement>(Module: MediaModule<T>): void
 	static register(arg: any): void {
 		if (typeof arg === 'function' && 'prototype' in arg)
-			this.syncModules.add(arg as MediaModule<any>)
+			this.modules.add(arg as MediaModule<any>)
 		else if (typeof arg === 'function')
 			this.asyncModules.add(arg as AsyncLoader<any>)
 		else
@@ -36,7 +28,7 @@ export class MediaFactory {
 		element: T,
 		options?: VideoMediaOptions
 	): Promise<InstanceType<MediaModule<T>>> {
-		for (const Module of this.syncModules) {
+		for (const Module of this.modules) {
 			if (Module.isMatch?.(element))
 				return new Module(element, options)
 		}

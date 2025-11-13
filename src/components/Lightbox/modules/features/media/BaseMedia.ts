@@ -1,7 +1,7 @@
 import Hls from 'hls.js'
 import * as Plyr from 'plyr'
-import type { IMedia } from '../types/interfaces'
-import type { VideoMediaOptions } from '../types/features.types'
+import type { IMedia } from '../types/interfaces.d.ts'
+import type { VideoMediaOptions } from '../types/features.types.d.ts'
 
 
 export abstract class BaseMedia<T extends HTMLElement = HTMLElement>

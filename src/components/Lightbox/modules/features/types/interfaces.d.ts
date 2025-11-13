@@ -1,10 +1,5 @@
+import type { ArrowGroup, LightboxOptions } from '../../../types'
 import type { BlockHandler, VideoMediaOptions } from './features.types.d.ts'
-
-import type {
-	ArrowDirections,
-	ArrowGroup,
-	LightboxOptions,
-} from '../../../types'
 
 import type {
 	BlockTypes,
@@ -27,11 +22,6 @@ export interface IContent {
 }
 
 
-export interface MediaModule<T extends HTMLElement = HTMLElement> {
-	new (element: T, options?: VideoMediaOptions): BaseMedia<T>
-	isValid(element: HTMLElement): boolean
-}
-
 export interface IMedia<T extends HTMLElement = HTMLElement> {
 	readonly element?: T
 	dispose(): void
@@ -48,5 +38,5 @@ export interface IMenu {
 
 
 export interface INavigator extends IMenu {
-	swapContent<T extends ArrowDirections>(target: LightboxOptions['target']): Promise<void>
+	swapContent(target: LightboxOptions['target']): Promise<void>
 }

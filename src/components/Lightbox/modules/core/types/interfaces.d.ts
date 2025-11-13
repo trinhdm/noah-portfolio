@@ -8,8 +8,8 @@ import type {
 
 import type {
 	LightboxEventMap,
-	LightboxStateKey,
 	LightboxStateMap,
+	StateEventKey,
 } from './core.types.d.ts'
 
 
@@ -55,11 +55,11 @@ export interface IState {
 	bind<T extends object>(
 		target: T, prop: string
 	): void
-	get(key: LightboxStateKey): boolean | undefined
-	pause(key: LightboxStateKey): Promise<void>
+	get(key: StateEventKey): boolean | undefined
+	pause(key: StateEventKey): Promise<void>
 	reset(): void
 	subscribe(
-		key: LightboxStateKey, listener: (...args: any) => void
+		key: StateEventKey, listener: (...args: any) => void
 	): void
-	update(key: LightboxStateKey, value: boolean): void
+	update(key: StateEventKey, value: boolean): void
 }

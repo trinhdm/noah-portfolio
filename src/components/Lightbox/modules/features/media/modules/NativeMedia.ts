@@ -1,7 +1,7 @@
 import Hls from 'hls.js'
 import Plyr from 'plyr'
 import { BaseMedia } from '../BaseMedia.ts'
-import type { VideoMediaOptions } from '../../types/features.types'
+import type { VideoMediaOptions } from '../../types/features.types.d.ts'
 
 
 export class NativeMedia extends BaseMedia<HTMLVideoElement> {

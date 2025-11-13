@@ -1,17 +1,11 @@
 import { AnimationService as Animation } from '../../../../../services'
 import { LightboxMenu } from './Menu.ts'
 import { LightboxSelector } from '../../../utils'
-
-import type {
-	ArrowDirections,
-	ArrowGroup,
-	LightboxElements,
-} from '../../../types'
-
 import type { FilterValues } from '../../../../../types'
 import type { IAnimator, IDOM } from '../../presentation'
 import type { IContent, IMedia, INavigator } from '../types/interfaces.d.ts'
 import type { IDispatcher, IState } from '../../core'
+import type { LightboxElements, LightboxOptions } from '../../../types'
 
 
 export class LightboxNavigator
@@ -32,8 +26,8 @@ extends LightboxMenu implements INavigator {
 		this.state.bind(this, 'isSwapping')
 	}
 
-	private async setSwap<T extends ArrowDirections>(
-		target: NonNullable<ArrowGroup[T]['target']>,
+	private async setSwap(
+		target: NonNullable<LightboxOptions['target']>,
 		element: keyof FilterValues<LightboxElements, Element[]> = 'image'
 	): Promise<void> {
 		const content = await this.content.render(target),
@@ -77,12 +71,12 @@ extends LightboxMenu implements INavigator {
 		this.media.play()
 	}
 
-	async swapContent<T extends ArrowDirections>(target: ArrowGroup[T]['target']): Promise<void> {
+	async swapContent(target: LightboxOptions['target']): Promise<void> {
 		if (this.isSwapping || !target) return
 
 		this.isSwapping = true
 
-		await this.setSwap<T>(target)
+		await this.setSwap(target)
 		if (!this.pendingContent?.children) return
 
 		const message = 'LightboxNavigator.swapContent() failed'

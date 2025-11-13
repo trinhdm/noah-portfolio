@@ -1,5 +1,5 @@
 import { BaseMedia } from '../BaseMedia.ts'
-import type { VideoMediaOptions } from '../../types/features.types'
+import type { VideoMediaOptions } from '../../types/features.types.d.ts'
 
 
 export class YoutubeMedia extends BaseMedia<HTMLIFrameElement> {
