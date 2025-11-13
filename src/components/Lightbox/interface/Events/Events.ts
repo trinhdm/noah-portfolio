@@ -1,5 +1,5 @@
-import type { ArrowDirections } from '../../types/index.ts'
-import type { IDispatcher } from '../../core/types/interfaces'
+import type { ArrowDirections } from '../../types'
+import type { IDispatcher } from '../../manager'
 import type { IDOM, IEvents } from '../types/interfaces'
 
 

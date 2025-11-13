@@ -1,8 +1,8 @@
-import { AnimationService as Animation, AnimationOptions } from '../../../../services/index.ts'
-import type { FilterValues } from '../../../../types/index.ts'
+import { AnimationService as Animation, AnimationOptions } from '../../../../services'
+import type { FilterValues } from '../../../../types'
 import type { IDOM } from '../types/interfaces'
-import type { IState } from '../../core/types/interfaces'
-import type { LightboxElement, LightboxElements } from '../../types/index.ts'
+import type { IState } from '../../manager'
+import type { LightboxElement, LightboxElements } from '../../types'
 
 
 export interface AnimatorContext {
