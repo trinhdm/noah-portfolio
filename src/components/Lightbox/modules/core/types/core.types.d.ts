@@ -19,24 +19,20 @@ export interface LightboxEventMap {
 
 
 
-interface LightboxLoadStates {
+interface ModuleLoadStates {
 	Content: boolean
 	Media: boolean
 	Navigator: boolean
 }
 
-interface LightboxStates {
-	isActive: boolean
-	isLoaded: LightboxLoadStates
-	isReady: boolean
-}
 
-export type LightboxStateEvent = Lowercase<keyof LightboxStates extends `is${infer N}` ? N : never>
+export type LightboxStateEvent = 'active' | 'inactive' | 'loaded'
+
 type LightboxStateEvents = {
 	[E in LightboxStateEvent as `state:${E}`]: boolean
 }
 
-export type LightboxStateKey = `${LightboxStateEvent}:${keyof LightboxLoadStates}`
+export type LightboxStateKey = `${LightboxStateEvent}:${keyof ModuleLoadStates}`
 type LightboxStateKeys = {
 	[K in LightboxStateKey as `state:${K}`]: boolean
 }
@@ -46,3 +42,7 @@ type LightboxChangeState = {
 }
 
 export type LightboxStateMap = LightboxStateEvents & LightboxChangeState
+
+
+
+type LightboxStateEvent2 = LightboxStateKey extends `loaded${infer N}` ? N : never

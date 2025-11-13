@@ -1,1 +1,5 @@
-export type { IController, IDispatcher } from './interfaces.d.ts'
+export type {
+	IController,
+	IDispatcher,
+	IState,
+} from './interfaces.d.ts'

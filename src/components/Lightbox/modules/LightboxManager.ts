@@ -28,6 +28,7 @@ export class LightboxManager implements IManager {
 	async close(): Promise<void> {
 		if (!this.instance) return
 		await this.instance?.close()
+		this.state.reset()
 		this.instance = null
 	}
 }

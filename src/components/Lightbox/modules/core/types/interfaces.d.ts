@@ -49,7 +49,8 @@ export interface IManager {
 
 
 export interface IState {
-	ready(key: keyof LightboxStates['isLoaded']): void
+	pause(key: LightboxStateKey): Promise<void>
+	reset(): void
 	subscribe(key: LightboxStateKey, listener: () => void): void
 	update(key: `loaded:${keyof LightboxStates['isLoaded']}`, value: boolean): void
 }
