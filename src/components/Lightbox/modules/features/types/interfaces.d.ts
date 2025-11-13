@@ -1,4 +1,4 @@
-import type { BlockHandler } from './features.types.d.ts'
+import type { BlockHandler, VideoMediaOptions } from './features.types.d.ts'
 import type { BlockTypes, PageDetails } from '../../../../../types'
 
 import type {
@@ -30,7 +30,7 @@ export interface MediaModule<T extends HTMLElement = HTMLElement> {
 export interface IMedia<T extends HTMLElement = HTMLElement> {
 	readonly element?: T
 	dispose(): void
-	load(options?: LightboxVideoOptions): void
+	load(element?: T, options?: VideoMediaOptions): void | Promise<void>
 	pause(): void
 	play(): void
 	stop(): void

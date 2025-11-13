@@ -101,6 +101,7 @@ class BlockDispatcher {
 					link = container.querySelector('a')
 
 				if (!img) return null
+				img.setAttribute('fetchpriority', 'high')
 
 				if (link) {
 					link.removeAttribute('href')
@@ -149,14 +150,20 @@ class BlockDispatcher {
 				if (!json?.length) return null
 
 				try {
-					const { alexandriaLibraryId, systemDataId } = JSON.parse(json)
+					const {
+						alexandriaLibraryId,
+						filename,
+						systemDataId,
+					} = JSON.parse(json)
+
 					if (!alexandriaLibraryId || !systemDataId) return null
 
 					const url = `https://video.squarespace-cdn.com/content/v1/${alexandriaLibraryId}/${systemDataId}`
 
 					return {
+						id: filename.split('.').at(0).replace(/\s/g, ''),
 						poster: `${url}/thumbnail`,
-						source: `${url}/playlist.m3u8`,
+						src: `${url}/playlist.m3u8`,
 					}
 				} catch { return null }
 			},
@@ -165,17 +172,23 @@ class BlockDispatcher {
 				const config = Video.parse(json)
 				if (!config) return null
 
-				const video: HTMLVideoElement = document.createElement('video')
 				const attributes = {
 					controls: true,
-					crossOrigin: true,
+					crossOrigin: 'true',
 					muted: true,
-					playsInline: true,
-					poster: config.poster,
-					src: config.source,
+					// playsInline: true,
+					preload: 'none',
+					...config,
 				}
 
-				Object.assign(video, attributes)
+				const video: HTMLVideoElement = document.createElement('video')
+
+				for (const [key, val] of Object.entries(attributes)) {
+					const attr = Object.hasOwn(config, key) ? `data-${key}` : key,
+						value = typeof val === 'boolean' ? '' : val
+
+					video.setAttribute(attr, value)
+				}
 
 				return video
 			},
@@ -183,15 +196,17 @@ class BlockDispatcher {
 
 		return BlockDispatcher.handleBlock(block, '.embed-block-wrapper',
 			(outputBlock, container) => {
-				let element: HTMLIFrameElement | HTMLVideoElement | null = null
+				let data: string | undefined,
+					element: HTMLIFrameElement | HTMLVideoElement | null = null
+
 				const nativeData = block.querySelector('[data-config-video]'),
 					iframeData = block.querySelector('[data-html]')
 
 				if (nativeData) {
-					const data = (nativeData as HTMLElement).dataset?.configVideo
+					data = (nativeData as HTMLElement).dataset?.configVideo
 					element = Video.create(data)
 				} else if (iframeData) {
-					const data = (iframeData as HTMLElement).dataset?.html
+					data = (iframeData as HTMLElement).dataset?.html
 					element = IFrame.create(data)
 				}
 

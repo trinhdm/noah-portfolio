@@ -1,5 +1,5 @@
 import Hls from 'hls.js'
-import * as Plyr from 'plyr'
+import Plyr from 'plyr'
 import { BaseMedia } from '../BaseMedia.ts'
 import type { VideoMediaOptions } from '../../types/features.types'
 
@@ -20,15 +20,24 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 	load(): void {
 		if (!this.media) return
 
+		this.applyAttributes()
+
+		if (!this.media.src) {
+			this.media.src = this.media.getAttribute('data-src') ?? ''
+			this.media.removeAttribute('data-src')
+			this.media.load()
+
+			this.source = this.media.src
+		}
+
 		if (Hls.isSupported()) this.loadHls()
 		else this.loadPlyr()
-
-		this.applyAttributes()
 	}
 
 	dispose(): void {
 		if (this.instance) this.instance.destroy?.()
 		this.instance = undefined
+		this.media?.removeAttribute('src')
 	}
 
 	pause(): void { this.media?.pause() }
@@ -44,12 +53,20 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 	private loadHls(): void {
 		if (!this.media) return
 
-		this.instance = new Hls()
-		this.instance.loadSource(this.media.src)
-		this.instance.attachMedia(this.media)
+		const hls = new Hls()
+		hls.loadSource(this.source)
+		hls.attachMedia(this.media)
+		// hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+		// 	// console.log('Manifest parsed!', data)
+		// 	player.play()
+		// 	// setTimeout(() => this.loadPlyr(), 10000)
+		// })
+
+		window.hls = hls
+		this.instance = hls
 	}
 
-	private loadPlyr(): void {
+	private loadPlyr(): Plyr | undefined {
 		if (!this.media) return
 
 		const plyrOptions = this.options
@@ -60,7 +77,20 @@ export class NativeMedia extends BaseMedia<HTMLVideoElement> {
 			} as Partial<Plyr.Options>
 			: {}
 
-		this.instance = new Plyr.default(this.media, plyrOptions)
+		const player = new Plyr(this.media, {
+			debug:                true,
+		})
+
+		this.media.load()
+		window.plyr = player
+		// Plyr.setup(`#${this.media.id}`, plyrOptions)
+
+		console.log(player)
+		console.log('---')
+		// console.log(this.media)
+		console.log({ id: `#${this.media.id}` })
+
+		return player
 	}
 
 	private applyAttributes(): void {

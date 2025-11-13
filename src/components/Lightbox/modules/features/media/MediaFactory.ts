@@ -32,27 +32,13 @@ export class MediaFactory {
 			throw new TypeError('invalid argument passed to MediaFactory.register()')
 	}
 
-	static create<T extends HTMLElement>(
-		element: T,
-		options?: VideoMediaOptions
-	): InstanceType<MediaModule<T>> {
-		for (const Module of this.syncModules) {
-			if (Module.isMatch?.(element))
-				return new Module(element, options)
-		}
-
-		throw new Error(`no matching MediaModule found for element: ${element.tagName}`)
-	}
-
-	static async createAsync<T extends HTMLElement>(
+	static async create<T extends HTMLElement>(
 		element: T,
 		options?: VideoMediaOptions
 	): Promise<InstanceType<MediaModule<T>>> {
 		for (const Module of this.syncModules) {
-			if (Module.isMatch?.(element)) {
-				console.log({ sync: Module })
+			if (Module.isMatch?.(element))
 				return new Module(element, options)
-			}
 		}
 
 		for (const loader of this.asyncModules) {
@@ -67,7 +53,6 @@ export class MediaFactory {
 				Module = mod.default
 
 			if (Module.isMatch?.(element)) {
-				console.log({ async: Module })
 				this.register(Module)
 				return new Module(element, options)
 			}

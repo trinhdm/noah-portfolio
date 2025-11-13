@@ -8,6 +8,7 @@ export abstract class BaseMedia<T extends HTMLElement = HTMLElement>
 implements IMedia<T> {
 	protected instance?: Hls | Plyr
 	protected media?: T
+	protected source: string = ''
 
 	constructor(protected options?: VideoMediaOptions) {}
 

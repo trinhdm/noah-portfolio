@@ -11,6 +11,7 @@ export class ContentService {
 	}
 
 	async fetch(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
+		if (!target) return
 		const id = this.getID(target)
 
 		if (this.cache.has(id)) return this.cache.get(id)
@@ -21,7 +22,7 @@ export class ContentService {
 		return fragment ?? undefined
 	}
 
-	async prefetch(target: HTMLElement | undefined): Promise<void> {
+	async prefetch(target: HTMLElement): Promise<void> {
 		const id = this.getID(target)
 		if (!id || this.cache.has(id)) return
 		await this.fetch(target)
@@ -34,22 +35,30 @@ export class ContentService {
 		await Promise.all([...unique].map(target => this.prefetch(target)))
 	}
 
-	private getID(target?: HTMLElement): string {
-		return (target?.dataset.id || target?.id || '').toString()
+	private getID(target: HTMLElement): string {
+		return (target.dataset.id || target.id || '').toString()
 	}
 
-	private buildURL(target: HTMLElement | undefined): PageGroup {
-		const anchor = target ? findChildBy(target, { tagName: 'a' }) : null
+	private isExternalURL(url: string) {
+		return new URL(url).origin !== location.origin
+	}
 
-		if (!anchor) return { id: '', url: '' }
+	private buildURL(target: HTMLElement): PageGroup | undefined {
+		const anchor = findChildBy<HTMLAnchorElement>(target, { tagName: 'a' })
+		if (!anchor) return
 
-		const { hash, href } = anchor as HTMLAnchorElement
-		const [link] = href?.split('#'),
-			separator = link?.includes('?') ? '&' : '?'
+		const { hash, href } = anchor
+		if (!href
+			|| !href.includes('#')
+			|| this.isExternalURL(href)
+		) return
+
+		const [path] = href.split('#'),
+			separator = path?.includes('?') ? '&' : '?'
 
 		return {
 			id: hash.slice(1),
-			url: `${link}${separator}format=html`,
+			url: `${path}${separator}format=html`,
 		}
 	}
 
@@ -63,7 +72,8 @@ export class ContentService {
 		return parent as HTMLElement || undefined
 	}
 
-	private async load(page: PageGroup): Promise<HTMLElement | undefined> {
+	private async load(page: PageGroup | undefined): Promise<HTMLElement | undefined> {
+		if (!page) return
 		const { id, url } = page
 
 		try {
@@ -76,20 +86,19 @@ export class ContentService {
 			if (!parent) throw new Error('element not found')
 			return parent
 		} catch (err) {
-			console.error(`[ContentService] fetch() failed for ${url}`, err)
+			console.error(`[ContentService] load() failed for ${url}`, err)
 			return undefined
 		}
 	}
 
-	private async retrieve(target: HTMLElement | undefined): Promise<PageDetails | undefined> {
+	private async retrieve(target: HTMLElement): Promise<PageDetails | undefined> {
 		const page = this.buildURL(target),
 			content = await this.load(page)
 
 		if (!content) return
 
-		const wrappers = content.querySelectorAll('[data-sqsp-text-block-content]'),
-			textWrapper = (Array.from(wrappers) as HTMLElement[]).find(el =>
-				isHeaderTag(el.firstElementChild!.tagName ?? '') === false)
+		const wrappers = Array.from(content.querySelectorAll('[data-sqsp-text-block-content]') ?? []),
+			textWrapper = wrappers.find(el => !isHeaderTag(el.firstElementChild?.tagName ?? ''))
 
 		if (!textWrapper) return
 
@@ -97,14 +106,10 @@ export class ContentService {
 			title = trimContent(textEl)
 
 		if (textEl && title) {
-			title.dataset.title = ''
+			title.setAttribute('data-title', '')
 			textEl.replaceWith(title)
 		}
 
-		return {
-			...page,
-			content: content.innerHTML.trim(),
-			title,
-		} as PageDetails
+		return { ...page, content, title } as PageDetails
 	}
 }

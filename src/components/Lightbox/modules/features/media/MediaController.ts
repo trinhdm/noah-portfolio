@@ -6,38 +6,56 @@ import type { IMedia } from '../types/interfaces.d.ts'
 import type { VideoMediaOptions } from '../types/features.types.d.ts'
 
 
-export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElement> {
-	private handler?: BaseMedia<HTMLIFrameElement | HTMLVideoElement>
-
-	private options: VideoMediaOptions = {
+export class MediaController<T extends HTMLElement = HTMLMediaElement>
+implements IMedia<T> {
+	private readonly defaults: VideoMediaOptions = {
 		controls: true,
 		loop: true,
 		muted: false,
 	}
+
+	private handler?: BaseMedia<T>
+	private options: VideoMediaOptions = this.defaults
+	private target?: T
+
 
 	constructor(
 		private dom: IDOM,
 		private dispatch: IDispatcher
 	) {}
 
-	async load(options?: VideoMediaOptions): Promise<void> {
+	private err(msg: string, error: any) {
+		const message = `LightboxMedia.${msg}`
+		return this.dispatch.emit('error', { error, message })
+	}
+
+	private async create(
+		element?: T,
+		options?: VideoMediaOptions
+	) {
+		this.target = (element ? element : this.dom.get('player')) as T
+		if (!this.target) return
+
+		this.options = options
+			? { ...this.options, ...options }
+			: this.options
+
+		// if (document.activeElement !== this.target)
+		// 	this.target.setAttribute('autofocus', '')
+
+		this.handler = await MediaFactory.create(this.target, this.options)
+		this.dom.reset('player')
+	}
+
+	async load(
+		element?: T,
+		options?: VideoMediaOptions
+	): Promise<void> {
 		this.dispose()
+		await this.create(element, options)
 
-		const player = this.dom.get('player')
-		if (!player) return
-
-		this.options = options ? { ...this.options, ...options } : this.options
-
-		try {
-			this.handler = await MediaFactory.createAsync(player, this.options)
-
-			if (this.handler) {
-				await this.handler.load()
-				player.setAttribute('autofocus', '')
-				this.dom.reset('player')
-				console.log(this.handler)
-			}
-		} catch (err) { this.err('load() failed', err) }
+		try { this.handler?.load() }
+		catch (err) { this.err('load() failed', err) }
 	}
 
 	dispose(): void {
@@ -59,10 +77,5 @@ export class MediaController implements IMedia<HTMLIFrameElement | HTMLVideoElem
 	stop(): void {
 		try { this.handler?.stop() }
 		catch (err) { this.err('stop() failed', err) }
-	}
-
-	private err(msg: string, error: any) {
-		const message = `LightboxMedia.${msg}`
-		return this.dispatch.emit('error', { error, message })
 	}
 }

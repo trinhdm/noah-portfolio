@@ -1,10 +1,10 @@
 import type { Properties } from '../types'
 
 
-export const findChildBy = (
+export const findChildBy = <T extends HTMLElement = HTMLElement>(
 	element: Element | undefined,
 	criteria: Record<string, number | string> = {}
-): HTMLElement | undefined => {
+): T | undefined => {
 	if (!element) return
 
 	const [property, value] = Object.entries(criteria)[0]
@@ -26,10 +26,10 @@ export const findChildBy = (
 	// 	condition = !!values?.length && values?.includes(`${value}`)
 	// }
 
-	if (matches) return element as HTMLElement
+	if (matches) return element as T
 
 	for (let child of Array.from(element.children)) {
-		const match = findChildBy(child as HTMLElement, criteria)
+		const match = findChildBy<T>(child as T, criteria)
 		if (match) return match
 	}
 
@@ -37,14 +37,13 @@ export const findChildBy = (
 }
 
 
-export const findElement = (
-	target:  HTMLElement | null,
+export const findParentBlock = (
+	target:  Element | null | undefined,
 	selector = '.fe-block'
-): HTMLElement | null => {
-	if (!target) return null
-	else if (target.matches(selector)) return target
-
-	return target.closest(selector) as HTMLElement | null
+): HTMLElement | undefined => {
+	if (!target) return undefined
+	else if (target.matches(selector)) return target as HTMLElement
+	return target.closest(selector) as HTMLElement | undefined
 }
 
 
