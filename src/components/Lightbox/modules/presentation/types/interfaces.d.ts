@@ -8,10 +8,8 @@ import type {
 
 
 export interface IAnimator {
-	Root: {
-		fadeIn(): Promise<void>
-		fadeOut(): Promise<void>
-	}
+	fadeIn(): Promise<void>
+	fadeOut(): Promise<void>
 	swap(direction: 'in' | 'out'): Promise<void>
 }
 

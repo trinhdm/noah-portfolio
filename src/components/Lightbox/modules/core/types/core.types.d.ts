@@ -19,7 +19,8 @@ type LightboxStateEvent = 'active' | 'loaded'
 
 type LightboxStateToggles = 'isActive'
 
-export type StateEventKey = `${LightboxStateEvent}:${StatefulModules}` | LightboxStateToggles
+export type StateEventKey = `${LightboxStateEvent}:${StatefulModules}`
+	| LightboxStateToggles
 
 
 type LightboxStateEvents = {

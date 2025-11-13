@@ -55,9 +55,10 @@ export interface IState {
 	bind<T extends object>(
 		target: T, prop: string
 	): void
+	clear(): void
 	get(key: StateEventKey): boolean | undefined
 	pause(key: StateEventKey): Promise<void>
-	reset(): void
+	reset<T extends StateEventKey>(event: T extends `${infer Category}:${string}` ? Category : never): void
 	subscribe(
 		key: StateEventKey, listener: (...args: any) => void
 	): void

@@ -36,12 +36,8 @@ export class LightboxDOM implements IDOM {
 					replacement = content.querySelector(selector)
 
 				if (replacement) {
-					console.log('replacement', replacement)
 					child.replaceWith(replacement)
 					this.reset(ckey)
-				} else {
-					console.log('child', child, 'replacement', replacement, { selector })
-					console.log('---')
 				}
 			}
 		} else {

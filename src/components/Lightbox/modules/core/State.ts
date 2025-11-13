@@ -55,10 +55,18 @@ export class LightboxState implements IState {
 
 		this.store.set(key, value)
 		this.dispatch.emit(`state:${key}`, { key, value })
+		console.log(`update ${key}`)
 	}
 
-	reset(): void {
+	clear(): void {
 		this.store.clear()
 		this.listeners.clear()
+	}
+
+	reset<T extends StateEventKey>(event: T extends `${infer Category}:${string}` ? Category : never): void {
+		for (const [key, value] of this.store.entries()) {
+			if (key.includes(event))
+				this.store.delete(key)
+		}
 	}
 }

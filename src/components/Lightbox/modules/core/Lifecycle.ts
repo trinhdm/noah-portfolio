@@ -35,8 +35,10 @@ export class LightboxLifecycle implements ILifecycle {
 		this.registerHandlers()
 
 		const { index, target } = this.options
-		await this.getContent(target)
-		await this.getNavigation(index)
+		await Promise.all([
+			this.getContent(target),
+			this.getDirectory(index),
+		])
 	}
 
 	async handleOpen(): Promise<void> {
@@ -50,7 +52,7 @@ export class LightboxLifecycle implements ILifecycle {
 		this.dom.get('root').parentElement!.style.overflow = 'hidden'
 		this.dom.get('container')!.setAttribute('aria-hidden', 'false')
 
-		await this.animator.Root.fadeIn()
+		await this.animator.fadeIn()
 		this.media.play()
 		this.events.bind()
 
@@ -67,7 +69,7 @@ export class LightboxLifecycle implements ILifecycle {
 
 		this.media.stop()
 		this.events.unbind()
-		await this.animator.Root.fadeOut()
+		await this.animator.fadeOut()
 
 		this.dom.get('container')!.setAttribute('aria-hidden', 'true')
 		this.dom.get('root').parentElement!.style.overflow = 'auto'
@@ -80,8 +82,10 @@ export class LightboxLifecycle implements ILifecycle {
 		if (!this.isActive || !this.directory) return
 
 		const { index, target } = this.directory[dir]
-		await this.navigator.swapContent(target)
-		await this.getNavigation(index)
+		await Promise.all([
+			this.navigator.swapContent(target),
+			new Promise(res => setTimeout(() => res(this.getDirectory(index)), 1000)),
+		])
 	}
 
 	handleDestroy(): void {
@@ -147,7 +151,7 @@ export class LightboxLifecycle implements ILifecycle {
 		this.state.update('loaded:Media', true)
 	}
 
-	private async getNavigation(index: LightboxOptions['index']): Promise<void> {
+	private async getDirectory(index: LightboxOptions['index']): Promise<void> {
 		const base = { index },
 			config = this.directory ? base : Object.assign(this.options, base)
 
@@ -155,6 +159,7 @@ export class LightboxLifecycle implements ILifecycle {
 		this.directory = await this.navigator.configure(config)
 
 		await this.prefetch(this.directory)
+		this.state.update('loaded:Navigator', true)
 	}
 
 	private async prefetch(directory?: ArrowGroup): Promise<void> {
