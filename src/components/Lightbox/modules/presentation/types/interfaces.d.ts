@@ -38,7 +38,7 @@ export interface IDOM {
 	remove(): void
 	reset<K extends keyof LightboxElements>(key: K): void
 	setAnimate(value: LightboxAnimations = ''): void
-	setContent(content: HTMLElement | undefined): void
+	setContent(content?: HTMLElement): void
 	setState(state: LightboxStates): void
 	toggleDisable(): void
 	toggleIcons(): void
@@ -48,6 +48,7 @@ export interface IDOM {
 export interface IEvents {
 	bind(): void
 	unbind(): void
+	watch(elements: (HTMLElement | null | undefined)[]): Promise<Event[]>
 }
 
 

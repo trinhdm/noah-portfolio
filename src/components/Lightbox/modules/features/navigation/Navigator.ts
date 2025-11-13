@@ -42,11 +42,11 @@ extends LightboxMenu implements INavigator {
 			const currentEl = this.dom.get(element),
 				newEl = content.querySelector(selector)
 
-			this.pendingContent = content
-
 			if (currentEl && newEl) {
 				currentEl.replaceWith(newEl)
 				this.dom.reset(element)
+
+				this.pendingContent = content
 			}
 		}
 	}
@@ -61,6 +61,7 @@ extends LightboxMenu implements INavigator {
 
 	private async performSwap(): Promise<void> {
 		await this.animator.swap('out')
+		console.log('pendingContent', this.pendingContent)
 		this.dom.setContent(this.pendingContent)
 		this.media.load()
 		await this.animator.swap('in')
@@ -87,7 +88,7 @@ extends LightboxMenu implements INavigator {
 		this.isSwapping = true
 
 		await this.setSwap<T>(target)
-		if (!this.pendingContent) return
+		if (!this.pendingContent?.children) return
 
 		const message = 'LightboxNavigator.swapContent() failed'
 		const timeline = [

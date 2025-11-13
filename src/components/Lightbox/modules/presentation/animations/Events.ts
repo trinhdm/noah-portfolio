@@ -24,8 +24,8 @@ export class LightboxEvents implements IEvents {
 	private bindClicks(): void {
 		const arrows = this.dom.get('arrows'),
 			exit = this.dom.get('exit'),
-			root = this.dom.get('root'),
-			video = this.dom.get('video')
+			player = this.dom.get('player'),
+			root = this.dom.get('root')
 
 		if (root) {
 			this.handleClick(root, (event: MouseEvent) => {
@@ -38,12 +38,12 @@ export class LightboxEvents implements IEvents {
 		if (exit)
 			this.handleClick(exit, () => this.dispatch.emit('close'))
 
-		if (video) {
-			this.handleClick(video, () => {
-				console.log('click123')
-				this.dispatch.emit('media')
-			})
-		}
+		// if (player) {
+		// 	this.handleClick(player, () => {
+		// 		console.log('click123')
+		// 		this.dispatch.emit('media')
+		// 	})
+		// }
 
 		for (const arrow of arrows) {
 			const direction = arrow.dataset.direction as ArrowDirections
@@ -145,5 +145,48 @@ export class LightboxEvents implements IEvents {
 	unbind(): void {
 		this.handlers.forEach(removeHandler => removeHandler())
 		this.handlers = []
+	}
+
+	async watch(elements: (HTMLElement | null | undefined)[]): Promise<Event[]> {
+		const events = {
+			iframe: 'load',
+			img: 'load',
+			video: 'loadeddata',
+		} as Partial<Record<keyof HTMLElementTagNameMap, keyof HTMLElementEventMap>>
+
+		return await Promise.all(
+			elements.map(async element => {
+				const tag = element?.tagName.toLowerCase() as keyof HTMLElementTagNameMap
+
+				if (!Object.hasOwn(events, tag)) {
+					throw new Error(tag
+						? `${tag} is missing event name`
+						: `${element} is missing tag name`)
+				}
+
+				const event = events[tag] as keyof HTMLElementEventMap
+				return await this.listen(element, event)
+			})
+		)
+	}
+
+	private async listen<K extends keyof HTMLElementEventMap>(
+		element: HTMLElement | null | undefined,
+		event: K
+	): Promise<Event> {
+		return new Promise<Event>((resolve, reject) => {
+			if (!element) return reject(new Error(`${element} is undefined`))
+
+			console.log({ element, event })
+			element.addEventListener<K>(event, resolve, { once: true })
+			element.addEventListener('error', reject, { once: true })
+
+			// element.addEventListener<K>(event, () => {
+			// 	resolve()
+			// }, { once: true })
+			// element.addEventListener('error', () => {
+			// 	reject(new Error('video loading failed'))
+			// }, { once: true })
+		})
 	}
 }
