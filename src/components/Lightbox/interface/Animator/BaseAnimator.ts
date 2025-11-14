@@ -1,7 +1,7 @@
 import { AnimationService as Animation, AnimationOptions } from '../../../../services'
 import type { FilterValues } from '../../../../types'
 import type { IDOM } from '../types/interfaces'
-import type { IState } from '../../manager'
+import type { IState } from '../../app'
 import type { LightboxElement, LightboxElements } from '../../types'
 
 

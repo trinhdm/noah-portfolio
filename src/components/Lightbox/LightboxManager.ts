@@ -7,7 +7,7 @@ import type {
 	IManager,
 	IState,
 	LightboxEventMap,
-} from './manager'
+} from './app'
 
 
 export class LightboxManager implements IManager {

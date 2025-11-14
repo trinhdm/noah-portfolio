@@ -4,7 +4,7 @@ import { LightboxSelector } from '../../utils'
 import type { FilterValues } from '../../../../types'
 import type { IAnimator, IDOM } from '../../interface'
 import type { IContent, IMedia, INavigator } from '../types/interfaces'
-import type { IDispatcher, IState } from '../../manager'
+import type { IDispatcher, IState } from '../../app'
 import type { LightboxElements, LightboxOptions } from '../../types'
 
 

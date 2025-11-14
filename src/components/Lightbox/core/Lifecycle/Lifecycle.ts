@@ -4,7 +4,7 @@ import type { Entries } from '../../../../types'
 import type { HandlerFor } from '../../../../services'
 import type { IAnimator, IDOM, IEvents } from '../../interface'
 import type { IContent, IMedia, INavigator } from '../../features'
-import type { IDispatcher, IState, LightboxEventMap } from '../../manager'
+import type { IDispatcher, IState, LightboxEventMap } from '../../app'
 import type { ILifecycle } from '../types/interfaces'
 
 

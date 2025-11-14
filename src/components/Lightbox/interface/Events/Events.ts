@@ -1,5 +1,5 @@
 import type { ArrowDirections } from '../../types'
-import type { IDispatcher } from '../../manager'
+import type { IDispatcher } from '../../app'
 import type { IDOM, IEvents } from '../types/interfaces'
 
 
