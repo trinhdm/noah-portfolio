@@ -1,5 +1,3 @@
-export { LightboxController } from './Controller.ts'
-export { LightboxDispatcher } from './Dispatcher.ts'
-export { LightboxState } from './State.ts'
+export type { IFactory, ILifecycle } from './types/interfaces.d.ts'
 
 export type * from './types/index.ts'

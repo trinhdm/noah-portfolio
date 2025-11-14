@@ -1,5 +1,1 @@
-export type {
-	IController,
-	IDispatcher,
-	IState,
-} from './interfaces'
+export type { LightboxEventMap } from './core.types.d.ts'

@@ -1,11 +1,12 @@
-import { LightboxClass } from '../utils/index.ts'
-import type { ArrowGroup, LightboxOptions } from '../types/index.ts'
-import type { Entries } from '../../../types/index.ts'
-import type { HandlerFor } from '../../../services/index.ts'
+import { LightboxClass } from '../utils'
+import type { ArrowGroup, LightboxOptions } from '../types'
+import type { Entries } from '../../../types'
+import type { HandlerFor } from '../../../services'
 import type { LightboxEventMap } from './types/core.types'
-import type { IAnimator, IDOM, IEvents } from '../presentation/index.ts'
-import type { IContent, IMedia, INavigator } from '../features/index.ts'
-import type { IDispatcher, ILifecycle, IState } from './types/interfaces'
+import type { IAnimator, IDOM, IEvents } from '../interface'
+import type { IContent, IMedia, INavigator } from '../features'
+import type { IDispatcher, IState } from '../manager'
+import type { ILifecycle } from './types/interfaces'
 
 
 export class LightboxLifecycle implements ILifecycle {
