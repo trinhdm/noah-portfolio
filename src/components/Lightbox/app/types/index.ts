@@ -5,4 +5,4 @@ export type {
 	IState,
 } from './interfaces.d.ts'
 
-export type { LightboxEventMap, LightboxStateMap } from './manager.types.d.ts'
+export type { LightboxEventMap, LightboxStateMap } from './app.types.d.ts'

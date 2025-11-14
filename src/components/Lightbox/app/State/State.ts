@@ -1,5 +1,5 @@
 import { LightboxDispatcher } from '../Dispatcher'
-import type { LightboxStateMap, StateEventKey } from '../types/manager.types'
+import type { LightboxStateMap, StateEventKey } from '../types/app.types'
 import type { IDispatcher, IState } from '../types/interfaces'
 
 

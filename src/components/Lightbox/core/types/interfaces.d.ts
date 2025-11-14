@@ -4,7 +4,7 @@ import type {
 	LightboxOptions,
 } from '../../types'
 
-import { LightboxEventMap } from '../../manager'
+import { LightboxEventMap } from '../../app'
 
 
 export interface IFactory {

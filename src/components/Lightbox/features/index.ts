@@ -2,4 +2,4 @@ export { LightboxContent } from './Content'
 export { LightboxMedia } from './Media'
 export { LightboxNavigator } from './Navigator'
 
-export type * from './types'
+export type * from './types/index.ts'

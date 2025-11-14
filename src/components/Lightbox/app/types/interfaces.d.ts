@@ -4,7 +4,7 @@ import type {
 	LightboxEventMap,
 	LightboxStateMap,
 	StateEventKey,
-} from './manager.types'
+} from './app.types'
 
 
 export interface IController {

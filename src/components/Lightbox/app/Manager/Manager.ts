@@ -1,5 +1,8 @@
-import { LightboxController, LightboxDispatcher, LightboxState } from './manager'
-import type { LightboxOptions } from './types'
+import {
+	LightboxController,
+	LightboxDispatcher,
+	LightboxState,
+} from '../index'
 
 import type {
 	IController,
@@ -7,7 +10,9 @@ import type {
 	IManager,
 	IState,
 	LightboxEventMap,
-} from './app'
+} from '../types'
+
+import type { LightboxOptions } from '../../types'
 
 
 export class LightboxManager implements IManager {
