@@ -1,6 +1,10 @@
-import { EventDispatcher } from '../../../../services/index.ts'
-import type { IDispatcher } from '../types/interfaces'
-import type { LightboxEventMap, LightboxStateMap } from '../types'
+import { EventDispatcher } from '../../../../services'
+
+import type {
+	IDispatcher,
+	LightboxEventMap,
+	LightboxStateMap,
+} from '@app'
 
 
 export class LightboxDispatcher<E extends LightboxEventMap | LightboxStateMap>

@@ -1,7 +1,7 @@
 import { AnimatorFactory } from '../AnimatorFactory.ts'
-import { AnimationService as Animation } from '../../../../../services/index.ts'
+import { AnimationService as Animation } from '../../../../../services'
 import { BaseAnimator, type AnimatorContext } from '../BaseAnimator.ts'
-import type { LightboxElements } from '../../../types/index.ts'
+import type { LightboxElements } from '@lightbox/types'
 
 
 class MediaAnimator extends BaseAnimator {

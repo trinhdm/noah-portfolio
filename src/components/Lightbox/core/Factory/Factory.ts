@@ -1,7 +1,7 @@
-import template from '../../utils/template.ts'
-import { LightboxClass } from '../../utils/index.ts'
-import type { LightboxElements, LightboxOptions } from '../../types/index.ts'
-import type { IFactory } from '../types/interfaces'
+import template from '@lightbox/utils/template.ts'
+import { LightboxClass } from '@lightbox/utils'
+import type { LightboxElements, LightboxOptions } from '@lightbox/types'
+import type { IFactory } from '@core'
 
 
 export class LightboxFactory implements IFactory {

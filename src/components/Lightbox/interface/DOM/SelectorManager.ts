@@ -2,10 +2,10 @@ import {
 	extractCacheKey,
 	LightboxBlockSelector,
 	LightboxSelector ,
-} from '../../utils/index.ts'
+} from '@lightbox/utils'
 
-import type { ISelector } from '../types/interfaces'
-import type { LightboxElements } from '../../types/index.ts'
+import type { ISelector } from '@interface/types/interfaces'
+import type { LightboxElements } from '@lightbox/types'
 
 
 export class SelectorManager implements ISelector {

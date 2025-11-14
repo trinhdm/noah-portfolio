@@ -1,6 +1,6 @@
-import { LightboxDispatcher } from '../Dispatcher'
-import type { LightboxStateMap, StateEventKey } from '../types/app.types'
-import type { IDispatcher, IState } from '../types/interfaces'
+import { LightboxDispatcher } from '@app'
+import type { IDispatcher, IState } from '@app'
+import type { LightboxStateMap, StateEventKey } from '@app/types/app.types'
 
 
 export class LightboxState implements IState {

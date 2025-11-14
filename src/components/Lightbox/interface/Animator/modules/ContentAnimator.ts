@@ -1,6 +1,6 @@
 import { AnimatorFactory } from '../AnimatorFactory.ts'
-import { LightboxBlockSelector } from '../../../utils/index.ts'
 import { BaseAnimator, type AnimatorContext } from '../BaseAnimator.ts'
+import { LightboxBlockSelector } from '@lightbox/utils'
 
 
 export class ContentAnimator extends BaseAnimator {

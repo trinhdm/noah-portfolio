@@ -1,11 +1,11 @@
 import { LightboxClass } from '../../utils'
-import type { ArrowGroup, LightboxOptions } from '../../types'
+import type { ArrowGroup, LightboxOptions } from '@lightbox/types'
 import type { Entries } from '../../../../types'
 import type { HandlerFor } from '../../../../services'
-import type { IAnimator, IDOM, IEvents } from '../../interface'
-import type { IContent, IMedia, INavigator } from '../../features'
-import type { IDispatcher, IState, LightboxEventMap } from '../../app'
-import type { ILifecycle } from '../types/interfaces'
+import type { IAnimator, IDOM, IEvents } from '@interface'
+import type { IContent, IMedia, INavigator } from '@features'
+import type { IDispatcher, IState, LightboxEventMap } from '@app'
+import type { ILifecycle } from '@core'
 
 
 export class LightboxLifecycle implements ILifecycle {

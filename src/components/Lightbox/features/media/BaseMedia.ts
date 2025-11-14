@@ -1,6 +1,6 @@
 import Hls from 'hls.js'
 import * as Plyr from 'plyr'
-import type { IMedia } from '../types/interfaces'
+import type { IMedia } from '@features'
 import type { VideoMediaOptions } from '../types/features.types'
 
 

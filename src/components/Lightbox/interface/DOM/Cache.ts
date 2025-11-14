@@ -1,6 +1,6 @@
 import { SelectorManager } from './SelectorManager.ts'
-import type { ICache } from '../types/interfaces'
-import type { LightboxElement, LightboxElements } from '../../types/index.ts'
+import type { ICache } from '@interface/types/interfaces.d.ts'
+import type { LightboxElement, LightboxElements } from '@lightbox/types'
 
 
 export class LightboxCache implements ICache {

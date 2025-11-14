@@ -1,8 +1,8 @@
-import { findParentBlock } from '../../../../utils/index.ts'
-import { ContentService } from '../../../../services/index.ts'
+import { findParentBlock } from '../../../../utils'
+import { ContentService } from '../../../../services'
 import { LightboxBlocks } from './Blocks.ts'
-import { LightboxBlockClass } from '../../utils/index.ts'
-import type { IContent } from '../types/interfaces'
+import { LightboxBlockClass } from '@lightbox/utils'
+import type { IContent } from '@features'
 
 
 export class LightboxContent

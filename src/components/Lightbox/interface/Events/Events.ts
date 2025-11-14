@@ -1,6 +1,6 @@
-import type { ArrowDirections } from '../../types'
-import type { IDispatcher } from '../../app'
-import type { IDOM, IEvents } from '../types/interfaces'
+import type { ArrowDirections } from '@lightbox/types'
+import type { IDispatcher } from '@app'
+import type { IDOM, IEvents } from '@interface'
 
 
 export class LightboxEvents implements IEvents {

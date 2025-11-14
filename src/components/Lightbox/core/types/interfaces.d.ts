@@ -1,10 +1,10 @@
+import type { LightboxEventMap } from '@app'
+
 import type {
 	ArrowDirections,
 	LightboxElements,
 	LightboxOptions,
-} from '../../types'
-
-import { LightboxEventMap } from '../../app'
+} from '@lightbox/types'
 
 
 export interface IFactory {

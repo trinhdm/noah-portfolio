@@ -1,4 +1,4 @@
-import type { ArrowDirections } from '../../types'
+import type { ArrowDirections } from '@lightbox/types'
 
 
 export interface LightboxEventMap {

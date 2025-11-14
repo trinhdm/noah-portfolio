@@ -1,8 +1,8 @@
 import { AnimatorFactory } from './AnimatorFactory.ts'
 import { AnimationService as Animation } from '../../../../services'
 import { BaseAnimator, type AnimatorContext } from './BaseAnimator.ts'
-import type { IAnimator, IDOM } from '../types/interfaces'
-import type { IState } from '../../app'
+import type { IAnimator, IDOM } from '@interface'
+import type { IState } from '@app'
 
 import './modules/ContentAnimator.ts'
 import './modules/MediaAnimator.ts'

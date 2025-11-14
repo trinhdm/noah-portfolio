@@ -1,7 +1,7 @@
-import { LightboxSelector } from '../../utils/index.ts'
-import type { ArrowGroup, LightboxOptions } from '../../types/index.ts'
-import type { IContent, IMenu } from '../types/interfaces'
-import type { IDOM } from '../../interface/index.ts'
+import { LightboxSelector } from '@lightbox/utils'
+import type { ArrowGroup, LightboxOptions } from '@lightbox/types'
+import type { IContent, IMenu } from '@features/types/interfaces'
+import type { IDOM } from '@interface'
 import type { OnlyRequired } from '../../../../types/globals.types'
 
 

@@ -1,4 +1,4 @@
-import type { LightboxElements } from '../../types/index.ts'
+import type { LightboxElements } from '@lightbox/types'
 
 import type {
 	DataValues,

@@ -1,8 +1,8 @@
 import { BaseMedia } from './BaseMedia.ts'
 import { MediaFactory } from './MediaFactory.ts'
-import type { IDispatcher } from '../../app'
-import type { IDOM } from '../../interface'
-import type { IMedia } from '../types/interfaces'
+import type { IDispatcher } from '@app'
+import type { IDOM } from '@interface'
+import type { IMedia } from '@features'
 import type { VideoMediaOptions } from '../types/features.types'
 
 

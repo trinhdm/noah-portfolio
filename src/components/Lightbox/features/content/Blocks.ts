@@ -1,8 +1,8 @@
-import { getBlockType, findChildBy, isHeaderTag } from '../../../../utils/index.ts'
-import { LightboxArias, LightboxClass } from '../../utils/index.ts'
-import type { BlockHandler } from '../types/features.types'
-import type { BlockTypes } from '../../../../types/index.ts'
-import type { IBlocks } from '../types/interfaces'
+import { getBlockType, findChildBy, isHeaderTag } from '../../../../utils'
+import { LightboxArias, LightboxClass } from '@lightbox/utils'
+import type { BlockHandler } from '@features/types/features.types'
+import type { BlockTypes } from '../../../../types'
+import type { IBlocks } from '@features/types/interfaces.d.ts'
 
 
 class BlockDispatcher {

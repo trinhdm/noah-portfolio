@@ -11,6 +11,20 @@
 		"allowImportingTsExtensions": true,
 		"forceConsistentCasingInFileNames": true,
 
+		"baseUrl": "src",
+		"paths": {
+			"@app": ["components/Lightbox/app/index.ts"],
+			"@app/*": ["components/Lightbox/app/*"],
+			"@core": ["components/Lightbox/core/index.ts"],
+			"@core/*": ["components/Lightbox/core/*"],
+			"@features": ["components/Lightbox/features/index.ts"],
+			"@features/*": ["components/Lightbox/features/*"],
+			"@interface": ["components/Lightbox/interface/index.ts"],
+			"@interface/*": ["components/Lightbox/interface/*"],
+			"@lightbox/*": ["components/Lightbox/*"],
+			"@types/*": ["components/Lightbox/types/*"],
+			"@utils": ["utils/index.ts"]
+		},
 		"outDir": "./dist"
 	},
 	"include": [

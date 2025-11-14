@@ -1,5 +1,5 @@
 import { BaseAnimator, type AnimatorContext } from './BaseAnimator.ts'
-import { LightboxElements } from '../../types/lightbox.types'
+import { LightboxElements } from '@lightbox/types'
 
 
 // type AnimatorModule = new (ctx: AnimatorContext) => BaseAnimator & {

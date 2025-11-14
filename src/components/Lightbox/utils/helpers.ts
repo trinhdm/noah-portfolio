@@ -1,5 +1,5 @@
 import { LightboxSelector } from './constants'
-import type { LightboxElements } from '../types'
+import type { LightboxElements } from '@lightbox/types'
 
 
 export const extractCacheKey = (element: Element | null): keyof LightboxElements | undefined => {

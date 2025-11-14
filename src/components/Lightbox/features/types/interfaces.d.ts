@@ -1,11 +1,11 @@
-import type { ArrowGroup, LightboxOptions } from '../../types/index.ts'
+import type { ArrowGroup, LightboxOptions } from '@lightbox/types'
 import type { BlockHandler, VideoMediaOptions } from './features.types'
 
 import type {
 	BlockTypes,
 	OnlyRequired,
 	PageDetails,
-} from '../../../../types/index.ts'
+} from '../../../../types'
 
 
 export interface IBlocks {

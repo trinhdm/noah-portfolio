@@ -1,8 +1,8 @@
 import { AnimationService as Animation, AnimationOptions } from '../../../../services'
 import type { FilterValues } from '../../../../types'
-import type { IDOM } from '../types/interfaces'
-import type { IState } from '../../app'
-import type { LightboxElement, LightboxElements } from '../../types'
+import type { IDOM } from '@interface'
+import type { IState } from '@app'
+import type { LightboxElement, LightboxElements } from '@lightbox/types'
 
 
 export interface AnimatorContext {
