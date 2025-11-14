@@ -1,7 +1,7 @@
 import { LightboxSelector } from '../../utils/index.ts'
 import type { ArrowGroup, LightboxOptions } from '../../types/index.ts'
 import type { IContent, IMenu } from '../types/interfaces'
-import type { IDOM } from '../../presentation/index.ts'
+import type { IDOM } from '../../interface/index.ts'
 import type { OnlyRequired } from '../../../../types/globals.types'
 
 
@@ -9,6 +9,7 @@ interface NavigatorContext {
 	content: IContent
 	dom: IDOM
 }
+
 
 export class LightboxMenu implements IMenu {
 	protected readonly content: IContent
