@@ -1,4 +1,4 @@
-import { BaseMedia } from '../media/BaseMedia'
+import { BaseMedia } from '../Media/BaseMedia'
 
 
 export type BlockHandler = (block: HTMLElement) => HTMLElement | null

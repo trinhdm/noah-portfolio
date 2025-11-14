@@ -1,5 +1,5 @@
 import type { HandlerFor } from '../../../../services'
-import type { LightboxEventMap } from '../../core/types/core.types'
+import type { LightboxEventMap } from '../../core'
 import type { LightboxStateMap, StateEventKey } from './manager.types'
 
 

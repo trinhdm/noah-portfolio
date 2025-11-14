@@ -1,5 +1,5 @@
-export { LightboxController } from './Controller.ts'
-export { LightboxDispatcher } from './Dispatcher.ts'
-export { LightboxState } from './State.ts'
+export { LightboxController } from './Controller'
+export { LightboxDispatcher } from './Dispatcher'
+export { LightboxState } from './State'
 
 export type * from './types/index.ts'

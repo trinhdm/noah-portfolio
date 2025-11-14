@@ -1,6 +1,6 @@
-import { LightboxDispatcher } from './Dispatcher.ts'
-import type { LightboxStateMap, StateEventKey } from './types/manager.types.d.ts'
-import type { IDispatcher, IState } from './types/interfaces.d.ts'
+import { LightboxDispatcher } from '../Dispatcher/Dispatcher.ts'
+import type { LightboxStateMap, StateEventKey } from '../types/manager.types'
+import type { IDispatcher, IState } from '../types/interfaces'
 
 
 export class LightboxState implements IState {

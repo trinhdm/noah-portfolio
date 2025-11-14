@@ -1,11 +1,11 @@
-import { AnimationService as Animation } from '../../../../services/index.ts'
+import { AnimationService as Animation } from '../../../../services'
 import { LightboxMenu } from './Menu.ts'
-import { LightboxSelector } from '../../utils/index.ts'
-import type { FilterValues } from '../../../../types/index.ts'
-import type { IAnimator, IDOM } from '../../interface/index.ts'
+import { LightboxSelector } from '../../utils'
+import type { FilterValues } from '../../../../types'
+import type { IAnimator, IDOM } from '../../interface'
 import type { IContent, IMedia, INavigator } from '../types/interfaces'
-import type { IDispatcher, IState } from '../../manager/index.ts'
-import type { LightboxElements, LightboxOptions } from '../../types/index.ts'
+import type { IDispatcher, IState } from '../../manager'
+import type { LightboxElements, LightboxOptions } from '../../types'
 
 
 interface NavigatorContext {

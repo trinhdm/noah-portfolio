@@ -1,3 +1,4 @@
-export type { IFactory, ILifecycle } from './types/interfaces.d.ts'
+export { LightboxFactory } from './Factory'
+export { LightboxLifecycle } from './Lifecycle'
 
 export type * from './types/index.ts'

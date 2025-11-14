@@ -1,15 +1,15 @@
 import { AnimatorFactory } from './AnimatorFactory.ts'
-import { AnimationService as Animation } from '../../../../services/index.ts'
+import { AnimationService as Animation } from '../../../../services'
 import { BaseAnimator, type AnimatorContext } from './BaseAnimator.ts'
 import type { IAnimator, IDOM } from '../types/interfaces'
-import type { IState } from '../../core/types/interfaces'
+import type { IState } from '../../manager'
 
 import './modules/ContentAnimator.ts'
 import './modules/MediaAnimator.ts'
 import './modules/StructureAnimator.ts'
 
 
-export class LightboxAnimator extends BaseAnimator
+export class AnimatorController extends BaseAnimator
 implements IAnimator {
 	private Content: BaseAnimator
 	private Media: BaseAnimator

@@ -1,5 +1,5 @@
 export { LightboxContent } from './Content'
-export { LightboxNavigator } from './Navigator'
 export { LightboxMedia } from './Media'
+export { LightboxNavigator } from './Navigator'
 
 export type * from './types'

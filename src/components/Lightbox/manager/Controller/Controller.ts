@@ -2,22 +2,22 @@ import {
 	LightboxAnimator,
 	LightboxDOM,
 	LightboxEvents,
-} from '../interface/index.ts'
+} from '../../interface/index.ts'
 
 import {
 	LightboxContent,
 	LightboxMedia,
 	LightboxNavigator,
-} from '../features'
+} from '../../features/index.ts'
 
-import { LightboxFactory } from '../core/Factory.ts'
-import { LightboxLifecycle } from '../core/Lifecycle.ts'
+import { LightboxFactory } from '../../core/Factory/Factory.ts'
+import { LightboxLifecycle } from '../../core/Lifecycle/Lifecycle.ts'
 
-import type { IAnimator, IDOM, IEvents } from '../interface/index.ts'
-import type { IContent, IMedia, INavigator } from '../features'
-import type { IController, IDispatcher, IState } from './types/interfaces.d.ts'
-import type { ILifecycle } from '../core'
-import type { LightboxElements, LightboxOptions } from '../types'
+import type { IAnimator, IDOM, IEvents } from '../../interface/index.ts'
+import type { IContent, IMedia, INavigator } from '../../features/index.ts'
+import type { IController, IDispatcher, IState } from '../types/interfaces'
+import type { ILifecycle } from '../../core/index.ts'
+import type { LightboxElements, LightboxOptions } from '../../types/index.ts'
 
 
 export class LightboxController implements IController {
