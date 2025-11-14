@@ -1,4 +1,4 @@
-import { LightboxDispatcher } from '../Dispatcher/Dispatcher.ts'
+import { LightboxDispatcher } from '../Dispatcher'
 import type { LightboxStateMap, StateEventKey } from '../types/manager.types'
 import type { IDispatcher, IState } from '../types/interfaces'
 

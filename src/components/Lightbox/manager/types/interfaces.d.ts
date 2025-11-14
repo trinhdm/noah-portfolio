@@ -1,6 +1,10 @@
 import type { HandlerFor } from '../../../../services'
-import type { LightboxEventMap } from '../../core'
-import type { LightboxStateMap, StateEventKey } from './manager.types'
+
+import type {
+	LightboxEventMap,
+	LightboxStateMap,
+	StateEventKey,
+} from './manager.types'
 
 
 export interface IController {

@@ -1,1 +1,1 @@
-export { LightboxDispatcher } from './/Dispatcher.ts'
+export { LightboxDispatcher } from './Dispatcher.ts'

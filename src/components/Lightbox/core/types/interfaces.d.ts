@@ -2,9 +2,9 @@ import type {
 	ArrowDirections,
 	LightboxElements,
 	LightboxOptions,
-} from '../../types/index.ts'
+} from '../../types'
 
-import type { LightboxEventMap } from './core.types'
+import { LightboxEventMap } from '../../manager'
 
 
 export interface IFactory {
